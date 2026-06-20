@@ -2,7 +2,12 @@
 
 Snapshot para retomar el proyecto en otra sesión (humana o con Claude Code).
 
-**Versión:** v1.14 (Wake Lock: la pantalla no se apaga con el teclado conectado)
+**Versión:** v1.15 (fix: volumen de canal a 0 ya no congela el looper; bucle blindado)
+
+**Fix (v1.15):** un canal con **volumen 0** hacía que `synthNoteOn` llamara a
+`exponentialRampToValueAtTime(0)` → **excepción** que mataba el bucle `requestAnimationFrame`
+(se paraba TODO y no volvía). Arreglado: el pico se acota a un mínimo (`Math.max(0.0002, …)`), y
+`frame()` ahora va en `try/catch` y **siempre re-agenda** el rAF (un fallo puntual no congela la app).
 
 **Publicada:** GitHub `reivajsk8-design/Pianova` → Netlify **https://pianova.netlify.app**
 (auto-deploy en cada `git push` a `main`). `_redirects` (`/  /pianova.html  200`) sirve la app en

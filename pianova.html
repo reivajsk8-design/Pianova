@@ -625,7 +625,8 @@
       lfo.connect(lg); oscs.forEach(o => lg.connect(o.detune));
       lfo.start(t); oscs.push(lfo);
     }
-    const peak = (preset.peak[0] + preset.peak[1] * vel) * (gainMul == null ? 1 : gainMul);
+    // pico nunca 0: exponentialRampToValueAtTime(0) lanza error y mataría el bucle (vol de canal a 0)
+    const peak = Math.max(0.0002, (preset.peak[0] + preset.peak[1] * vel) * (gainMul == null ? 1 : gainMul));
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(peak, t + preset.attack);
     if (!preset.sustain) g.gain.exponentialRampToValueAtTime(0.0001, t + preset.decay);
@@ -2013,40 +2014,47 @@
   function frame(now) {
     const dt = Math.min((now - last) / 1000, 0.05);
     last = now;
-    lpTick(dt);
-    if (tab === 'looper') { lpDraw(); requestAnimationFrame(frame); return; }
-    if (playing) {
-      const bpm = parseFloat(tempoEl.value);
-      if (mode === 'practice') {
-        if (idx >= notes.length) finish();
-        else {
-          const target = notes[idx].startBeat;
-          if (!waiting) {
-            songBeat += dt * (bpm / 60);
-            if (songBeat >= target) { songBeat = target; waiting = true; }
-          }
-        }
-      } else if (mode === 'playalong') {
-        if (stepIdx >= steps.length) finish();
-        else {
-          const target = steps[stepIdx].beat;
-          if (!waiting) {
+    try {                                 // un fallo puntual no debe congelar la app
+      lpTick(dt);
+      if (tab === 'looper') {
+        lpDraw();
+      } else {
+        if (playing) {
+          const bpm = parseFloat(tempoEl.value);
+          if (mode === 'practice') {
+            if (idx >= notes.length) finish();
+            else {
+              const target = notes[idx].startBeat;
+              if (!waiting) {
+                songBeat += dt * (bpm / 60);
+                if (songBeat >= target) { songBeat = target; waiting = true; }
+              }
+            }
+          } else if (mode === 'playalong') {
+            if (stepIdx >= steps.length) finish();
+            else {
+              const target = steps[stepIdx].beat;
+              if (!waiting) {
+                const prev = songBeat;
+                songBeat += dt * (bpm / 60);
+                if (songBeat >= target) { songBeat = target; waiting = true; }
+                playAutoAt(prev, songBeat);   // la mano que no practicas suena sola
+              }
+            }
+          } else if (mode === 'listen') {
             const prev = songBeat;
             songBeat += dt * (bpm / 60);
-            if (songBeat >= target) { songBeat = target; waiting = true; }
-            playAutoAt(prev, songBeat);   // la mano que no practicas suena sola
+            playFullAt(prev, songBeat);
+            if (songBeat > lastFull + 2) finish();
           }
         }
-      } else if (mode === 'listen') {
-        const prev = songBeat;
-        songBeat += dt * (bpm / 60);
-        playFullAt(prev, songBeat);
-        if (songBeat > lastFull + 2) finish();
+        updateSeek();
+        draw();
       }
+    } catch (e) {
+      if (window.console && console.error) console.error('Pianova frame:', e);
     }
-    updateSeek();
-    draw();
-    requestAnimationFrame(frame);
+    requestAnimationFrame(frame);          // SIEMPRE seguir el bucle
   }
 
   // ---------- Persistencia (localStorage) ----------
