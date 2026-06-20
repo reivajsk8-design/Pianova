@@ -111,7 +111,7 @@
   main{flex:1; display:flex; flex-direction:column; padding:18px 22px 24px}
   .stage{flex:1; border:1px solid var(--line); border-radius:16px; overflow:hidden;
     background:#0c0e13; box-shadow:0 20px 60px rgba(0,0,0,.45); min-height:380px}
-  canvas{display:block; width:100%; height:100%; touch-action:none}
+  canvas{display:block; width:100%; height:100%; touch-action:pan-y}  /* arrastre vertical = scroll; taps y edición horizontal siguen; sin zoom accidental */
   .foot{display:flex; align-items:center; gap:26px; flex-wrap:wrap; margin-top:14px}
   .status{font-family:var(--disp); font-weight:500; font-size:15px}
   .stats{display:flex; gap:26px; margin-left:auto}
@@ -943,28 +943,97 @@
     return buf;
   }
   let exporting = false;
+  // Sintetizador programado a un instante 'when' (para exportar con timing exacto, sin depender de rAF).
+  function synthAt(midi, vel, preset, gainMul, when, durSec) {
+    const freq = 440 * Math.pow(2, (midi - 69) / 12);
+    const g = actx.createGain(); let out = g;
+    if (preset.filter) {
+      const f = actx.createBiquadFilter(); f.type = 'lowpass';
+      f.frequency.setValueAtTime(Math.min(freq * preset.filter.start, preset.filter.startMax), when);
+      f.frequency.exponentialRampToValueAtTime(Math.max(freq * preset.filter.end, preset.filter.endMin), when + preset.filter.time);
+      g.connect(f); out = f;
+    }
+    out.connect(masterDest());
+    const oscs = [];
+    for (const part of preset.partials) {
+      const o = actx.createOscillator(); o.type = part.type; o.frequency.value = freq * part.ratio;
+      if (part.detune) o.detune.value = part.detune;
+      const pg = actx.createGain(); pg.gain.value = part.gain; o.connect(pg); pg.connect(g); oscs.push(o);
+    }
+    if (preset.vibrato) {
+      const lfo = actx.createOscillator(); lfo.frequency.value = preset.vibrato.rate;
+      const lg = actx.createGain(); lg.gain.value = preset.vibrato.depth;
+      lfo.connect(lg); oscs.forEach(o => lg.connect(o.detune)); oscs.push(lfo);
+    }
+    const peak = Math.max(0.0002, (preset.peak[0] + preset.peak[1] * vel) * (gainMul == null ? 1 : gainMul));
+    const rel = preset.release || 0.18;
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.exponentialRampToValueAtTime(peak, when + preset.attack);
+    let endT;
+    if (preset.sustain) {
+      const relStart = when + Math.max(preset.attack, durSec);
+      g.gain.setValueAtTime(peak, relStart);
+      g.gain.exponentialRampToValueAtTime(0.0001, relStart + rel);
+      endT = relStart + rel;
+    } else {
+      g.gain.exponentialRampToValueAtTime(0.0001, when + preset.decay);
+      endT = when + preset.decay;
+    }
+    oscs.forEach(o => { o.start(when); o.stop(endT + 0.05); });
+  }
+  // Programa una nota de un canal en el instante absoluto 'when' (mismo enrutado que en vivo).
+  function scheduleChannelNote(ch, midi, vel, durBeats, when, beatSec) {
+    const sound = (ch && ch.sound) || 'synth:piano';
+    const vol = (ch && ch.vol != null) ? ch.vol : 0.85;
+    const v = (vel == null ? 0.8 : vel) * vol;
+    const durSec = Math.max(0.05, (durBeats || 0.25) * beatSec);
+    if (sound.indexOf('sample:') === 0) {
+      const sm = samples[sound.slice(7)];
+      if (sm && sm.buffer) {
+        const d = sm.buffer.duration, ts = (sm.trimStart || 0) * d, te = (sm.trimEnd != null ? sm.trimEnd : 1) * d;
+        const src = actx.createBufferSource(); src.buffer = sm.buffer;
+        if (sm.melodic) src.playbackRate.value = Math.pow(2, (midi - (sm.base || 60)) / 12);
+        const gg = actx.createGain(); gg.gain.value = Math.max(0, Math.min(1, v));
+        src.connect(gg); gg.connect(masterDest());
+        try { src.start(when, Math.max(0, ts), Math.max(0.02, te - ts)); } catch (e) {}
+      }
+      return;
+    }
+    if (sound === 'drumkit') { const grp = drumKit && drumForNote(midi); if (grp) { try { drumKit.start({ note: grp, velocity: Math.max(1, Math.round(v * 127)), time: when }); } catch (e) {} } return; }
+    if (sound.indexOf('drum:') === 0) { if (drumKit) { try { drumKit.start({ note: sound.slice(5), velocity: Math.max(1, Math.round(v * 127)), time: when }); } catch (e) {} } return; }
+    if (sound.indexOf('sf:') === 0) { const p = sfCache[sound.slice(3)]; if (p) { try { p.start({ note: midi, velocity: Math.max(1, Math.round(v * 127)), time: when, duration: durSec }); } catch (e) {} } return; }
+    const preset = SYNTH[sound.indexOf('synth:') === 0 ? sound.slice(6) : 'piano'] || SYNTH.piano;
+    synthAt(midi, (vel == null ? 0.8 : vel), preset, vol, when, durSec);
+  }
   async function exportLooperAudio() {
     if (exporting) return;
     ensureAudio();
     if (!lp.channels.some(c => c.notes.length)) { lpExportBtn.textContent = 'Nada que exportar'; setTimeout(() => lpExportBtn.textContent = '⬇ Exportar audio (WAV)', 1500); return; }
     if (typeof MediaRecorder === 'undefined') { lpExportBtn.textContent = 'No soportado'; return; }
     exporting = true; lpExportBtn.disabled = true; lpExportBtn.textContent = 'Exportando… (suena el loop)';
+    requestWakeLock();
+    try { await actx.resume(); } catch (e) {}
     const loops = 4, total = lpLoopBeats(), bpm = parseFloat(lpTempoEl.value);
-    const durMs = loops * total * (60 / bpm) * 1000 + 1500;   // + cola para delay/reverb
+    const beatSec = 60 / bpm, loopSec = total * beatSec, tail = 1.5;
+    lpStopRecording();
     const streamDest = actx.createMediaStreamDestination();
     masterFinal.connect(streamDest);
     const rec = new MediaRecorder(streamDest.stream);
     const chunks = [];
     rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
     const stopped = new Promise(res => { rec.onstop = res; });
-    lpStopRecording();
-    lp.beat = 0; lp.lastClickBeat = -1; lp.channels.forEach(c => c.fired = new Set());
-    lp.playing = true; lpPlayBtn.textContent = 'Parar';
     rec.start();
-    await new Promise(r => setTimeout(r, durMs));
+    const t0 = actx.currentTime + 0.15;     // notas programadas en el reloj de audio (exacto)
+    for (let L = 0; L < loops; L++) {
+      const base = t0 + L * loopSec;
+      for (let i = 0; i < lp.channels.length; i++) {
+        const ch = lp.channels[i]; if (ch.muted) continue;
+        for (const n of ch.notes) scheduleChannelNote(ch, n.midi, n.vel, n.dur, base + n.startBeat * beatSec, beatSec);
+      }
+    }
+    await new Promise(r => setTimeout(r, (loops * loopSec + tail) * 1000));
     rec.stop(); await stopped;
     masterFinal.disconnect(streamDest);
-    lp.playing = false; lpPlayBtn.textContent = 'Reproducir'; for (const m in voices) silence(+m);
     try {
       const webm = new Blob(chunks, { type: 'audio/webm' });
       const audioBuf = await actx.decodeAudioData(await webm.arrayBuffer());
@@ -973,6 +1042,7 @@
     } catch (e) {
       lpExportBtn.textContent = 'Error al exportar';
     }
+    if (!midiConnected) releaseWakeLock();
     setTimeout(() => lpExportBtn.textContent = '⬇ Exportar audio (WAV)', 2000);
     exporting = false; lpExportBtn.disabled = false;
   }

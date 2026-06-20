@@ -2,7 +2,18 @@
 
 Snapshot para retomar el proyecto en otra sesión (humana o con Claude Code).
 
-**Versión:** v1.15 (fix: volumen de canal a 0 ya no congela el looper; bucle blindado)
+**Versión:** v1.16 (export programado en reloj de audio; scroll táctil sobre el canvas)
+
+**Fixes (v1.16):**
+- **Export sin silencios:** antes la exportación sonaba vía `requestAnimationFrame` y al atenuarse
+  la pantalla del móvil el bucle se ralentizaba (la música se paraba pero la grabación seguía →
+  silencio). Ahora `exportLooperAudio` **programa las notas en el reloj de audio** (`synthAt`/
+  `scheduleChannelNote` con `time`/`when`), independiente de los fotogramas; suenan las 4 vueltas
+  completas. Mantiene Wake Lock durante el export.
+- **Scroll táctil:** `canvas` pasa de `touch-action:none` a **`pan-y`** → arrastrar en vertical
+  hace scroll de la página (antes solo se podía por una franja fina al lado) y desactiva el zoom
+  accidental; taps (tocar teclas) y arrastre horizontal del editor siguen funcionando. (En táctil
+  se pierde mover notas en vertical/altura; el movimiento en tiempo sí va.)
 
 **Fix (v1.15):** un canal con **volumen 0** hacía que `synthNoteOn` llamara a
 `exponentialRampToValueAtTime(0)` → **excepción** que mataba el bucle `requestAnimationFrame`
