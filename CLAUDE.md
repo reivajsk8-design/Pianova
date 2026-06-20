@@ -55,6 +55,9 @@ App web (un solo archivo HTML) para aprender piano con notas que caen estilo Syn
 - **Responsive:** media queries (`max-width:860px` y apaisado) + teclado más alto en táctil
   (`COARSE`/`kbH`) + `touch-action:none` en los `<canvas>`. El escritorio queda **igual**.
   Las dos vistas se alternan con `[hidden]` (regla `#learnView[hidden],#looperView[hidden]`).
+- **Wake Lock (v1.14):** al detectar teclado MIDI (`bindInputs`) se pide `navigator.wakeLock`
+  ('screen') para que la pantalla no se apague; se libera sin teclado y se re-pide en
+  `visibilitychange`. Sin tocar ajustes del móvil.
 
 ## Arquitectura (todo en `pianova.html`)
 

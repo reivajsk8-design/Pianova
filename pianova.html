@@ -997,6 +997,21 @@
     if (tab === 'looper') lpCapture(midi, 0, false);
   }
 
+  // Mantener la pantalla encendida (Wake Lock) mientras hay un teclado conectado.
+  let wakeLock = null, midiConnected = false;
+  async function requestWakeLock() {
+    try {
+      if ('wakeLock' in navigator && !wakeLock && document.visibilityState === 'visible') {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', () => { wakeLock = null; });
+      }
+    } catch (e) {}
+  }
+  function releaseWakeLock() { try { if (wakeLock) wakeLock.release(); } catch (e) {} wakeLock = null; }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && midiConnected) requestWakeLock();
+  });
+
   async function connectMidi() {
     ensureAudio();
     if (!navigator.requestMIDIAccess) {
@@ -1014,11 +1029,14 @@
   function bindInputs(access) {
     const names = [];
     access.inputs.forEach(inp => { inp.onmidimessage = ev => onMidi(ev, inp.name); names.push(inp.name); });
+    midiConnected = names.length > 0;
     if (names.length) {
       deviceEl.textContent = names.join(' · ');
-      status('Teclado detectado: ' + names.join(', ') + '. Elige una canción y pulsa Empezar.');
+      requestWakeLock();   // teclado conectado -> la pantalla no se apaga
+      status('Teclado detectado: ' + names.join(', ') + '. La pantalla no se apagará. Elige canción y pulsa Empezar.');
     } else {
       deviceEl.textContent = 'Ningún dispositivo detectado';
+      releaseWakeLock();
       status('No veo ningún teclado. Conéctalo por USB-OTG (con su luz encendida) y vuelve a pulsar Conectar.');
     }
   }

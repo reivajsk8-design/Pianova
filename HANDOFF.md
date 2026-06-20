@@ -2,7 +2,7 @@
 
 Snapshot para retomar el proyecto en otra sesión (humana o con Claude Code).
 
-**Versión:** v1.13 (PWA instalable + publicada en Netlify; mejor aviso de detección MIDI)
+**Versión:** v1.14 (Wake Lock: la pantalla no se apaga con el teclado conectado)
 
 **Publicada:** GitHub `reivajsk8-design/Pianova` → Netlify **https://pianova.netlify.app**
 (auto-deploy en cada `git push` a `main`). `_redirects` (`/  /pianova.html  200`) sirve la app en
@@ -192,6 +192,10 @@ la raíz. `midis/` está en `.gitignore` (MIDIs de terceros, no se publican).
   la vista Aprender visible al pasar a Looper → controles superpuestos en móvil). Ahora
   `#learnView[hidden],#looperView[hidden]{display:none}` oculta de verdad la vista inactiva;
   `.loopbar` con `flex-wrap` para no desbordar.
+- **Pantalla siempre encendida (v1.14):** al detectar un teclado MIDI, la app pide un **Wake Lock**
+  (`navigator.wakeLock`) para que la **pantalla no se apague** mientras tocas; se libera si no hay
+  teclado y se re-pide al volver a la app (`visibilitychange`). No hay que tocar ajustes del móvil.
+  Requiere Chrome + HTTPS.
 - **MIDI por USB-OTG (MiniLab MkII):** funciona en Chrome Android, pero Web MIDI exige **contexto
   seguro (HTTPS)**. En **Netlify** (HTTPS) funciona; en `http://` plano no. Para publicar: subir
   `pianova.html` (o renombrarlo a `index.html` para que sea la raíz del sitio). Es un único
