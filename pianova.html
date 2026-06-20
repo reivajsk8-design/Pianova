@@ -57,13 +57,13 @@
   .tab.on{background:var(--amber); color:#1a1306; border-color:var(--amber)}
   .tab.on:hover{background:var(--amber2); border-color:var(--amber2)}
   #learnView,#looperView{flex:1; display:flex; flex-direction:column; min-height:0}
-  #looperView[hidden]{display:none}
+  #learnView[hidden],#looperView[hidden]{display:none}   /* ocultar de verdad la vista inactiva */
   .seek{position:relative; height:16px; margin-top:10px; border:1px solid var(--line);
     border-radius:8px; background:var(--panel); overflow:hidden; cursor:pointer}
   .seekLoop{position:absolute; top:0; bottom:0; background:rgba(70,211,154,0.18);
     border-left:1px solid var(--green); border-right:1px solid var(--green); display:none}
   .seekHead{position:absolute; top:0; bottom:0; width:2px; background:var(--amber); left:0}
-  .loopbar{display:flex; align-items:center; gap:8px}
+  .loopbar{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
   .loopinfo{font-family:ui-monospace,monospace; font-size:12px; color:var(--muted)}
   button:disabled{opacity:.4; cursor:not-allowed}
   .lpChannels{display:flex; gap:10px; margin-top:12px; flex-wrap:wrap}
