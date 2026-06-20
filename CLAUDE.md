@@ -157,7 +157,12 @@ App web (un solo archivo HTML) para aprender piano con notas que caen estilo Syn
   (melodía, para practicar/juzgar) y `fullNotes` (para el modo **Escuchar**).
 - **Modos:** `practice` (melodía, una nota), `playalong` (Acompañar: canción completa por
   acordes, espera el acorde entero), `listen` (Escuchar: `playFullAt` reproduce `fullNotes` por
-  beat con velocity e ilumina teclas), `free`.
+  beat con velocity e ilumina teclas), `reto`, `free`.
+- **Modo Reto (juego):** la melodía cae **a tempo del nivel** (no espera); aciertas si tocas a
+  tiempo (ventana ±`RETO_WINDOW`). `levelTempo(L)` = `base*(0.5+0.1*L)` (L1≈60%…L8≈130%). Superar
+  ≥85% sube de nivel (más tempo). Puntuación + combo + estrellas; `retoFinish` muestra `#retoEnd`.
+  Guarda `bestLevel`/`bestScore` por canción en `store.progress`. HUD `#retoBar`. Lógica en las
+  ramas `reto` de `start`/`frame`/`judge` (+ `startReto`, `updateRetoHUD`).
 
 - **Tutorial guiado (v1.9):** tour de bienvenida que resalta botones reales con un "agujero"
   (box-shadow) + burbuja (`#tour`, `TOUR[]`, `startTour`/`showTourStep`/`positionTour`). Sale la

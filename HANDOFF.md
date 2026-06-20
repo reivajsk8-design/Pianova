@@ -2,7 +2,15 @@
 
 Snapshot para retomar el proyecto en otra sesión (humana o con Claude Code).
 
-**Versión:** v1.17 (pase de pulido visual — solo CSS, sin tocar lógica)
+**Versión:** v1.18 (modo Reto: juego de progresión por tempo)
+
+**Modo Reto (v1.18):** 5º modo "Reto · supérate". La melodía cae **a tempo del nivel** (en tiempo
+real, no espera); aciertas si tocas la nota a tiempo (ventana ±0.34 pulso). Puntuación + combo +
+estrellas; con ≥85% de precisión **subes de nivel** (el tempo sube: Nv1≈60%…Nv8≈130% del tempo
+natural). HUD `#retoBar` (Nivel/BPM/Puntos/Combo/Récord) y pantalla de resultados `#retoEnd`
+(estrellas, Reintentar / Siguiente nivel). Guarda **mejor nivel y mejor puntuación** por canción.
+Empieza en tu mejor nivel guardado. Spec en `docs/superpowers/specs/2026-06-21-modo-reto-design.md`.
+*(Pendiente de ajustar mañana: umbral, % inicial/step, reparto de estrellas — fáciles de tocar.)*
 
 **Pulido UI (v1.17):** revisión con skills de diseño (redesign/soft/emil). Solo CSS, escritorio y
 móvil intactos: `button:active` con `scale(.96)` (feedback táctil); transiciones con cubic-bezier

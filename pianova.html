@@ -182,6 +182,21 @@
   #sampleEdPanel input[type=range]{flex:1; accent-color:var(--amber)}
   #seWave{width:100%; height:90px; background:#0c0e13; border:1px solid var(--line); border-radius:8px; display:block}
   .lpEdit{padding:2px 6px; font-size:12px; flex:0 0 auto}
+  /* Modo Reto */
+  .retoBar{display:flex; gap:22px; flex-wrap:wrap; align-items:center; margin-bottom:12px;
+    padding:10px 14px; border:1px solid var(--line); border-radius:12px; background:var(--panel)}
+  .retoBar[hidden]{display:none}
+  .retoStat{display:flex; flex-direction:column}
+  .retoStat .k{font-size:11px; color:var(--muted); letter-spacing:.06em; text-transform:uppercase}
+  .retoStat .v{font-family:ui-monospace,monospace; font-size:20px; font-weight:600}
+  #retoEnd{position:fixed; inset:0; z-index:1100; display:none; background:rgba(8,10,14,.7)}
+  #retoEnd.on{display:flex; align-items:center; justify-content:center}
+  #retoEndPanel{width:360px; max-width:calc(100vw - 24px); background:var(--panel2);
+    border:1px solid var(--amber); border-radius:16px; padding:24px; text-align:center;
+    box-shadow:0 18px 55px rgba(6,10,20,.6)}
+  #retoStars{font-size:44px; letter-spacing:6px; color:var(--amber); margin-bottom:6px}
+  #retoEndPanel h3{margin:0 0 8px; font-family:var(--disp); font-size:20px}
+  #retoEndPanel p{margin:0; font-size:14px; line-height:1.6; color:var(--ink)}
 </style>
 </head>
 <body>
@@ -246,12 +261,26 @@
     </div>
   </div>
 
+  <div id="retoEnd">
+    <div id="retoEndPanel">
+      <div id="retoStars">★★★</div>
+      <h3 id="retoEndTitle">¡Bien!</h3>
+      <p id="retoEndMsg"></p>
+      <div class="row" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px">
+        <button id="retoRetry">↻ Reintentar</button>
+        <button id="retoNext" class="primary">Siguiente nivel →</button>
+        <button id="retoCloseBtn">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
   <div id="learnView">
   <div class="controls">
     <div class="seg" role="tablist" aria-label="Modo">
       <button data-mode="practice" class="on">Practicar · espera a que toques</button>
       <button data-mode="playalong">Acompañar · espera a que toques</button>
       <button data-mode="listen">Escuchar · canción completa</button>
+      <button data-mode="reto">Reto · supérate</button>
       <button data-mode="free">Tocar libre</button>
     </div>
     <label class="fld">Manos
@@ -292,6 +321,13 @@
   </div>
 
   <main>
+    <div class="retoBar" id="retoBar" hidden>
+      <div class="retoStat"><span class="k">Nivel</span><span class="v" id="retoLevel">1</span></div>
+      <div class="retoStat"><span class="k">Tempo</span><span class="v"><span id="retoTempo">—</span> BPM</span></div>
+      <div class="retoStat"><span class="k">Puntos</span><span class="v" id="retoScore">0</span></div>
+      <div class="retoStat"><span class="k">Combo</span><span class="v" id="retoCombo">0</span></div>
+      <div class="retoStat"><span class="k">Récord</span><span class="v" id="retoRecord">—</span></div>
+    </div>
     <div class="stage"><canvas id="lane"></canvas></div>
     <div class="seek" id="seek" title="Clic para saltar a un punto de la canción">
       <div class="seekLoop" id="seekLoop"></div>
@@ -408,6 +444,10 @@
   let autoNotes = [];          // notas que suenan solas (otra mano + notas de acorde omitidas)
   let firedAuto = new Set();   // índices de autoNotes ya disparados
   let lastBeat = 0;
+  // Modo Reto (juego de progresión por tempo)
+  let songBaseBpm = 80;        // tempo "natural" de la canción (base de los niveles)
+  let retoLevel = 1, retoScore = 0, retoCombo = 0, retoMaxCombo = 0, retoHits = 0, retoMiss = 0;
+  const RETO_MAXLEVEL = 8, RETO_WINDOW = 0.34;   // ventana de acierto, en pulsos
   let playing = false;
   let waiting = false;
   let idx = 0;
@@ -1241,7 +1281,7 @@
 
   // ---------- Secciones / salto (seek) ----------
   // Practicar trabaja sobre la melodía (notes/idx); Acompañar sobre acordes (steps/stepIdx).
-  function songLenBeats() { return (mode === 'practice') ? lastBeat : lastFull; }
+  function songLenBeats() { return (mode === 'practice' || mode === 'reto') ? lastBeat : lastFull; }
   function seqLen() { return (mode === 'practice') ? notes.length : steps.length; }
   function curSeqIdx() { return (mode === 'practice') ? idx : stepIdx; }
   function seqBeatAt(i) {
@@ -1285,6 +1325,27 @@
   // ---------- Lógica de juego / pedagogía ----------
   function judge(midi) {
     if (mode === 'free' || !playing) return;
+    if (mode === 'reto') {
+      // casar el midi con la nota no juzgada más cercana dentro de la ventana
+      let best = -1, bestd = 1e9;
+      for (let i = 0; i < notes.length; i++) {
+        const n = notes[i];
+        if (n.judged || n.midi !== midi) continue;
+        const d = Math.abs(n.startBeat - songBeat);
+        if (d < bestd) { bestd = d; best = i; }
+      }
+      if (best >= 0 && bestd <= RETO_WINDOW) {
+        notes[best].judged = true; notes[best].state = 'hit';
+        retoHits++; retoCombo++; if (retoCombo > retoMaxCombo) retoMaxCombo = retoCombo;
+        const timing = Math.round((1 - bestd / RETO_WINDOW) * 50);
+        retoScore += 100 + timing + Math.min(100, retoCombo * 5);
+        flash('ok');
+      } else {
+        retoMiss++; retoCombo = 0; flash('wrong');
+      }
+      updateRetoHUD();
+      return;
+    }
     if (mode === 'practice') {
       if (waiting && notes[idx] && notes[idx].midi === midi) {
         notes[idx].state = 'hit';
@@ -1427,6 +1488,9 @@
     fitRange(fullNotes);
     tempoEl.value = s.bpm;
     tempoVal.textContent = s.bpm;
+    songBaseBpm = s.bpm;                         // base de los niveles del Reto
+    const pg = store.progress[songKey];
+    retoLevel = (pg && pg.bestLevel) ? pg.bestLevel : 1;   // continúa en tu mejor nivel
     updateBest();
     reset();
   }
@@ -1449,6 +1513,7 @@
   function start() {
     ensureAudio();
     if (mode === 'free') { reset(); status('Modo libre: toca lo que quieras.'); return; }
+    if (mode === 'reto') { reset(); startReto(); return; }
     reset();
     playing = true;
     if (loopOn && loopStart != null) seekToIndex(loopStart);   // arranca desde el fragmento
@@ -1458,11 +1523,59 @@
   }
   function finish() {
     playing = false;
+    if (mode === 'reto') { retoFinish(); return; }
     if (mode === 'listen') { status('Fin de la canción. Pulsa Empezar para repetir.'); return; }
     const att = hits + wrong;
     const acc = att ? Math.round((hits / att) * 100) : 100;
     recordProgress();
     status('¡Completado! Aciertos: ' + hits + ' · Precisión: ' + acc + '%');
+  }
+  // ---------- Modo Reto ----------
+  function levelTempo(L) {
+    return Math.max(30, Math.min(Math.round(songBaseBpm * 1.5), Math.round(songBaseBpm * (0.5 + 0.1 * L))));
+  }
+  function updateRetoHUD() {
+    $('retoLevel').textContent = retoLevel;
+    $('retoTempo').textContent = levelTempo(retoLevel);
+    $('retoScore').textContent = retoScore;
+    $('retoCombo').textContent = retoCombo + (retoMaxCombo > 1 ? ' (máx ' + retoMaxCombo + ')' : '');
+    const p = store.progress[songKey];
+    $('retoRecord').textContent = (p && p.bestScore) ? (p.bestScore + ' · Nv ' + (p.bestLevel || 1)) : '—';
+  }
+  function retoStars(acc) { return acc >= 0.95 ? 3 : acc >= 0.8 ? 2 : acc >= 0.6 ? 1 : 0; }
+  function retoFinish() {
+    playing = false;
+    const att = retoHits + retoMiss;
+    const acc = att ? retoHits / att : 0;
+    const stars = retoStars(acc);
+    const passed = acc >= 0.85 && retoLevel < RETO_MAXLEVEL;
+    // récord
+    const p = store.progress[songKey] || { best: 0, last: 0, plays: 0 };
+    const isRecord = retoScore > (p.bestScore || 0);
+    p.bestScore = Math.max(p.bestScore || 0, retoScore);
+    p.bestLevel = Math.max(p.bestLevel || 1, passed ? retoLevel + 1 : retoLevel);
+    p.plays = (p.plays || 0) + 1;
+    store.progress[songKey] = p; saveStore();
+    // overlay
+    $('retoStars').textContent = stars ? '★★★'.slice(0, stars) + '☆☆☆'.slice(0, 3 - stars) : '☆☆☆';
+    $('retoEndTitle').textContent = stars === 3 ? '¡Perfecto!' : stars === 2 ? '¡Muy bien!' : stars === 1 ? '¡Bien!' : 'Sigue probando';
+    let msg = 'Precisión ' + Math.round(acc * 100) + '% · Puntos ' + retoScore + ' · Combo máx ' + retoMaxCombo;
+    if (isRecord) msg += '\n🏆 ¡Nuevo récord!';
+    if (passed) msg += '\n⬆️ ¡Subes a Nivel ' + (retoLevel + 1) + ' (' + levelTempo(retoLevel + 1) + ' BPM)!';
+    else if (acc >= 0.85) msg += '\n👑 ¡Nivel máximo dominado!';
+    else msg += '\nLlega al 85% para subir de nivel.';
+    $('retoEndMsg').textContent = msg;
+    $('retoNext').style.display = passed ? '' : 'none';
+    $('retoEnd').classList.add('on');
+    updateRetoHUD();
+  }
+  function startReto() {
+    retoScore = 0; retoCombo = 0; retoMaxCombo = 0; retoHits = 0; retoMiss = 0;
+    notes.forEach(n => { n.state = 'idle'; n.judged = false; });
+    songBeat = -4; playing = true;
+    $('retoEnd').classList.remove('on');
+    updateRetoHUD();
+    status('¡Reto! Toca cada nota cuando llegue a la línea. Nivel ' + retoLevel + ' · ' + levelTempo(retoLevel) + ' BPM.');
   }
   // Acompañar con una mano: la otra mano (autoNotes) suena sola al avanzar el tiempo.
   function playAutoAt(fromBeat, toBeat) {
@@ -2127,6 +2240,15 @@
             songBeat += dt * (bpm / 60);
             playFullAt(prev, songBeat);
             if (songBeat > lastFull + 2) finish();
+          } else if (mode === 'reto') {
+            songBeat += dt * (levelTempo(retoLevel) / 60);   // a tempo del nivel (tiempo real)
+            for (const n of notes) {                          // notas que pasan sin tocarse = fallo
+              if (!n.judged && n.startBeat < songBeat - RETO_WINDOW) {
+                n.judged = true; n.state = 'miss'; retoMiss++; retoCombo = 0;
+              }
+            }
+            updateRetoHUD();
+            if (songBeat > lastBeat + 2) finish();
           }
         }
         updateSeek();
@@ -2360,9 +2482,21 @@
     btn.addEventListener('click', () => {
       mode = btn.dataset.mode;
       document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('on', b === btn));
+      $('retoEnd').classList.remove('on');
+      $('retoBar').hidden = (mode !== 'reto');
+      if (mode === 'reto') {
+        const pg = store.progress[songKey];
+        retoLevel = (pg && pg.bestLevel) ? pg.bestLevel : 1;
+        updateRetoHUD();
+        status('Modo Reto · Nivel ' + retoLevel + '. Pulsa Empezar y toca las notas a tiempo.');
+      }
       reset(); savePrefs();
     });
   });
+  // Botones del resultado del Reto
+  $('retoRetry').addEventListener('click', () => { mode = 'reto'; startReto(); });
+  $('retoNext').addEventListener('click', () => { mode = 'reto'; retoLevel = Math.min(RETO_MAXLEVEL, retoLevel + 1); startReto(); });
+  $('retoCloseBtn').addEventListener('click', () => { $('retoEnd').classList.remove('on'); });
 
   // Pestañas Aprender / Looper
   document.querySelectorAll('.tab').forEach(btn => {
@@ -2550,6 +2684,8 @@
   if (pr.instrument) { instSel.value = pr.instrument; applyInstrument(pr.instrument); }
   setSong(pr.song && SONGS[pr.song] ? pr.song : 'scale');
   if (songSel) songSel.value = songKey;
+  $('retoBar').hidden = (mode !== 'reto');
+  if (mode === 'reto') updateRetoHUD();
   lpInitChannels();
   lpBuildChannelUI();
   restoreLooper();
