@@ -10,7 +10,9 @@ App web (un solo archivo HTML) para aprender piano con notas que caen estilo Syn
 ## Contexto de la persona
 
 - Habla español. Responde siempre en español.
-- Tiene un **Native Instruments Komplete Kontrol S49 MK1** (teclado MIDI por USB).
+- Tiene varios controladores MIDI por USB: **Native Instruments Komplete Kontrol S49 MK1**,
+  **Akai MPK61** y **Arturia MiniLab MkII**. Usa la app también en **móvil (Chrome Android) por
+  USB-OTG**.
 - Programa poco o nada: explica los cambios con claridad y evita pasos manuales complejos.
   Cuando propongas algo, prefiere lo más simple que funcione.
 
@@ -37,9 +39,22 @@ App web (un solo archivo HTML) para aprender piano con notas que caen estilo Syn
 
 - Abrir `pianova.html` en **Chrome/Edge** de escritorio. Para desarrollo, usar **Live Server**
   (corre en `localhost`, mejor para Web MIDI y recarga en vivo).
-- Web MIDI **no** funciona en móvil ni en Safari. No es un bug.
+- Web MIDI **sí** funciona en **Chrome Android** (móvil) **por USB-OTG**, pero requiere **HTTPS**
+  (contexto seguro). En **Safari** no funciona. En escritorio, Chrome/Edge.
 - Para probar sin el teclado físico: clic con el ratón sobre las teclas, o teclas
   `A S D F G H J K` (blancas) y `W E T Y U` (negras) del ordenador.
+
+## Publicación y móvil (v1.12–v1.13)
+
+- **Publicada:** GitHub `reivajsk8-design/Pianova` → **Netlify** https://pianova.netlify.app
+  (auto-deploy en cada `git push` a `main`). Para subir cambios: commit + `git push origin main`
+  (credenciales cacheadas). `_redirects` (`/  /pianova.html  200`) sirve la app en la raíz;
+  `midis/` en `.gitignore`. Detalle operativo en la memoria del proyecto.
+- **PWA instalable:** `manifest.webmanifest` + `sw.js` (service worker, red-primero para la página)
+  + `icon.svg`, enlazados/registrados en el `<head>`. Instalable en Android; arranca standalone.
+- **Responsive:** media queries (`max-width:860px` y apaisado) + teclado más alto en táctil
+  (`COARSE`/`kbH`) + `touch-action:none` en los `<canvas>`. El escritorio queda **igual**.
+  Las dos vistas se alternan con `[hidden]` (regla `#learnView[hidden],#looperView[hidden]`).
 
 ## Arquitectura (todo en `pianova.html`)
 

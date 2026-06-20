@@ -188,6 +188,10 @@ la raíz. `midis/` está en `.gitignore` (MIDIs de terceros, no se publican).
 - **Detección MIDI (v1.13):** `connectMidi`/`bindInputs` ahora reaccionan a conectar/desconectar
   en caliente (`onstatechange`) y dan **aviso claro**: si no hay teclado → "No veo ningún teclado…
   (USB-OTG, luz encendida, vuelve a pulsar Conectar)"; si lo hay → muestra su nombre.
+- **Fix solapamiento (v1.13):** faltaba `#learnView[hidden]{display:none}` (la regla de ID dejaba
+  la vista Aprender visible al pasar a Looper → controles superpuestos en móvil). Ahora
+  `#learnView[hidden],#looperView[hidden]{display:none}` oculta de verdad la vista inactiva;
+  `.loopbar` con `flex-wrap` para no desbordar.
 - **MIDI por USB-OTG (MiniLab MkII):** funciona en Chrome Android, pero Web MIDI exige **contexto
   seguro (HTTPS)**. En **Netlify** (HTTPS) funciona; en `http://` plano no. Para publicar: subir
   `pianova.html` (o renombrarlo a `index.html` para que sea la raíz del sitio). Es un único
