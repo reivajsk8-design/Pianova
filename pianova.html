@@ -2,8 +2,19 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pianova — aprende piano tocando</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0b0d12">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pianova">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon.svg">
+<script>
+  if ('serviceWorker' in navigator)
+    addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -989,22 +1000,27 @@
   async function connectMidi() {
     ensureAudio();
     if (!navigator.requestMIDIAccess) {
-      status('Este navegador no soporta Web MIDI. Abre el archivo en Chrome o Edge en un ordenador.');
+      status('Tu navegador no soporta Web MIDI. Usa Chrome (Android o PC) y que la página sea https://.');
       return;
     }
     try {
       const access = await navigator.requestMIDIAccess({ sysex: false });
+      access.onstatechange = () => bindInputs(access);   // reacciona al conectar/desconectar en caliente
       bindInputs(access);
-      access.onstatechange = () => bindInputs(access);
-      status('Teclado conectado. Elige una canción y dale a Empezar.');
     } catch (e) {
-      status('No se pudo acceder al MIDI. Revisa el cable USB y los permisos del navegador.');
+      status('No se pudo acceder al MIDI. Acepta el permiso y vuelve a pulsar Conectar.');
     }
   }
   function bindInputs(access) {
     const names = [];
     access.inputs.forEach(inp => { inp.onmidimessage = ev => onMidi(ev, inp.name); names.push(inp.name); });
-    deviceEl.textContent = names.length ? names.join(' · ') : 'Ningún dispositivo detectado';
+    if (names.length) {
+      deviceEl.textContent = names.join(' · ');
+      status('Teclado detectado: ' + names.join(', ') + '. Elige una canción y pulsa Empezar.');
+    } else {
+      deviceEl.textContent = 'Ningún dispositivo detectado';
+      status('No veo ningún teclado. Conéctalo por USB-OTG (con su luz encendida) y vuelve a pulsar Conectar.');
+    }
   }
   function onMidi(e, port) {
     const [st, d1, d2] = e.data;

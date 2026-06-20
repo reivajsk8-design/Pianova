@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#f2a33c"/>
+  <g>
+    <!-- teclas blancas (centradas en zona segura) -->
+    <g fill="#fbf7ee" stroke="#d8cdb6" stroke-width="3">
+      <rect x="146" y="168" width="32" height="190" rx="5"/>
+      <rect x="178" y="168" width="32" height="190" rx="5"/>
+      <rect x="210" y="168" width="32" height="190" rx="5"/>
+      <rect x="242" y="168" width="32" height="190" rx="5"/>
+      <rect x="274" y="168" width="32" height="190" rx="5"/>
+      <rect x="306" y="168" width="32" height="190" rx="5"/>
+      <rect x="338" y="168" width="32" height="190" rx="5"/>
+    </g>
+    <!-- teclas negras -->
+    <g fill="#1a1306">
+      <rect x="166" y="168" width="22" height="118" rx="4"/>
+      <rect x="200" y="168" width="22" height="118" rx="4"/>
+      <rect x="264" y="168" width="22" height="118" rx="4"/>
+      <rect x="298" y="168" width="22" height="118" rx="4"/>
+      <rect x="332" y="168" width="22" height="118" rx="4"/>
+    </g>
+    <!-- nota cayendo -->
+    <rect x="232" y="96" width="48" height="34" rx="8" fill="#1a1306"/>
+  </g>
+</svg>

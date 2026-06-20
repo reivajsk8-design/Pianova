@@ -2,7 +2,11 @@
 
 Snapshot para retomar el proyecto en otra sesión (humana o con Claude Code).
 
-**Versión:** v1.12 (responsive móvil: Chrome Android, apaisado, MiniLab por USB-OTG)
+**Versión:** v1.13 (PWA instalable + publicada en Netlify; mejor aviso de detección MIDI)
+
+**Publicada:** GitHub `reivajsk8-design/Pianova` → Netlify **https://pianova.netlify.app**
+(auto-deploy en cada `git push` a `main`). `_redirects` (`/  /pianova.html  200`) sirve la app en
+la raíz. `midis/` está en `.gitignore` (MIDIs de terceros, no se publican).
 **Archivo principal:** `pianova.html` (autónomo, sin dependencias)
 
 ---
@@ -176,6 +180,14 @@ Snapshot para retomar el proyecto en otra sesión (humana o con Claude Code).
 - **Canvas:** se redimensiona con `resize()` (DPR correcto) y `touch-action:none` en los `<canvas>`
   para que los toques en las teclas (y arrastrar notas en el editor del looper) sean fiables, sin
   zoom/scroll accidental.
+- **PWA instalable (v1.13):** `manifest.webmanifest` + `icon.svg` + `sw.js` (service worker) y
+  enlaces/registro en el `<head>` de `pianova.html`. En Chrome Android sale "Instalar app";
+  arranca en `standalone` (apaisado) y funciona offline lo sintetizado (la red solo hace falta
+  para batería/instrumentos reales por CDN). El SW usa **red primero** para la página (así se ve
+  siempre la última versión) y caché de respaldo.
+- **Detección MIDI (v1.13):** `connectMidi`/`bindInputs` ahora reaccionan a conectar/desconectar
+  en caliente (`onstatechange`) y dan **aviso claro**: si no hay teclado → "No veo ningún teclado…
+  (USB-OTG, luz encendida, vuelve a pulsar Conectar)"; si lo hay → muestra su nombre.
 - **MIDI por USB-OTG (MiniLab MkII):** funciona en Chrome Android, pero Web MIDI exige **contexto
   seguro (HTTPS)**. En **Netlify** (HTTPS) funciona; en `http://` plano no. Para publicar: subir
   `pianova.html` (o renombrarlo a `index.html` para que sea la raíz del sitio). Es un único
