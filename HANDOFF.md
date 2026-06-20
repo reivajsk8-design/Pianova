@@ -2,7 +2,14 @@
 
 Snapshot para retomar el proyecto en otra sesión (humana o con Claude Code).
 
-**Versión:** v1.16 (export programado en reloj de audio; scroll táctil sobre el canvas)
+**Versión:** v1.17 (pase de pulido visual — solo CSS, sin tocar lógica)
+
+**Pulido UI (v1.17):** revisión con skills de diseño (redesign/soft/emil). Solo CSS, escritorio y
+móvil intactos: `button:active` con `scale(.96)` (feedback táctil); transiciones con cubic-bezier
+suave; sombra del escenario **tintada** al fondo; tarjetas del looper con leve profundidad y
+"lift" en hover; hover sutil en pestañas/modos; `select` con **chevron propio** (`appearance:none`)
+y foco accesible en select/inputs; `scroll-behavior:smooth`. (Se descartó el maximalismo de
+landing —bento, héroes, scroll-anim— por ser una herramienta densa.)
 
 **Fixes (v1.16):**
 - **Export sin silencios:** antes la exportación sonaba vía `requestAnimationFrame` y al atenuarse
