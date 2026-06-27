@@ -2400,6 +2400,7 @@
       if (raw) {
         const o = JSON.parse(raw);
         store.songs = o.songs || {}; store.prefs = o.prefs || {}; store.progress = o.progress || {};
+        store.lib = o.lib || null;
         midiMap = o.midi || {};
         volMap = o.volmap || {};
         store.seenIntro = !!o.seenIntro;
@@ -2702,9 +2703,39 @@
     node.children.sort((a, b) => (a.kind === b.kind) ? a.name.localeCompare(b.name) : (a.kind === 'dir' ? -1 : 1));
     return node;
   }
-  // Stubs temporales (se sustituyen en la Task 6)
-  async function idbSet(){}
-  function libSave(){}
+  // ---------- IndexedDB: clave-valor mínimo ----------
+  function idbDB() {
+    return new Promise((res, rej) => {
+      const r = indexedDB.open('pianova', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('kv');
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    });
+  }
+  async function idbSet(key, val) { try { const db = await idbDB(); db.transaction('kv', 'readwrite').objectStore('kv').put(val, key); } catch (e) {} }
+  async function idbGet(key) { try { const db = await idbDB(); return await new Promise(res => { const q = db.transaction('kv').objectStore('kv').get(key); q.onsuccess = () => res(q.result); q.onerror = () => res(null); }); } catch (e) { return null; } }
+
+  // ---------- Librería de samples: guardado ligero en localStorage ----------
+  function libSave() {
+    store.lib = { favs: libState.favs, recent: libState.recent, hasFolder: !!libState.dirHandle,
+                  rootName: libState.tree ? libState.tree.name : null };
+    saveStoreDebounced();
+  }
+
+  // ---------- Librería de samples: reapertura al iniciar ----------
+  async function libRestore() {
+    const s = store.lib || {}; libState.favs = s.favs || []; libState.recent = s.recent || [];
+    if (!window.showDirectoryPicker) return;
+    const handle = await idbGet('dir'); if (!handle) return;
+    try {
+      const perm = await handle.queryPermission ? await handle.queryPermission({ mode: 'read' }) : 'granted';
+      // No re-pedimos permiso sin gesto del usuario: solo re-escaneamos si ya está concedido.
+      if (perm === 'granted') {
+        ensureAudio(); libFileMap = {}; libState.dirHandle = handle;
+        libState.tree = await scanDirHandle(handle, handle.name); libState.current = libState.tree;
+        if (!$('libPanel').hidden) libRender();
+      }
+    } catch (e) {}
+  }
   async function libImportFolder() {
     ensureAudio();
     libFileMap = {};
@@ -3027,6 +3058,7 @@
   resize();
   loadStore();
   restoreSongs();
+  libRestore();
   // Restaurar preferencias guardadas
   const pr = store.prefs || {};
   if (pr.hands) { handMode = pr.hands; $('hands').value = pr.hands; }
