@@ -412,6 +412,7 @@
       <button id="lpExport">⬇ Exportar audio (WAV)</button>
       <button id="libBtn">📁 Librería</button>
       <input type="file" id="lpSampleFile" accept="audio/*" hidden>
+      <input type="file" id="libFolderInput" webkitdirectory hidden>
     </div>
     <main>
       <div class="lpTracks">
@@ -781,6 +782,9 @@
   }
   const sampleVoices = {};   // midi -> {src,g} del instrumento global tipo 'sample'
   function pitchRate(midi, base) { return Math.pow(2, (midi - (base || 60)) / 12); }
+  const AUDIO_EXT = /\.(wav|aiff?|flac|mp3|ogg|m4a)$/i;
+  function isAudioFile(name) { return AUDIO_EXT.test(name); }
+  function fileExt(name) { const m = name.match(/\.([^.]+)$/); return m ? m[1].toLowerCase() : ''; }
   // Registra un audio (ArrayBuffer) en el motor de samples y devuelve su id. Persiste si es pequeño.
   async function addSample(name, arr) {
     ensureAudio();
@@ -2676,20 +2680,140 @@
   lpPlayBtn.addEventListener('click', lpTogglePlay);
   lpDrumBtn.addEventListener('click', loadDrumKit);
   lpExportBtn.addEventListener('click', exportLooperAudio);
-  function libImportFolder(){ alert('Importar: siguiente fase'); }
+  // Recorre un FileSystemDirectoryHandle y devuelve un árbol ligero (sin leer audios).
+  async function scanDirHandle(handle, path) {
+    const node = { name: handle.name, kind: 'dir', path: path || handle.name, children: [] };
+    for await (const [name, h] of handle.entries()) {
+      if (h.kind === 'directory') {
+        node.children.push(await scanDirHandle(h, node.path + '/' + name));
+      } else if (isAudioFile(name)) {
+        const p = node.path + '/' + name;
+        node.children.push({ name, kind: 'file', path: p, ext: fileExt(name) });
+        libFileMap[p] = { name, handle: h };
+      }
+    }
+    node.children.sort((a, b) => (a.kind === b.kind) ? a.name.localeCompare(b.name) : (a.kind === 'dir' ? -1 : 1));
+    return node;
+  }
+  // Stubs temporales (se sustituyen en la Task 6)
+  async function idbSet(){}
+  function libSave(){}
+  async function libImportFolder() {
+    ensureAudio();
+    libFileMap = {};
+    if (window.showDirectoryPicker) {
+      try {
+        const handle = await window.showDirectoryPicker({ id: 'pianova-lib', mode: 'read' });
+        libState.dirHandle = handle;
+        $('libBody').innerHTML = '<div class="libEmpty">Escaneando…</div>';
+        libState.tree = await scanDirHandle(handle, handle.name);
+        libState.current = libState.tree;
+        await idbSet('dir', handle);        // Task 6 (persistencia); si no existe aún, no rompe
+        libSave(); libRender();
+      } catch (e) { if (e && e.name !== 'AbortError') alert('No pude abrir la carpeta.'); }
+    } else {
+      $('libFolderInput').click();          // respaldo webkitdirectory
+    }
+  }
+  // Respaldo: construir árbol desde una lista de File (webkitRelativePath)
+  $('libFolderInput').addEventListener('change', e => {
+    ensureAudio();
+    const files = [...e.target.files].filter(f => isAudioFile(f.name)); e.target.value = '';
+    if (!files.length) { alert('Esa carpeta no tiene audios (.wav/.mp3…).'); return; }
+    libFileMap = {}; const root = { name: 'Mi carpeta', kind: 'dir', path: 'Mi carpeta', children: [] };
+    for (const f of files) {
+      const parts = (f.webkitRelativePath || f.name).split('/'); let cur = root, acc = root.path;
+      for (let i = 1; i < parts.length - 1; i++) {
+        acc += '/' + parts[i]; let d = cur.children.find(c => c.kind === 'dir' && c.name === parts[i]);
+        if (!d) { d = { name: parts[i], kind: 'dir', path: acc, children: [] }; cur.children.push(d); }
+        cur = d;
+      }
+      const p = (f.webkitRelativePath || f.name); cur.children.push({ name: f.name, kind: 'file', path: p, ext: fileExt(f.name) });
+      libFileMap[p] = { name: f.name, file: f };
+    }
+    libState.dirHandle = null; libState.tree = root; libState.current = root;
+    libSave(); libRender();
+  });
+  // Lectura de un nodo a AudioBuffer (bajo demanda) + cache
+  const libBufCache = {};   // path -> AudioBuffer
+  async function libNodeArrayBuffer(node) {
+    const ref = libFileMap[node.path]; if (!ref) return null;
+    const file = ref.file || (ref.handle ? await ref.handle.getFile() : null);
+    return file ? await file.arrayBuffer() : null;
+  }
+  async function libNodeBuffer(node) {
+    if (libBufCache[node.path]) return libBufCache[node.path];
+    const arr = await libNodeArrayBuffer(node); if (!arr) return null;
+    const buf = await actx.decodeAudioData(arr.slice(0)); libBufCache[node.path] = buf; return buf;
+  }
+  function libCurrentFiles() {
+    const dir = libState.current || libState.tree; if (!dir) return [];
+    let files = dir.children.filter(c => c.kind === 'file');
+    const q = libState.query.trim().toLowerCase();
+    if (q) files = files.filter(f => f.name.toLowerCase().includes(q));
+    return files;
+  }
+  function esc(s){ return s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+  function nodeByPath(p){ // busca un fileNode por path en el árbol
+    let found = null; const walk = n => { if (n.path === p && n.kind==='file') found = n; (n.children||[]).forEach(walk); };
+    if (libState.tree) walk(libState.tree); return found || { name: p.split('/').pop(), kind:'file', path:p, ext:fileExt(p) };
+  }
+  function pathOf(ref){ for (const p in libFileMap){ if (libFileMap[p]===ref) return p; } return ''; }
+  function fileNodeOf(ref){ const p = pathOf(ref); return { name: ref.name, kind:'file', path:p, ext:fileExt(ref.name) }; }
+  function libRender() {
+    const body = $('libBody');
+    if (!libState.tree) { body.innerHTML = '<div class="libEmpty">Aún no has importado ninguna carpeta.<br>Pulsa "Importar librería…".</div>'; return; }
+    let html = '';
+    if (libState.tab === 'folders') {
+      html += '<div class="libSec">Carpetas</div>';
+      const walk = (node, depth) => {
+        if (node.kind !== 'dir') return;
+        const on = (libState.current === node) ? ' on' : '';
+        html += '<div class="libTreeItem' + on + '" data-dir="' + encodeURIComponent(node.path) + '" style="padding-left:' + (10 + depth * 12) + 'px">📁 ' + esc(node.name) + '</div>';
+        node.children.forEach(c => walk(c, depth + 1));
+      };
+      walk(libState.tree, 0);
+    }
+    const files = (libState.tab === 'favs')
+      ? Object.values(libFileMap).filter(r => libState.favs.includes(pathOf(r))).map(r => fileNodeOf(r))
+      : (libState.tab === 'recent')
+      ? libState.recent.map(p => ({ name: p.split('/').pop(), kind: 'file', path: p, ext: fileExt(p) }))
+      : libCurrentFiles();
+    html += '<div class="libSec">' + (libState.tab === 'favs' ? 'Favoritos' : libState.tab === 'recent' ? 'Recientes' : 'Resultados · ' + files.length) + '</div>';
+    files.forEach(f => {
+      const fav = libState.favs.includes(f.path) ? '★' : '☆';
+      html += '<div class="libRow" draggable="true" data-file="' + encodeURIComponent(f.path) + '">' +
+        '<span class="nm" title="' + esc(f.name) + '">♪ ' + esc(f.name) + '</span>' +
+        '<button class="fav" title="Favorito" data-fav="' + encodeURIComponent(f.path) + '">' + fav + '</button>' +
+        '<button class="play" title="Escuchar" data-play="' + encodeURIComponent(f.path) + '">▶</button>' +
+        '<button class="toCh" title="A canal seleccionado" data-toch="' + encodeURIComponent(f.path) + '">✚</button>' +
+        '<button class="toInst" title="Como instrumento" data-toinst="' + encodeURIComponent(f.path) + '">🎹</button>' +
+        '</div>';
+    });
+    body.innerHTML = html;
+  }
   function libToggle(show) {
     const p = $('libPanel');
     p.hidden = (show == null) ? !p.hidden : !show;
     if (!p.hidden) libRender();
   }
-  function libRender() {
-    const body = $('libBody');
-    if (!libState.tree) { body.innerHTML = '<div class="libEmpty">Aún no has importado ninguna carpeta.<br>Pulsa "Importar librería…".</div>'; return; }
-    body.innerHTML = '<div class="libEmpty">Carpeta lista. (resultados en la siguiente fase)</div>';
-  }
   $('libBtn').addEventListener('click', () => libToggle());
   $('libClose').addEventListener('click', () => libToggle(false));
   $('libImport').addEventListener('click', () => libImportFolder());
+  $('libSearch').addEventListener('input', e => { libState.query = e.target.value; libRender(); });
+  document.querySelectorAll('.libTab').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('.libTab').forEach(x => x.classList.remove('on'));
+    t.classList.add('on'); libState.tab = t.dataset.libtab; libRender();
+  }));
+  $('libBody').addEventListener('click', ev => {
+    const dir = ev.target.closest('[data-dir]');
+    if (dir) { const p = decodeURIComponent(dir.dataset.dir);
+      const find = n => { if (n.path===p) return n; for (const c of (n.children||[])){ const r=find(c); if (r) return r; } return null; };
+      libState.current = find(libState.tree) || libState.tree; libRender(); return; }
+    // botones de fila → Task 4
+    libRowAction(ev);
+  });
+  function libRowAction(ev){}
   // Importar un sonido (sample) al canal que lo pidió
   $('lpSampleFile').addEventListener('change', async e => {
     const f = e.target.files && e.target.files[0]; e.target.value = '';
