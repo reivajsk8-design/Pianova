@@ -139,11 +139,14 @@
   .lpHead button:active{transform:scale(.95)}
   @media (hover:hover) and (pointer:fine){ .lpHead:not(.sel):hover{background:rgba(255,255,255,0.025)} }
   .lpfx{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:12px}
-  .fxctl{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted)}
-  .fxctl input[type=range]{width:110px; accent-color:var(--amber)}
   .fxLearn{padding:2px 6px; font-size:12px; line-height:1}
   .fxLearn.assigned{border-color:var(--green); color:var(--green)}
   .fxLearn.learning{background:var(--amber); color:#1a1306; border-color:var(--amber)}
+  .lpfxRack{display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap}
+  .lpfxRack .faderCol{display:flex; flex-direction:column; align-items:center; gap:4px}
+  .lpfxRack .fxLearn{padding:1px 6px; font-size:11px; line-height:1; background:transparent; border:1px solid var(--line); border-radius:6px}
+  .lpfxRack .fxLearn.assigned{border-color:var(--green); color:var(--green)}
+  .lpfxRack .fxLearn.learning{background:var(--amber); color:#1a1306; border-color:var(--amber)}
   .lpmidi{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:12px}
   .lpmidiLabel{font-size:12px; color:var(--muted)}
   .lpmidi button{font-size:12px; padding:6px 10px}
@@ -504,15 +507,8 @@
         <div class="stage"><canvas id="lpCanvas"></canvas></div>
       </div>
       <div class="lpfx" id="lpfx">
-        <span class="lpmidiLabel">Efectos (maestro):</span>
-        <label class="fxctl">Filtro <input type="range" data-fx="filter" min="0" max="1" step="0.01" value="0.5">
-          <button class="fxLearn" data-fxlearn="filter" title="Asignar un knob">🎛</button></label>
-        <label class="fxctl">Delay tiempo <input type="range" data-fx="delayTime" min="0" max="0.6" step="0.01" value="0.3">
-          <button class="fxLearn" data-fxlearn="delayTime" title="Asignar un knob">🎛</button></label>
-        <label class="fxctl">Delay cantidad <input type="range" data-fx="delayAmount" min="0" max="1" step="0.05" value="0">
-          <button class="fxLearn" data-fxlearn="delayAmount" title="Asignar un knob">🎛</button></label>
-        <label class="fxctl">Reverb <input type="range" data-fx="reverb" min="0" max="1" step="0.05" value="0">
-          <button class="fxLearn" data-fxlearn="reverb" title="Asignar un knob">🎛</button></label>
+        <span class="lpmidiLabel">Mezcla maestra:</span>
+        <div id="lpfxRack" class="lpfxRack"></div>
       </div>
       <div class="lpmidi" id="lpmidi">
         <span class="lpmidiLabel">Atajos del teclado MIDI (opcional):</span>
@@ -708,6 +704,7 @@
     return c;
   }
   const fxParams = { filter: 0.5, delayTime: 0.3, delayAmount: 0, reverb: 0 };   // 0.5 filtro = sin efecto
+  let lpClickVol = 0.8;   // volumen del clic del metrónomo (0..1)
   function makeImpulse(dur, decay) {
     const rate = actx.sampleRate, len = Math.max(1, Math.floor(rate * dur));
     const buf = actx.createBuffer(2, len, rate);
@@ -945,7 +942,7 @@
     o.type = 'square';
     o.frequency.value = accent ? 1600 : 1000;
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(accent ? 0.20 : 0.12, t + 0.002);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0002, (accent ? 0.20 : 0.12) * lpClickVol), t + 0.002);
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
     o.connect(g); g.connect(actx.destination);
     o.start(t); o.stop(t + 0.08);
@@ -1634,10 +1631,34 @@
       b.textContent = (volLearn === i) ? '…' : '🎛';
     });
   }
-  function setFxParam(param, value) {     // value en las unidades del slider
+  function buildFxRack() {
+    const rack = $('lpfxRack'); rack.innerHTML = '';
+    const defs = [
+      { key:'fx:filter', label:'Filtro', min:0, max:1, step:0.01, def:0.5, color:'#9fd0f0', param:'filter', fmt:v=>v.toFixed(2) },
+      { key:'fx:delayTime', label:'Delay<br>tiempo', min:0, max:0.6, step:0.01, def:0.3, color:'#c79bf0', param:'delayTime', fmt:v=>v.toFixed(2) },
+      { key:'fx:delayAmount', label:'Delay<br>cant.', min:0, max:1, step:0.05, def:0, color:'#c79bf0', param:'delayAmount', fmt:v=>v.toFixed(2) },
+      { key:'fx:reverb', label:'Reverb', min:0, max:1, step:0.05, def:0, color:'#7ad3c7', param:'reverb', fmt:v=>v.toFixed(2) },
+      { key:'metro', label:'Metr.', min:0, max:1, step:0.05, def:0.8, color:'#ffce7a', metro:true, fmt:v=>v.toFixed(2) }
+    ];
+    defs.forEach(d => {
+      const col = document.createElement('div'); col.className = 'faderCol';
+      const f = makeFader({ key:d.key, label:d.label, min:d.min, max:d.max, step:d.step, def:d.def,
+        color:d.color, fmt:d.fmt,
+        value: d.metro ? lpClickVol : fxParams[d.param],
+        onInput: v => { if (d.metro) { lpClickVol = v; saveStoreDebounced(); }
+                        else { setFxParam(d.param, v); saveStoreDebounced(); } } });
+      col.appendChild(f.el);
+      if (!d.metro) {   // botón 🎛 para mapear el efecto a un knob
+        const b = document.createElement('button'); b.className = 'fxLearn'; b.dataset.fxlearn = d.param;
+        b.title = 'Asignar un knob'; b.textContent = '🎛'; col.appendChild(b);
+      }
+      rack.appendChild(col);
+    });
+    refreshFxUI();
+  }
+  function setFxParam(param, value) {     // value en las unidades del fader
     fxParams[param] = value; applyFx();
-    const sl = document.querySelector('#lpfx [data-fx="' + param + '"]');
-    if (sl && parseFloat(sl.value) !== value) sl.value = value;
+    const f = lpFaders['fx:' + param]; if (f) f.setValue(value);
   }
   function setFxFromCC(param, ccVal) {
     const n = ccVal / 127;
@@ -1645,11 +1666,11 @@
     saveStoreDebounced();
   }
   function refreshFxUI() {
-    document.querySelectorAll('#lpfx [data-fx]').forEach(s => { s.value = fxParams[s.dataset.fx]; });
+    ['filter','delayTime','delayAmount','reverb'].forEach(p => { const f = lpFaders['fx:'+p]; if (f) f.setValue(fxParams[p]); });
+    if (lpFaders['metro']) lpFaders['metro'].setValue(lpClickVol);
     document.querySelectorAll('#lpfx [data-fxlearn]').forEach(b => {
-      const p = b.dataset.fxlearn;
-      b.classList.toggle('learning', fxLearn === p);
-      b.classList.toggle('assigned', !!fxMap[p]);
+      const p = b.dataset.fxlearn; b.classList.toggle('learning', fxLearn === p);
+      b.classList.toggle('assigned', !!fxMap[p]); b.textContent = (fxLearn === p) ? '…' : '🎛';
     });
   }
   function doMidiAction(action) {
@@ -2668,6 +2689,7 @@
         volMap = o.volmap || {};
         store.seenIntro = !!o.seenIntro;
         if (o.fx) { if (o.fx.params) Object.assign(fxParams, o.fx.params); fxMap = o.fx.map || {}; }
+        if (o.clickVol != null) lpClickVol = o.clickVol;
         if (o.samples) {
           for (const id in o.samples) {
             const sd = o.samples[id];
@@ -2682,7 +2704,7 @@
   }
   function saveStore() {
     try {
-      store.midi = midiMap; store.volmap = volMap; store.fx = { params: fxParams, map: fxMap };
+      store.midi = midiMap; store.volmap = volMap; store.fx = { params: fxParams, map: fxMap }; store.clickVol = lpClickVol;
       localStorage.setItem(STORE_KEY, JSON.stringify(store));
     } catch (e) { status('No pude guardar (almacenamiento lleno o bloqueado).'); }
   }
@@ -3224,11 +3246,7 @@
     }
   });
   $('lpQuant').addEventListener('change', e => { quantizeGrid = parseFloat(e.target.value); saveLooper(); });
-  // Efectos: sliders + asignar knob (🎛)
-  $('lpfx').addEventListener('input', e => {
-    if (e.target.dataset.fx != null) { ensureAudio(); setFxParam(e.target.dataset.fx, parseFloat(e.target.value)); }
-  });
-  $('lpfx').addEventListener('change', e => { if (e.target.dataset.fx != null) saveStore(); });
+  // Efectos: asignar knob (🎛) — el input de faders lo maneja buildFxRack > onInput
   $('lpfx').addEventListener('click', e => {
     const b = e.target.closest('[data-fxlearn]');
     if (!b) return;
@@ -3427,7 +3445,7 @@
   refreshLoopUI();
   refreshMidiMapUI();
   refreshVolLearnUI();
-  refreshFxUI();
+  buildFxRack();
   if (!store.seenIntro) setTimeout(startTour, 700);   // tutorial la primera vez
   requestAnimationFrame(frame);
 })();
