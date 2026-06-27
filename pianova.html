@@ -1083,7 +1083,37 @@
     if (lp.playing) { const x = prBeatToX(lp.beat % total);
       prCtx.fillStyle = '#ffce7a'; prCtx.fillRect(x - 1, 0, 2, H); }
   }
-  function prDrawVel() { prVelCtx.clearRect(0, 0, prW, PR_VEL_H); }                 // real en Task 5
+  function prDrawVel() {
+    prVelCtx.clearRect(0, 0, prW, PR_VEL_H);
+    // línea separadora superior
+    prVelCtx.strokeStyle = 'rgba(255,255,255,0.06)';
+    prVelCtx.beginPath(); prVelCtx.moveTo(PR_KEYS_W, 0.5); prVelCtx.lineTo(prW, 0.5); prVelCtx.stroke();
+    const ch = lp.channels[prState.ch]; if (!ch) return; const col = LP_COLORS[prState.ch];
+    for (const n of ch.notes) {
+      const x = prBeatToX(n.startBeat), h = Math.max(2, (n.vel == null ? 0.8 : n.vel) * (PR_VEL_H - 8));
+      // tallo vertical: de abajo hacia arriba según velocity
+      prVelCtx.strokeStyle = col; prVelCtx.lineWidth = 2;
+      prVelCtx.beginPath(); prVelCtx.moveTo(x + 1, PR_VEL_H - 2); prVelCtx.lineTo(x + 1, PR_VEL_H - 2 - h); prVelCtx.stroke();
+      // punto en la punta del tallo
+      prVelCtx.fillStyle = col; prVelCtx.beginPath(); prVelCtx.arc(x + 1, PR_VEL_H - 2 - h, 2.5, 0, 7); prVelCtx.fill();
+    }
+  }
+  // ---------- Piano-roll: arrastre de velocity ----------
+  let prVelDrag = false;
+  function prVelApply(ev) {
+    const ch = lp.channels[prState.ch]; if (!ch || !ch.notes.length) return;
+    const r = prVel.getBoundingClientRect(); const px = ev.clientX - r.left, py = ev.clientY - r.top;
+    let best = -1, bestDx = 1e9;
+    for (let k = 0; k < ch.notes.length; k++) { const dx = Math.abs(prBeatToX(ch.notes[k].startBeat) - px); if (dx < bestDx) { bestDx = dx; best = k; } }
+    if (best < 0 || bestDx > 14) return;
+    // mapear posición Y a velocity entre 0.05 y 1
+    const v = Math.max(0.05, Math.min(1, (PR_VEL_H - 2 - py) / (PR_VEL_H - 8)));
+    ch.notes[best].vel = v; prDrawVel();
+  }
+  prVel.addEventListener('pointerdown', ev => { if (prState.ch < 0) return; prVelDrag = true; prVel.setPointerCapture(ev.pointerId); prVelApply(ev); });
+  prVel.addEventListener('pointermove', ev => { if (prVelDrag) prVelApply(ev); });
+  prVel.addEventListener('pointerup', () => { if (prVelDrag) { prVelDrag = false; saveLooper(); } });
+  prVel.addEventListener('pointercancel', () => { if (prVelDrag) { prVelDrag = false; saveLooper(); } });
   (function fillPrRoot(){ const names=['Do','Do#','Re','Re#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'];
     $('prRoot').innerHTML = names.map((n,i)=>'<option value="'+i+'">'+n+'</option>').join(''); })();
 
