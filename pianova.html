@@ -113,6 +113,7 @@
   .libEmpty{padding:18px 12px; color:var(--muted); font-size:12px; text-align:center}
   .libSec{flex:0 0 auto; padding:6px 12px 3px; font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
   .libTreeItem{padding:3px 10px; cursor:pointer; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .libChev{display:inline-block; width:14px; text-align:center; color:var(--muted); font-size:10px}
   .libTreeItem:hover{background:#141a23}
   .libTreeItem.on{background:#15202c; color:#9fd0f0; box-shadow:inset 2px 0 0 #4a90c2}
   .libRow{display:flex; align-items:center; gap:8px; padding:5px 10px; border-bottom:1px solid #151a22; font-size:12px}
@@ -921,7 +922,7 @@
   let quantizeGrid = 0;             // 0 = libre; 0.5 = corchea; 0.25 = semicorchea
   // Navegador de samples
   const libState = { dirHandle: null, tree: null, current: null, tab: 'folders',
-                     favs: [], recent: [], query: '' };
+                     favs: [], recent: [], query: '', expanded: {} };
   let libFileMap = {};   // path -> {name, getFile()} para leer bajo demanda
   // Atajos MIDI del Looper: acción -> { kind:'cc'|'note', num }. Se aprenden y se guardan.
   const LP_ACTIONS = { lp_rec: 'Grabar canal', lp_prev: 'Canal ◀', lp_next: 'Canal ▶', lp_play: 'Play/Stop' };
@@ -2738,6 +2739,7 @@
       if (perm === 'granted') {
         ensureAudio(); libFileMap = {}; libState.dirHandle = handle;
         libState.tree = await scanDirHandle(handle, handle.name); libState.current = libState.tree;
+        libState.expanded = { [libState.tree.path]: true };
         if (!$('libPanel').hidden) libRender();
       }
     } catch (e) {}
@@ -2752,6 +2754,7 @@
         libFileMap = {};   // solo se vacía cuando ya hay carpeta nueva (cancelar no rompe la actual)
         libState.tree = await scanDirHandle(handle, handle.name);
         libState.current = libState.tree;
+        libState.expanded = { [libState.tree.path]: true };
         await idbSet('dir', handle);        // Task 6 (persistencia); si no existe aún, no rompe
         libSave(); libRender();
       } catch (e) { if (e && e.name !== 'AbortError') alert('No pude abrir la carpeta.'); }
@@ -2776,6 +2779,7 @@
       libFileMap[p] = { name: f.name, file: f };
     }
     libState.dirHandle = null; libState.tree = root; libState.current = root;
+    libState.expanded = { [root.path]: true };
     libSave(); libRender();
   });
   // Lectura de un nodo a AudioBuffer (bajo demanda) + cache
@@ -2812,9 +2816,15 @@
       html += '<div class="libSec">Carpetas</div><div class="libTree">';
       const walk = (node, depth) => {
         if (node.kind !== 'dir') return;
+        const subs = node.children.filter(c => c.kind === 'dir');
+        const exp = !!libState.expanded[node.path];
         const on = (libState.current === node) ? ' on' : '';
-        html += '<div class="libTreeItem' + on + '" data-dir="' + encodeURIComponent(node.path) + '" style="padding-left:' + (10 + depth * 12) + 'px" title="' + esc(node.name) + '">📁 ' + esc(node.name) + '</div>';
-        node.children.forEach(c => walk(c, depth + 1));
+        const enc = encodeURIComponent(node.path);
+        const chev = subs.length
+          ? '<span class="libChev" data-toggle="' + enc + '">' + (exp ? '▾' : '▸') + '</span>'
+          : '<span class="libChev">·</span>';
+        html += '<div class="libTreeItem' + on + '" data-dir="' + enc + '" style="padding-left:' + (8 + depth * 12) + 'px" title="' + esc(node.name) + '">' + chev + '📁 ' + esc(node.name) + '</div>';
+        if (exp) subs.forEach(c => walk(c, depth + 1));
       };
       walk(libState.tree, 0);
       html += '</div>';
@@ -2852,10 +2862,15 @@
     t.classList.add('on'); libState.tab = t.dataset.libtab; libRender();
   }));
   $('libBody').addEventListener('click', ev => {
+    const tog = ev.target.closest('[data-toggle]');
+    if (tog) { const p = decodeURIComponent(tog.dataset.toggle);   // chevron: plegar/desplegar
+      libState.expanded[p] = !libState.expanded[p]; libRender(); return; }
     const dir = ev.target.closest('[data-dir]');
-    if (dir) { const p = decodeURIComponent(dir.dataset.dir);
+    if (dir) { const p = decodeURIComponent(dir.dataset.dir);      // nombre: abrir y mostrar sus sonidos
       const find = n => { if (n.path===p) return n; for (const c of (n.children||[])){ const r=find(c); if (r) return r; } return null; };
-      libState.current = find(libState.tree) || libState.tree; libRender(); return; }
+      libState.current = find(libState.tree) || libState.tree;
+      libState.expanded[p] = true;
+      libRender(); return; }
     // botones de fila → Task 4
     libRowAction(ev);
   });
