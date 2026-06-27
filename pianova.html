@@ -3159,6 +3159,53 @@
   $('prFold').addEventListener('change', e => { prState.fold = e.target.checked; prResize(); prDraw(); });
   $('prScaleOn').addEventListener('change', e => { prState.scaleOn = e.target.checked; prDraw(); });
 
+  // ---------- Piano-roll: edición de notas (crear / mover / redimensionar / borrar) ----------
+  function prPos(ev) { const r = prCanvas.getBoundingClientRect(); return { px: ev.clientX - r.left, py: ev.clientY - r.top }; }
+  prCanvas.addEventListener('pointerdown', ev => {
+    if (prState.ch < 0) return;
+    const { px, py } = prPos(ev); if (px < PR_KEYS_W) return;     // zona de teclas: ignorar
+    const ch = lp.channels[prState.ch]; const hit = prNoteAt(px, py);
+    if (ev.button === 2) { if (hit) { ch.notes.splice(hit.k, 1); saveLooper(); prDraw(); } return; }  // clic derecho = borrar
+    if (hit) {
+      prDrag = { k: hit.k, mode: hit.edge ? 'resize' : 'move', offBeat: prXToBeat(px) - ch.notes[hit.k].startBeat };
+      prCanvas.setPointerCapture(ev.pointerId);
+    } else {                                                       // crear nota
+      const b = Math.max(0, Math.min(lpLoopBeats() - prState.grid, prSnap(prXToBeat(px))));
+      ch.notes.push({ midi: prYToMidi(py), startBeat: b, dur: prState.grid, vel: 0.8 });
+      prDrag = { k: ch.notes.length - 1, mode: 'resize', offBeat: 0 };
+      prCanvas.setPointerCapture(ev.pointerId); saveLooper();
+    }
+    prDraw();
+  });
+  prCanvas.addEventListener('pointermove', ev => {
+    if (!prDrag || prState.ch < 0) return;
+    const { px, py } = prPos(ev); const n = lp.channels[prState.ch].notes[prDrag.k];
+    if (!n) { prDrag = null; return; }
+    const total = lpLoopBeats();
+    if (prDrag.mode === 'move') {
+      let b = prSnap(prXToBeat(px) - prDrag.offBeat);
+      n.startBeat = Math.max(0, Math.min(total - n.dur, b));
+      n.midi = prYToMidi(py);
+    } else {   // resize: el borde derecho
+      let end = prSnap(prXToBeat(px));
+      n.dur = Math.max(prState.grid, Math.min(total - n.startBeat, end - n.startBeat));
+    }
+    prDraw();
+  });
+  function prEditUp() { if (prDrag) { prDrag = null; saveLooper(); } }
+  prCanvas.addEventListener('pointerup', prEditUp);
+  prCanvas.addEventListener('pointercancel', prEditUp);
+  prCanvas.addEventListener('dblclick', ev => {   // doble-clic en nota = borrar
+    if (prState.ch < 0) return; const { px, py } = prPos(ev); const hit = prNoteAt(px, py);
+    if (hit) { lp.channels[prState.ch].notes.splice(hit.k, 1); saveLooper(); prDraw(); }
+  });
+  prCanvas.addEventListener('contextmenu', ev => ev.preventDefault());   // permitir clic derecho = borrar
+  $('prGrid').addEventListener('change', e => { prState.grid = parseFloat(e.target.value); prDraw(); });
+  $('prQuant').addEventListener('click', () => {
+    if (prState.ch < 0) return; quantizeNotes(lp.channels[prState.ch].notes, prState.grid);
+    saveLooper(); prDraw();
+  });
+
   // Botones de canal (Grabar / Silenciar / Borrar)
   lpChannelsEl.addEventListener('click', ev => {
     const rec = ev.target.dataset.rec, mut = ev.target.dataset.mute, clr = ev.target.dataset.clear;
