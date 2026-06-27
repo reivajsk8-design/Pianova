@@ -90,6 +90,10 @@
   .lpSound{flex:1; min-width:0; font-size:11px; padding:4px 22px 4px 7px;
     background:var(--panel2); color:var(--ink); border:1px solid var(--line); border-radius:7px}
   .lpVol{flex:1 1 40px; width:auto; min-width:0; accent-color:var(--amber)}
+  /* Fader vertical compacto de volumen en la cabecera del canal */
+  .lpVolSlot{flex:1; display:flex; justify-content:flex-start}
+  .lpVolSlot .fTrack{height:52px}
+  .lpVolSlot .fLab{display:none}
   .lpHead button{padding:4px 7px; font-size:12px; line-height:1; flex:0 0 auto}
   .lpHead .lpHeadBot button{flex:1 1 auto}
   .lpHead button.rec{background:#e8746b; color:#1a0606; border-color:#e8746b; font-weight:700}
@@ -1174,7 +1178,7 @@
           '<button class="lpEdit" data-edit="' + i + '" title="Editar el sonido importado">✏️</button>' +
         '</div>' +
         '<div class="lpHeadMid">' +
-          '<input class="lpVol" type="range" min="0" max="1" step="0.05" value="' + vol + '" data-vol="' + i + '" title="Volumen">' +
+          '<div class="lpVolSlot" data-volslot="' + i + '"></div>' +
           '<button class="lpVolLearn" data-vollearn="' + i + '" title="Asignar un knob a este volumen">🎛</button>' +
         '</div>' +
         '<div class="lpHeadBot">' +
@@ -1187,6 +1191,15 @@
     }
     rebuildChannelSoundOptions();
     lpUpdateSelected();
+    // Crear un fader vertical de volumen por canal (reemplaza el input range anterior)
+    for (let i = 0; i < LP_CHANNELS; i++) {
+      const slot = lpChannelsEl.querySelector('[data-volslot="' + i + '"]'); if (!slot) continue;
+      const vol = (lp.channels[i] && lp.channels[i].vol != null) ? lp.channels[i].vol : 0.85;
+      const f = makeFader({ key: 'vol:' + i, min: 0, max: 1, step: 0.05, def: 0.85, value: vol,
+        color: LP_COLORS[i], fmt: v => Math.round(v * 100),
+        onInput: v => { lp.channels[i].vol = v; saveLooperDebounced(); } });
+      slot.appendChild(f.el);
+    }
   }
   const LP_SYNTHS = [['synth:piano', '🎹 Piano'], ['synth:brillante', '✨ Piano brillante'],
     ['synth:organo', '🎛️ Órgano'], ['synth:campanas', '🔔 Campanas'], ['synth:cuerda', '🎻 Cuerda']];
@@ -1580,8 +1593,7 @@
   function setChannelVolFromCC(ch, val) {
     const v = Math.max(0, Math.min(1, val / 127));
     if (lp.channels[ch]) lp.channels[ch].vol = v;
-    const sl = lpChannelsEl.querySelector('[data-vol="' + ch + '"]');
-    if (sl) sl.value = v;
+    const f = lpFaders['vol:' + ch]; if (f) f.setValue(v);
     saveLooperDebounced();
   }
   // ---------- Fader vertical reutilizable (mezclador) ----------
