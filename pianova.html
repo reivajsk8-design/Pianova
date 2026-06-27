@@ -288,6 +288,7 @@
   .prHead{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:10px 14px;
     background:var(--panel2); border-bottom:1px solid var(--line)}
   #prTitle{font-family:var(--disp); font-weight:600; font-size:14px; margin-right:auto}
+  .prPlayBtn{background:var(--amber); color:#1a1206; border-color:var(--amber); font-weight:700; padding:6px 12px}
   .prCtl{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted)}
   .prCtl select{background:var(--panel); color:var(--ink); border:1px solid var(--line);
     border-radius:7px; padding:4px 6px; font-size:12px}
@@ -379,6 +380,7 @@
   <div id="pianoroll" hidden>
     <div id="prPanel">
       <div class="prHead">
+        <button id="prPlay" class="prCtl prPlayBtn" title="Reproducir/Parar el bucle">▶ Reproducir</button>
         <span id="prTitle">Piano-roll</span>
         <label class="prCtl"><input type="checkbox" id="prFold"> Fold</label>
         <label class="prCtl">Rejilla
@@ -1046,7 +1048,9 @@
     prSel = new Set(); prMarquee = null; prUndo = []; prRedo = [];
     if (prRAF) { cancelAnimationFrame(prRAF); prRAF = 0; }
   }
-  function prFrame() { if (prState.ch < 0) { prRAF = 0; return; } prDraw(); prDrawVel(); prRAF = requestAnimationFrame(prFrame); }
+  function prFrame() { if (prState.ch < 0) { prRAF = 0; return; } prDraw(); prDrawVel();
+    const pb = $('prPlay'); if (pb) pb.textContent = lp.playing ? '⏹ Parar' : '▶ Reproducir';
+    prRAF = requestAnimationFrame(prFrame); }
   function prResize() {
     const sc = prCanvas.parentElement.getBoundingClientRect();
     prW = sc.width;
@@ -3382,6 +3386,7 @@
   lpCanvas.addEventListener('pointercancel', lpEditUp);
   lpCanvas.addEventListener('dblclick', lpEditDbl);
   $('prClose').addEventListener('click', prClose);
+  $('prPlay').addEventListener('click', () => lpTogglePlay());   // reproducir/parar sin salir del editor
   $('prFold').addEventListener('change', e => { prState.fold = e.target.checked; prResize(); prDraw(); });
   $('prScaleOn').addEventListener('change', e => { prState.scaleOn = e.target.checked; prDraw(); });
   $('prRoot').addEventListener('change', e => { prState.scaleRoot = parseInt(e.target.value, 10); prDraw(); });
