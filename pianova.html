@@ -241,6 +241,23 @@
   #sampleEdPanel label.fld{display:flex; gap:10px; margin:8px 0}
   #sampleEdPanel input[type=range]{flex:1; accent-color:var(--amber)}
   #seWave{width:100%; height:90px; background:#0c0e13; border:1px solid var(--line); border-radius:8px; display:block}
+  /* Piano-roll por canal */
+  #pianoroll{position:fixed; inset:0; z-index:1200; background:rgba(8,10,14,.72)}
+  #pianoroll[hidden]{display:none}
+  #prPanel{position:absolute; inset:18px; display:flex; flex-direction:column;
+    background:var(--panel); border:1px solid var(--line); border-radius:14px; overflow:hidden;
+    box-shadow:0 30px 80px rgba(0,0,0,.6)}
+  .prHead{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:10px 14px;
+    background:var(--panel2); border-bottom:1px solid var(--line)}
+  #prTitle{font-family:var(--disp); font-weight:600; font-size:14px; margin-right:auto}
+  .prCtl{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted)}
+  .prCtl select{background:var(--panel); color:var(--ink); border:1px solid var(--line);
+    border-radius:7px; padding:4px 6px; font-size:12px}
+  .prScroll{flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; background:#0c0e13}
+  #prCanvas{display:block; width:100%; touch-action:none}
+  .prVelWrap{height:72px; border-top:1px solid var(--line); background:#0d0f15}
+  #prVel{display:block; width:100%; height:72px; touch-action:none}
+  @media (max-width:860px){ #prPanel{inset:8px} .prHead{gap:8px; padding:8px 10px} }
   .lpEdit{padding:2px 6px; font-size:12px; flex:0 0 auto}
   /* Modo Reto */
   .retoBar{display:flex; gap:22px; flex-wrap:wrap; align-items:center; margin-bottom:12px;
@@ -318,6 +335,34 @@
         <button id="seTest">▶ Probar</button>
         <button id="seClose" class="primary">Cerrar</button>
       </div>
+    </div>
+  </div>
+
+  <div id="pianoroll" hidden>
+    <div id="prPanel">
+      <div class="prHead">
+        <span id="prTitle">Piano-roll</span>
+        <label class="prCtl"><input type="checkbox" id="prFold"> Fold</label>
+        <label class="prCtl">Rejilla
+          <select id="prGrid">
+            <option value="1">1/4</option><option value="0.5">1/8</option>
+            <option value="0.25" selected>1/16</option><option value="0.125">1/32</option>
+          </select>
+        </label>
+        <label class="prCtl">Escala
+          <select id="prRoot"></select>
+          <select id="prScale">
+            <option value="chromatic">Cromática</option><option value="major">Mayor</option>
+            <option value="minor">Menor</option><option value="pentaMajor">Penta mayor</option>
+            <option value="pentaMinor">Penta menor</option><option value="dorian">Dórica</option>
+          </select>
+        </label>
+        <label class="prCtl"><input type="checkbox" id="prScaleOn"> Resaltar escala</label>
+        <button id="prQuant" class="prCtl">⊞ Cuadrar</button>
+        <button id="prClose" class="primary">✕ Cerrar</button>
+      </div>
+      <div class="prScroll"><canvas id="prCanvas"></canvas></div>
+      <div class="prVelWrap"><canvas id="prVel"></canvas></div>
     </div>
   </div>
 
@@ -929,6 +974,44 @@
   };
   let selectedChannel = 0;          // canal "activo" para grabar con atajos MIDI
   let quantizeGrid = 0;             // 0 = libre; 0.5 = corchea; 0.25 = semicorchea
+
+  // ---------- Piano-roll por canal (overlay) ----------
+  const PR_ROWH = 16, PR_KEYS_W = 62, PR_VEL_H = 72;
+  const prState = { ch:-1, grid:0.25, fold:false, scaleRoot:0, scaleType:'chromatic', scaleOn:false };
+  let prW = 0, prRowsCache = [], prRAF = 0, prDrag = null;
+  const prCanvas = $('prCanvas'), prCtx = prCanvas.getContext('2d');
+  const prVel = $('prVel'), prVelCtx = prVel.getContext('2d');
+  function prOpen(ch) {
+    prState.ch = ch;
+    $('pianoroll').hidden = false;
+    $('prTitle').textContent = 'Piano-roll · Canal ' + (ch + 1);
+    prResize(); prDraw();
+    if (!prRAF) prRAF = requestAnimationFrame(prFrame);
+  }
+  function prClose() {
+    $('pianoroll').hidden = true; prState.ch = -1; prDrag = null;
+    if (prRAF) { cancelAnimationFrame(prRAF); prRAF = 0; }
+  }
+  function prFrame() { if (prState.ch < 0) { prRAF = 0; return; } prDraw(); prDrawVel(); prRAF = requestAnimationFrame(prFrame); }
+  function prResize() {
+    const sc = prCanvas.parentElement.getBoundingClientRect();
+    prW = sc.width;
+    prRowsCache = prRows();
+    prCanvas.style.height = (prRowsCache.length * PR_ROWH) + 'px';
+    prCanvas.width = Math.round(prW * dpr);
+    prCanvas.height = Math.round(prRowsCache.length * PR_ROWH * dpr);
+    prCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    prVel.width = Math.round(prW * dpr); prVel.height = Math.round(PR_VEL_H * dpr);
+    prVelCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  function prDraw() { prCtx.clearRect(0, 0, prW, prRowsCache.length * PR_ROWH); }   // real en Task 3
+  function prDrawVel() { prVelCtx.clearRect(0, 0, prW, PR_VEL_H); }                 // real en Task 5
+  function prRows() {   // versión mínima; Task 3 la sustituye por la versión con Fold y rango
+    const a = []; for (let m = 84; m >= 36; m--) a.push(m); return a;
+  }
+  (function fillPrRoot(){ const names=['Do','Do#','Re','Re#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'];
+    $('prRoot').innerHTML = names.map((n,i)=>'<option value="'+i+'">'+n+'</option>').join(''); })();
+
   // Navegador de samples
   const libState = { dirHandle: null, tree: null, current: null, tab: 'folders',
                      favs: [], recent: [], query: '', expanded: {}, showResults: true };
@@ -1417,6 +1500,7 @@
   // Teclado del ordenador (una octava desde Do central) para probar sin el piano
   const KEYMAP = { a:60, w:61, s:62, e:63, d:64, f:65, t:66, g:67, y:68, h:69, u:70, j:71, k:72 };
   window.addEventListener('keydown', ev => {
+    if (ev.key === 'Escape' && !$('pianoroll').hidden) { prClose(); return; }
     if (ev.repeat) return;
     const m = KEYMAP[ev.key.toLowerCase()];
     if (m != null && !pressed.has(m)) handleNoteOn(m, 0.8);
@@ -2223,8 +2307,9 @@
   function lpEditUp() { if (lpDrag) { lpDrag = null; saveLooper(); } }
   function lpEditDbl(ev) {
     const r = lpCanvas.getBoundingClientRect();
-    const hit = lpNoteAt(ev.clientX - r.left, ev.clientY - r.top);
-    if (hit) { lp.channels[hit.i].notes.splice(hit.k, 1); saveLooper(); }
+    const py = ev.clientY - r.top;
+    const i = Math.floor(py / (lpH / LP_CHANNELS));
+    if (i >= 0 && i < LP_CHANNELS) prOpen(i);
   }
 
   function lpTick(dt) {
@@ -2995,6 +3080,7 @@
   lpCanvas.addEventListener('pointerup', lpEditUp);
   lpCanvas.addEventListener('pointercancel', lpEditUp);
   lpCanvas.addEventListener('dblclick', lpEditDbl);
+  $('prClose').addEventListener('click', prClose);
 
   // Botones de canal (Grabar / Silenciar / Borrar)
   lpChannelsEl.addEventListener('click', ev => {
