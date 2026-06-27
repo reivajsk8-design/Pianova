@@ -1027,10 +1027,15 @@
   // Ajusta un beat a la rejilla activa (grid=0 → sin ajuste)
   function prSnap(beat) { return prState.grid > 0 ? Math.round(beat / prState.grid) * prState.grid : beat; }
   let prW = 0, prRowsCache = [], prRAF = 0, prDrag = null;
+  let prSel = new Set();      // notas seleccionadas (referencias a objetos)
+  let prClip = [];            // portapapeles relativo (global, permite pegar en otro canal)
+  let prMarquee = null;       // {x0,y0,x1,y1,add,moved} mientras se arrastra el recuadro
+  let prUndo = [], prRedo = [];   // pilas de fotos de las notas del canal
   const prCanvas = $('prCanvas'), prCtx = prCanvas.getContext('2d');
   const prVel = $('prVel'), prVelCtx = prVel.getContext('2d');
   function prOpen(ch) {
     prState.ch = ch;
+    prSel = new Set(); prMarquee = null; prUndo = []; prRedo = [];
     $('pianoroll').hidden = false;
     $('prTitle').textContent = 'Piano-roll · Canal ' + (ch + 1);
     prResize(); prDraw();
@@ -1038,6 +1043,7 @@
   }
   function prClose() {
     $('pianoroll').hidden = true; prState.ch = -1; prDrag = null;
+    prSel = new Set(); prMarquee = null; prUndo = []; prRedo = [];
     if (prRAF) { cancelAnimationFrame(prRAF); prRAF = 0; }
   }
   function prFrame() { if (prState.ch < 0) { prRAF = 0; return; } prDraw(); prDrawVel(); prRAF = requestAnimationFrame(prFrame); }
@@ -1091,6 +1097,23 @@
     return sel.map(n=>({midi:n.midi,startBeat:n.startBeat-base,dur:n.dur,vel:n.vel})); }
   function prSpan(sel){ return Math.max(...sel.map(n=>n.startBeat+n.dur)) - Math.min(...sel.map(n=>n.startBeat)); }
 
+  // ---------- Piano-roll: deshacer/rehacer ----------
+  function prSnapshotNotes(){ return lp.channels[prState.ch].notes.map(n => ({...n})); }
+  function prPushUndo(){ if (prState.ch < 0) return; prUndo.push(prSnapshotNotes()); if (prUndo.length > 60) prUndo.shift(); prRedo.length = 0; }
+  function prRestore(snap){ const a = lp.channels[prState.ch].notes; a.length = 0; snap.forEach(o => a.push({...o})); prSel = new Set(); }
+  function prDoUndo(){ if (prState.ch < 0 || !prUndo.length) return; prRedo.push(prSnapshotNotes()); prRestore(prUndo.pop()); saveLooper(); prDraw(); }
+  function prDoRedo(){ if (prState.ch < 0 || !prRedo.length) return; prUndo.push(prSnapshotNotes()); prRestore(prRedo.pop()); saveLooper(); prDraw(); }
+
+  // Devuelve las notas del canal cuyo rectángulo se superpone al área indicada (canvas coords)
+  function prNotesInRect(x0,y0,x1,y1){
+    const ch = lp.channels[prState.ch]; if (!ch) return [];
+    return ch.notes.filter(n => {
+      const y = prMidiToY(n.midi); if (y < 0) return false;
+      const nx0 = prBeatToX(n.startBeat), nx1 = prBeatToX(n.startBeat + n.dur);
+      return rectsOverlap(x0,y0,x1,y1, nx0, y, nx1, y + PR_ROWH);
+    });
+  }
+
   // ---------- Piano-roll: dibujo principal ----------
   function prDraw() {
     const rows = prRowsCache, H = rows.length * PR_ROWH, gw = prGridW();
@@ -1130,10 +1153,19 @@
       const x = prBeatToX(n.startBeat), w = Math.max(4, prBeatToX(n.startBeat + n.dur) - x);
       prCtx.fillStyle = col; prCtx.strokeStyle = 'rgba(0,0,0,.5)';
       prCtx.fillRect(x, y + 1, w, PR_ROWH - 2); prCtx.strokeRect(x + 0.5, y + 1.5, w - 1, PR_ROWH - 3);
+      // resaltado de nota seleccionada
+      if (prSel.has(n)) { prCtx.strokeStyle = '#fff'; prCtx.lineWidth = 2; prCtx.strokeRect(x + 1, y + 1.5, w - 1, PR_ROWH - 3); prCtx.lineWidth = 1; }
     }
     // cabezal de reproducción
     if (lp.playing) { const x = prBeatToX(lp.beat % total);
       prCtx.fillStyle = '#ffce7a'; prCtx.fillRect(x - 1, 0, 2, H); }
+    // recuadro de selección (marquee)
+    if (prMarquee) {
+      const x = Math.min(prMarquee.x0, prMarquee.x1), w = Math.abs(prMarquee.x1 - prMarquee.x0);
+      const yy = Math.min(prMarquee.y0, prMarquee.y1), hh = Math.abs(prMarquee.y1 - prMarquee.y0);
+      prCtx.fillStyle = 'rgba(159,208,240,0.12)'; prCtx.fillRect(x, yy, w, hh);
+      prCtx.strokeStyle = 'rgba(159,208,240,0.7)'; prCtx.lineWidth = 1; prCtx.strokeRect(x + 0.5, yy + 0.5, w, hh);
+    }
   }
   function prDrawVel() {
     prVelCtx.clearRect(0, 0, prW, PR_VEL_H);
