@@ -2,7 +2,17 @@
 
 Snapshot para retomar el proyecto en otra sesión (humana o con Claude Code).
 
-**Versión:** v1.18 (modo Reto: juego de progresión por tempo)
+**Versión:** v1.19 (navegador de samples: librería de carpetas en el Looper)
+
+**Navegador de samples (v1.19):** panel lateral `#libPanel` (botón **📁 Librería**) en el Looper.
+Importa carpetas del disco vía File System Access API (`showDirectoryPicker`) con respaldo
+`webkitdirectory` para móvil. Escaneo perezoso del árbol (`scanDirHandle`/`libFileMap`); audio
+decodificado bajo demanda (`libNodeBuffer`/`libBufCache`). Pestañas **Carpetas/Favoritos/Recientes**,
+buscador, filas con ▶ escuchar / ✚ a canal / 🎹 a instrumento / ⭐ favorito / 🕘 recientes.
+Arrastrar fila a la cabecera de un canal para asignarlo. Instrumento global `type:'sample'` melódico
+(`pitchRate`). Persistencia: handle en **IndexedDB** `pianova`; `store.lib` para favoritos/recientes.
+En móvil el panel es overlay (CSS `position:absolute; z-index:5`) sobre el Looper; el fallback abre
+archivos sueltos. Responsive añadido en `@media (max-width:860px)`.
 
 **Modo Reto (v1.18):** 5º modo "Reto · supérate". La melodía cae **a tempo del nivel** (en tiempo
 real, no espera); aciertas si tocas la nota a tiempo (ventana ±0.34 pulso). Puntuación + combo +

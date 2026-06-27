@@ -130,6 +130,19 @@ App web (un solo archivo HTML) para aprender piano con notas que caen estilo Syn
   botón ✏️ por canal abre `#sampleEd` con forma de onda (`drawSeWave`), **recorte** (`trimStart`/
   `trimEnd` → `BufferSource.start(0,offset,dur)`) y **melódico** (`melodic`/`base`, tono por
   `playbackRate = 2^((midi-base)/12)`). Parámetros guardados por sample.
+- **Navegador de samples (v1.19):** panel lateral `#libPanel` (clase `.libPanel`) que se abre con
+  el botón **"📁 Librería"** (`#libBtn`). Importa **carpetas enteras del disco** vía File System
+  Access API (`showDirectoryPicker` + respaldo `webkitdirectory` para móvil/navegadores sin
+  soporte). Escaneo **perezoso** del árbol de directorios (`scanDirHandle`/`libFileMap`): solo se
+  leen los metadatos al navegar, el audio se decodifica bajo demanda (`libNodeBuffer`/`libBufCache`).
+  El panel tiene tres pestañas: **Carpetas** (árbol), **Favoritos** (⭐) y **Recientes** (🕘);
+  buscador de archivos; filas con acciones ▶ escuchar (`libPreview`), ✚ asignar a canal
+  (`libAssignChannel`) y 🎹 asignar como instrumento global (`libAssignInstrument`). Se puede
+  **arrastrar** una fila a la cabecera de un canal para asignarlo. El instrumento global de tipo
+  `'sample'` es **melódico** (la nota cambia el tono por `pitchRate = 2^((midi-base)/12)`).
+  Persistencia: el handle de carpeta se guarda en **IndexedDB** (base `pianova`) para reabrirla
+  sin volver a elegirla; `store.lib` guarda favoritos y recientes. Solo escritorio para importar
+  carpeta (en móvil el fallback abre el selector de archivos sueltos).
 - **Secciones / bucle (Practicar y Acompañar):** `loopStart`/`loopEnd`/`loopOn`/`loopRounds` son
   índices de la **secuencia activa** (notas/`idx` en Practicar, acordes/`stepIdx` en Acompañar;
   helpers `seqLen`/`curSeqIdx`/`seqBeatAt`). Al acertar el final, vuelve al inicio (`seekToIndex`).

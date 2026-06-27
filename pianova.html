@@ -192,6 +192,9 @@
     .lpHead button.rec{ font-size:13px }
     input[type=range]{ width:110px }
     .fxctl input[type=range]{ width:120px }
+    .libPanel{ position:absolute; z-index:5; left:0; top:0; bottom:0; flex-basis:84%; max-width:340px;
+      box-shadow:8px 0 30px rgba(0,0,0,.5) }
+    #libImport{ min-height:42px }
   }
   /* Teléfono en horizontal (apaisado): dar el máximo espacio al escenario */
   @media (max-height:560px) and (orientation:landscape){
@@ -469,6 +472,7 @@
   'use strict';
 
   // ---------- Configuración ----------
+  const VERSION = 'v1.19';             // versión visible (navegador de samples)
   let LOW = 60, HIGH = 84;              // rango del teclado (se ajusta por canción)
   const LOOKAHEAD = 4.2;                // beats visibles por encima de la línea
   const SOLFEGE = ['Do','Do#','Re','Re#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'];
