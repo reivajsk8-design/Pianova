@@ -207,7 +207,13 @@ App web (un solo archivo HTML) para aprender piano con notas que caen estilo Syn
   (melodía, para practicar/juzgar) y `fullNotes` (para el modo **Escuchar**).
 - **Modos:** `practice` (melodía, una nota), `playalong` (Acompañar: canción completa por
   acordes, espera el acorde entero), `listen` (Escuchar: `playFullAt` reproduce `fullNotes` por
-  beat con velocity e ilumina teclas), `reto`, `free`.
+  beat con velocity e ilumina teclas), `reto`, `free`. La selección de modo es un **desplegable**
+  `#mode` (v1.23) cuyo `change` llama a `setMode(m)` (antes eran botones `.seg`).
+- **Cabecera pro de Aprender (v1.23):** la fila de controles (`.lnBar`) sigue el estilo del transporte
+  del Looper (reutiliza `.tpCol/.tpLab/.tpSep/.tpBpm`): **Modo** (desplegable) · **▶ Empezar** /
+  **↻ Reiniciar** · **Tempo = BPM grande editable** (`#lnBpmNum`/`setLnBpm`, doble-clic=prompt,
+  arrastrar ↕; `#tempo` queda oculto como fuente de verdad) · **Canción** + **📂 .mid** · **Manos** ·
+  **Acordes** · barra de bucle A–B. El tutorial (`TOUR`) apunta a `#mode`.
 - **Modo Reto (juego):** la melodía cae **a tempo del nivel** (no espera); aciertas si tocas a
   tiempo (ventana ±`RETO_WINDOW`). `levelTempo(L)` = `base*(0.5+0.1*L)` (L1≈60%…L8≈130%). Superar
   ≥85% sube de nivel (más tempo). Puntuación + combo + estrellas; `retoFinish` muestra `#retoEnd`.

@@ -71,6 +71,13 @@
   .tpIc input{display:none} .tpIc:has(input:checked){background:#3a2e12; border-color:#7a5a1a}
   #lpMetroSlot .fader{width:auto} #lpMetroSlot .fTrack{height:34px} #lpMetroSlot .fVal,#lpMetroSlot .fLab{display:none}
   .tpTools{display:flex; gap:8px; margin-left:auto}
+  /* Cabecera "pro" de Aprender (reutiliza .tpCol/.tpLab/.tpSep/.tpBpm del transporte) */
+  .lnBar{display:flex; align-items:center; gap:0; flex-wrap:wrap}
+  .lnBar .tpSep{width:1px; height:40px; background:var(--line); margin:0 12px}
+  .lnMode{font-size:13px; font-weight:600}
+  .lnStart{background:var(--amber); color:#1a1206; border-color:var(--amber); font-weight:700; padding:8px 14px}
+  .lnBtn{padding:7px 11px}
+  .lnSongRow{display:flex; align-items:center; gap:6px}
   .tabs{display:flex; gap:6px}
   .tab{border:1px solid var(--line); background:var(--panel); color:var(--muted)}
   .tab:hover{border-color:#3a4153; color:var(--ink)}
@@ -422,49 +429,59 @@
   </div>
 
   <div id="learnView">
-  <div class="controls">
-    <div class="seg" role="tablist" aria-label="Modo">
-      <button data-mode="practice" class="on">Practicar · espera a que toques</button>
-      <button data-mode="playalong">Acompañar · espera a que toques</button>
-      <button data-mode="listen">Escuchar · canción completa</button>
-      <button data-mode="reto">Reto · supérate</button>
-      <button data-mode="free">Tocar libre</button>
+  <div class="controls lnBar">
+    <div class="tpCol"><span class="tpLab">Modo</span>
+      <select id="mode" class="lnMode" aria-label="Modo de aprendizaje">
+        <option value="practice">Practicar · espera a que toques</option>
+        <option value="playalong">Acompañar · espera a que toques</option>
+        <option value="listen">Escuchar · canción completa</option>
+        <option value="reto">Reto · supérate</option>
+        <option value="free">Tocar libre</option>
+      </select>
     </div>
-    <label class="fld">Manos
+    <span class="tpSep"></span>
+    <button id="start" class="lnStart" title="Empezar">▶ Empezar</button>
+    <button id="reset" class="lnBtn" title="Reiniciar">↻ Reiniciar</button>
+    <span class="tpSep"></span>
+    <div class="tpCol"><span class="tpLab">Tempo</span>
+      <span class="tpBpm" id="lnBpmWrap" title="Doble-clic para escribir · arrastrar ↕ para cambiar"><b id="lnBpmNum">80</b> BPM</span>
+      <input type="range" id="tempo" min="40" max="160" value="80" hidden>
+      <span id="tempoVal" hidden>80</span>
+    </div>
+    <span class="tpSep"></span>
+    <div class="tpCol"><span class="tpLab">Canción</span>
+      <div class="lnSongRow">
+        <select id="song">
+          <option value="scale">Escala de Do (calentamiento)</option>
+          <option value="twinkle">Estrellita</option>
+          <option value="ode">Himno de la Alegría</option>
+        </select>
+        <button id="openMidi" class="lnBtn" title="Abrir un .mid">📂 .mid</button>
+      </div>
+    </div>
+    <span class="tpSep"></span>
+    <div class="tpCol"><span class="tpLab">Manos</span>
       <select id="hands">
         <option value="both">Las dos</option>
         <option value="right">Solo derecha</option>
         <option value="left">Solo izquierda</option>
       </select>
-    </label>
-    <label class="fld">Acordes
+    </div>
+    <div class="tpCol"><span class="tpLab">Acordes</span>
       <select id="chords">
         <option value="simple">Simple · 1 nota</option>
         <option value="media">Medio · 2 notas</option>
         <option value="full" selected>Completo</option>
       </select>
-    </label>
-    <label class="fld">Canción
-      <select id="song">
-        <option value="scale">Escala de Do (calentamiento)</option>
-        <option value="twinkle">Estrellita</option>
-        <option value="ode">Himno de la Alegría</option>
-      </select>
-    </label>
-    <button id="openMidi">Abrir .mid</button>
-    <input type="file" id="midiFile" accept=".mid,.midi" hidden>
-    <label class="fld">Tempo
-      <input type="range" id="tempo" min="40" max="160" value="80">
-      <span class="tempoval"><span id="tempoVal">80</span> BPM</span>
-    </label>
-    <button id="start">Empezar</button>
-    <button id="reset">Reiniciar</button>
+    </div>
+    <span class="tpSep"></span>
     <div class="loopbar" id="loopbar">
       <button id="loopStart">Inicio aquí</button>
       <button id="loopEnd" disabled>Fin aquí</button>
       <button id="loopClear" disabled>Quitar bucle</button>
       <span class="loopinfo" id="loopInfo"></span>
     </div>
+    <input type="file" id="midiFile" accept=".mid,.midi" hidden>
   </div>
 
   <main>
@@ -569,7 +586,7 @@
   'use strict';
 
   // ---------- Configuración ----------
-  const VERSION = 'v1.22';             // versión visible (piano-roll edición avanzada)
+  const VERSION = 'v1.23';             // versión visible (cabecera pro de Aprender)
   let LOW = 60, HIGH = 84;              // rango del teclado (se ajusta por canción)
   const LOOKAHEAD = 4.2;                // beats visibles por encima de la línea
   const SOLFEGE = ['Do','Do#','Re','Re#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'];
@@ -2017,6 +2034,7 @@
     fitRange(fullNotes);
     tempoEl.value = s.bpm;
     tempoVal.textContent = s.bpm;
+    { const bn = document.getElementById('lnBpmNum'); if (bn) bn.textContent = s.bpm; }   // BPM grande
     songBaseBpm = s.bpm;                         // base de los niveles del Reto
     const pg = store.progress[songKey];
     retoLevel = (pg && pg.bestLevel) ? pg.bestLevel : 1;   // continúa en tu mejor nivel
@@ -2927,7 +2945,7 @@
   const TOUR = [
     { title: '👋 ¡Hola!', text: 'Soy Pianova. Te enseño a tocar el piano poco a poco, jugando.\n¿Empezamos?' },
     { sel: '#connect', title: '🎹 Tu teclado', text: 'Conecta aquí tu teclado.\n¿No tienes? Toca con el ratón en las teclas de abajo, o con las letras A S D F G H J K.' },
-    { sel: '[data-mode="practice"]', title: '✨ Practicar', text: 'En este modo la app ESPERA a que toques la nota correcta. ¡Sin prisa!' },
+    { sel: '#mode', title: '✨ Modo', text: 'Elige aquí cómo aprender. En "Practicar" la app ESPERA a que toques la nota correcta. ¡Sin prisa!' },
     { sel: '#song', title: '🎵 La canción', text: 'Elige aquí qué canción quieres tocar.' },
     { sel: '#openMidi', title: '📂 Tus canciones', text: 'También puedes abrir tus propios archivos .mid.' },
     { sel: '#start', title: '▶️ Empezar', text: 'Pulsa este botón y… ¡a tocar!' },
@@ -3004,7 +3022,15 @@
   });
   $('start').addEventListener('click', start);
   $('reset').addEventListener('click', reset);
-  tempoEl.addEventListener('input', () => { tempoVal.textContent = tempoEl.value; });
+  tempoEl.addEventListener('input', () => { tempoVal.textContent = tempoEl.value; $('lnBpmNum').textContent = tempoEl.value; });
+  // BPM grande editable (Aprender): doble-clic = escribir, arrastrar ↕ = cambiar
+  function setLnBpm(v) { v = Math.max(40, Math.min(160, Math.round(v))); tempoEl.value = v; tempoVal.textContent = v; $('lnBpmNum').textContent = v; }
+  const lnBpmWrap = $('lnBpmWrap');
+  lnBpmWrap.addEventListener('dblclick', () => { const r = prompt('Tempo (40-160 BPM):', tempoEl.value); if (r != null && !isNaN(parseFloat(r))) setLnBpm(parseFloat(r)); });
+  let lnBpmDrag = null;
+  lnBpmWrap.addEventListener('pointerdown', e => { lnBpmDrag = { y: e.clientY, v: parseFloat(tempoEl.value) }; e.preventDefault(); });
+  window.addEventListener('pointermove', e => { if (lnBpmDrag) setLnBpm(lnBpmDrag.v + (lnBpmDrag.y - e.clientY) * 0.5); });
+  window.addEventListener('pointerup', () => lnBpmDrag = null);
   songSel.addEventListener('change', e => { setSong(e.target.value); savePrefs(); });
   $('hands').addEventListener('change', e => { handMode = e.target.value; rebuildSteps(); reset(); savePrefs(); });
   $('chords').addEventListener('change', e => { chordLevel = e.target.value; rebuildSteps(); reset(); savePrefs(); });
@@ -3015,21 +3041,19 @@
     if (f) loadMidiFile(f);
     e.target.value = '';   // permite recargar el mismo archivo
   });
-  document.querySelectorAll('[data-mode]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      mode = btn.dataset.mode;
-      document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('on', b === btn));
-      $('retoEnd').classList.remove('on');
-      $('retoBar').hidden = (mode !== 'reto');
-      if (mode === 'reto') {
-        const pg = store.progress[songKey];
-        retoLevel = (pg && pg.bestLevel) ? pg.bestLevel : 1;
-        updateRetoHUD();
-        status('Modo Reto · Nivel ' + retoLevel + '. Pulsa Empezar y toca las notas a tiempo.');
-      }
-      reset(); savePrefs();
-    });
-  });
+  function setMode(m) {
+    mode = m;
+    $('retoEnd').classList.remove('on');
+    $('retoBar').hidden = (mode !== 'reto');
+    if (mode === 'reto') {
+      const pg = store.progress[songKey];
+      retoLevel = (pg && pg.bestLevel) ? pg.bestLevel : 1;
+      updateRetoHUD();
+      status('Modo Reto · Nivel ' + retoLevel + '. Pulsa Empezar y toca las notas a tiempo.');
+    }
+    reset(); savePrefs();
+  }
+  $('mode').addEventListener('change', e => setMode(e.target.value));
   // Botones del resultado del Reto
   $('retoRetry').addEventListener('click', () => { mode = 'reto'; startReto(); });
   $('retoNext').addEventListener('click', () => { mode = 'reto'; retoLevel = Math.min(RETO_MAXLEVEL, retoLevel + 1); startReto(); });
@@ -3587,7 +3611,7 @@
   if (pr.chords) { chordLevel = pr.chords; $('chords').value = pr.chords; }
   if (pr.mode && pr.mode !== 'free') {
     mode = pr.mode;
-    document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === mode));
+    $('mode').value = mode;
   }
   if (pr.instrument) { instSel.value = pr.instrument; applyInstrument(pr.instrument); }
   setSong(pr.song && SONGS[pr.song] ? pr.song : 'scale');

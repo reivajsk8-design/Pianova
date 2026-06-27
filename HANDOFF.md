@@ -2,7 +2,17 @@
 
 Snapshot para retomar el proyecto en otra sesión (humana o con Claude Code).
 
-**Versión:** v1.22 (piano-roll: edición avanzada — selección, portapapeles, deshacer)
+**Versión:** v1.23 (cabecera pro de Aprender: modos en desplegable + barra estilo Looper)
+
+**Cabecera pro de Aprender (v1.23):** la fila de controles de la pantalla Aprender se rediseñó al
+estilo del transporte del Looper (`.lnBar`, reutilizando `.tpCol/.tpLab/.tpSep/.tpBpm`). Los **modos**
+de aprendizaje pasan de botones segmentados a un **desplegable** `#mode` (su `change` llama a
+`setMode(m)`, lógica extraída del antiguo manejador de los botones `[data-mode]`). **Tempo** es ahora
+un **BPM grande editable** (`#lnBpmNum`/`setLnBpm`: doble-clic = `prompt`, arrastrar ↕; el `#tempo`
+range queda oculto como fuente de verdad). **▶ Empezar** / **↻ Reiniciar**, **Canción** + **📂 .mid**,
+**Manos**, **Acordes** y la barra de **bucle A–B** se agrupan con etiquetas y separadores. El tutorial
+(`TOUR`) ahora resalta `#mode`. Solo HTML/CSS + el refactor de `setMode`/BPM; el resto de la lógica
+(modos, tempo, canción, manos, acordes, bucle) intacta. Pendiente de revisión del usuario por la mañana.
 
 **Piano-roll edición avanzada (v1.22):** selección múltiple de notas en el overlay `#pianoroll`:
 marquesina de recuadro (`prMarquee` + `prNotesInRect`), Shift-clic para añadir/quitar una nota y
