@@ -108,8 +108,9 @@
   .lpSound{flex:1; min-width:0; font-size:11px; padding:4px 22px 4px 7px;
     background:var(--panel2); color:var(--ink); border:1px solid var(--line); border-radius:7px}
   .lpVol{flex:1 1 40px; width:auto; min-width:0; accent-color:var(--amber)}
-  /* Fader vertical de volumen a la derecha de la cabecera (tira de mezclador) */
-  .lpVolSlot .fTrack{height:48px}
+  /* Fader vertical de volumen a la derecha de la cabecera (tira de mezclador).
+     Especificidad alta (.lpHead .lpVolSlot .fTrack) para ganar a .fader .fTrack (96px). */
+  .lpHead .lpVolSlot .fTrack{height:48px}
   .lpVolSlot .fVal{display:none}
   .lpVolSlot .fLab{display:none}
   .lpVolLearn{padding:1px 6px; font-size:11px; line-height:1; flex:0 0 auto}
