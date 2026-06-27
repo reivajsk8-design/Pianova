@@ -1014,11 +1014,76 @@
     prVel.width = Math.round(prW * dpr); prVel.height = Math.round(PR_VEL_H * dpr);
     prVelCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
-  function prDraw() { prCtx.clearRect(0, 0, prW, prRowsCache.length * PR_ROWH); }   // real en Task 3
-  function prDrawVel() { prVelCtx.clearRect(0, 0, prW, PR_VEL_H); }                 // real en Task 5
-  function prRows() {   // versión mínima; Task 3 la sustituye por la versión con Fold y rango
-    const a = []; for (let m = 84; m >= 36; m--) a.push(m); return a;
+  // ---------- Piano-roll: filas (rango de notas) ----------
+  function prRows() {
+    const ch = lp.channels[prState.ch]; const used = ch ? ch.notes.map(n => n.midi) : [];
+    if (prState.fold && used.length) {
+      const uniq = [...new Set(used)].sort((a, b) => b - a); return uniq;
+    }
+    let lo = 36, hi = 84;
+    if (used.length) { lo = Math.max(24, Math.min(...used) - 2); hi = Math.min(108, Math.max(...used) + 2); }
+    const a = []; for (let m = hi; m >= lo; m--) a.push(m); return a;
   }
+
+  // ---------- Piano-roll: geometría ----------
+  function prGridW() { return Math.max(1, prW - PR_KEYS_W); }
+  function prBeatToX(b) { return PR_KEYS_W + (b / lpLoopBeats()) * prGridW(); }
+  function prXToBeat(px) { return ((px - PR_KEYS_W) / prGridW()) * lpLoopBeats(); }
+  function prMidiToY(m) { const i = prRowsCache.indexOf(m); return i < 0 ? -100 : i * PR_ROWH; }
+  function prYToMidi(py) { const i = Math.max(0, Math.min(prRowsCache.length - 1, Math.floor(py / PR_ROWH))); return prRowsCache[i]; }
+  // Nota bajo el cursor; edge=true si está en el borde derecho (zona de redimensionar)
+  function prNoteAt(px, py) {
+    const ch = lp.channels[prState.ch]; if (!ch) return null;
+    for (let k = ch.notes.length - 1; k >= 0; k--) {
+      const n = ch.notes[k]; const y = prMidiToY(n.midi); if (y < 0) continue;
+      const x = prBeatToX(n.startBeat), x2 = prBeatToX(n.startBeat + n.dur);
+      if (px >= x && px <= x2 && py >= y && py <= y + PR_ROWH) return { k, edge: (px >= x2 - 6) };
+    }
+    return null;
+  }
+
+  // ---------- Piano-roll: dibujo principal ----------
+  function prDraw() {
+    const rows = prRowsCache, H = rows.length * PR_ROWH, gw = prGridW();
+    prCtx.clearRect(0, 0, prW, H);
+    // filas (teclas a la izq + sombreado de escala a la der)
+    for (let i = 0; i < rows.length; i++) {
+      const m = rows[i], y = i * PR_ROWH, black = [1,3,6,8,10].includes(((m % 12) + 12) % 12);
+      // fondo de fila en la rejilla
+      prCtx.fillStyle = (prState.scaleOn && prInScale(m)) ? 'rgba(159,208,240,0.06)'
+                       : black ? 'rgba(255,255,255,0.015)' : 'transparent';
+      prCtx.fillRect(PR_KEYS_W, y, gw, PR_ROWH);
+      // tecla del piano
+      prCtx.fillStyle = black ? '#1a1d24' : '#e8e4dc';
+      prCtx.fillRect(0, y + 0.5, PR_KEYS_W - 1, PR_ROWH - 1);
+      if (!black) { prCtx.fillStyle = 'rgba(0,0,0,.55)'; prCtx.font = '10px ui-monospace,monospace';
+        prCtx.textAlign = 'right'; prCtx.textBaseline = 'middle'; prCtx.fillText(solfege(m), PR_KEYS_W - 5, y + PR_ROWH / 2); }
+      // línea horizontal de fila
+      prCtx.strokeStyle = 'rgba(255,255,255,0.05)'; prCtx.lineWidth = 1;
+      prCtx.beginPath(); prCtx.moveTo(PR_KEYS_W, y + 0.5); prCtx.lineTo(prW, y + 0.5); prCtx.stroke();
+    }
+    // rejilla vertical (compás/pulso/grid)
+    const total = lpLoopBeats();
+    for (let b = 0; b <= total + 1e-6; b += prState.grid) {
+      const x = prBeatToX(b);
+      prCtx.strokeStyle = (Math.abs(b % 4) < 1e-6) ? 'rgba(255,255,255,0.20)'
+                        : (Math.abs(b % 1) < 1e-6) ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.04)';
+      prCtx.lineWidth = (Math.abs(b % 4) < 1e-6) ? 1.5 : 1;
+      prCtx.beginPath(); prCtx.moveTo(x, 0); prCtx.lineTo(x, H); prCtx.stroke();
+    }
+    // notas
+    const ch = lp.channels[prState.ch]; const col = LP_COLORS[prState.ch];
+    if (ch) for (const n of ch.notes) {
+      const y = prMidiToY(n.midi); if (y < 0) continue;
+      const x = prBeatToX(n.startBeat), w = Math.max(4, prBeatToX(n.startBeat + n.dur) - x);
+      prCtx.fillStyle = col; prCtx.strokeStyle = 'rgba(0,0,0,.5)';
+      prCtx.fillRect(x, y + 1, w, PR_ROWH - 2); prCtx.strokeRect(x + 0.5, y + 1.5, w - 1, PR_ROWH - 3);
+    }
+    // cabezal de reproducción
+    if (lp.playing) { const x = prBeatToX(lp.beat % total);
+      prCtx.fillStyle = '#ffce7a'; prCtx.fillRect(x - 1, 0, 2, H); }
+  }
+  function prDrawVel() { prVelCtx.clearRect(0, 0, prW, PR_VEL_H); }                 // real en Task 5
   (function fillPrRoot(){ const names=['Do','Do#','Re','Re#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'];
     $('prRoot').innerHTML = names.map((n,i)=>'<option value="'+i+'">'+n+'</option>').join(''); })();
 
@@ -3091,6 +3156,8 @@
   lpCanvas.addEventListener('pointercancel', lpEditUp);
   lpCanvas.addEventListener('dblclick', lpEditDbl);
   $('prClose').addEventListener('click', prClose);
+  $('prFold').addEventListener('change', e => { prState.fold = e.target.checked; prResize(); prDraw(); });
+  $('prScaleOn').addEventListener('change', e => { prState.scaleOn = e.target.checked; prDraw(); });
 
   // Botones de canal (Grabar / Silenciar / Borrar)
   lpChannelsEl.addEventListener('click', ev => {
