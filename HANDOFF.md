@@ -10,8 +10,8 @@ Ctrl+A para seleccionar todo (`prSel`). Las notas seleccionadas se mueven en **g
 arrastre. Portapapeles relativo `prClip`: Ctrl+C copia con offsets relativos a la nota más temprana;
 Ctrl+V pega en el cabezal de reproducción (`lp.beat`); Ctrl+D duplica el fragmento justo detrás.
 El portapapeles es global al overlay (permite copiar de un canal y pegar en otro).
-Deshacer/rehacer multinivel: `prPushUndo` guarda snapshot antes de cada mutación; `prUndo`/`prRedo`
-navegan la pila `prHistory`/`prFuture`. Atajos activos **solo con el overlay abierto**
+Deshacer/rehacer multinivel: `prPushUndo` guarda snapshot antes de cada mutación; `prDoUndo`/`prDoRedo`
+navegan las pilas `prUndo`/`prRedo`. Atajos activos **solo con el overlay del piano-roll abierto**
 (Ctrl+A/C/V/D/Z/Y, Delete) con `preventDefault`. Sin cambios en la lógica del Looper ni del motor
 de audio.
 

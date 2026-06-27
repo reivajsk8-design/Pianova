@@ -176,7 +176,7 @@ App web (un solo archivo HTML) para aprender piano con notas que caen estilo Syn
   nota de menor beat; Ctrl+V pega en el **cabezal de reproducción** `lp.beat`; Ctrl+D duplica el
   fragmento justo detrás). El portapapeles es global al overlay, así que se puede copiar en un canal y
   pegar en otro. Deshacer/rehacer multinivel: `prPushUndo` guarda un snapshot de las notas antes de
-  cada mutación; `prUndo`/`prRedo` recorren la pila `prHistory`/`prFuture`. Atajos de teclado
+  cada mutación; `prDoUndo`/`prDoRedo` recorren las pilas `prUndo`/`prRedo`. Atajos de teclado
   (`keydown`) activos **solo con el overlay abierto** y con `preventDefault` para no interferir con el
   navegador: Ctrl+A (todo), Ctrl+C (copiar), Ctrl+V (pegar), Ctrl+D (duplicar), Ctrl+Z (deshacer),
   Ctrl+Y (rehacer) y Delete/Backspace (borrar notas seleccionadas).
