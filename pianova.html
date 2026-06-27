@@ -2784,8 +2784,7 @@
     lp.channels.forEach((c, i) => {
       const b = document.querySelector('[data-mute="' + i + '"]');
       if (b) b.classList.toggle('muted', c.muted);
-      const v = lpChannelsEl.querySelector('[data-vol="' + i + '"]');
-      if (v) v.value = c.vol;
+      const f = lpFaders['vol:' + i]; if (f) f.setValue(c.vol);
     });
     if (lp.channels.some(c => c.sound && c.sound.indexOf('drum') === 0)) loadDrumKit();
     lp.channels.forEach(c => { if (c.sound && c.sound.indexOf('sf:') === 0) ensureSoundfont(c.sound.slice(3)).catch(() => {}); });
