@@ -95,6 +95,10 @@
   .lpHead button.muted{opacity:.5}
   .lpVolLearn.assigned{border-color:var(--green); color:var(--green)}
   .lpVolLearn.learning{background:var(--amber); color:#1a1306; border-color:var(--amber)}
+  /* Pulido (Emil): feedback táctil al pulsar + hover de fila sutil. Solo transform/opacity. */
+  .lpHead button{transition:transform 150ms cubic-bezier(.23,1,.32,1), background-color .18s ease, border-color .18s ease}
+  .lpHead button:active{transform:scale(.95)}
+  @media (hover:hover) and (pointer:fine){ .lpHead:not(.sel):hover{background:rgba(255,255,255,0.025)} }
   .lpfx{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:12px}
   .fxctl{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted)}
   .fxctl input[type=range]{width:110px; accent-color:var(--amber)}
@@ -152,7 +156,11 @@
     .stats{ gap:18px; margin-left:0; width:100% }
     .stat .v{ font-size:18px }
     .seek{ height:22px }
-    .lpCh{ flex:1 1 150px; min-width:150px }
+    .lpHeads{ flex-basis:158px }
+    .lpHead{ --lprow:130px; padding:8px }
+    .lpName{ font-size:13px }
+    .lpHead button, .lpHead .lpSound{ min-height:34px; font-size:13px }
+    .lpHead button.rec{ font-size:13px }
     input[type=range]{ width:110px }
     .fxctl input[type=range]{ width:120px }
   }
@@ -164,6 +172,9 @@
     .stage{ min-height:150px }
     .foot{ margin-top:8px; gap:12px }
     #learnView .hint{ display:none }   /* en apaisado se prioriza tocar; el tour explica */
+    .lpHeads{ flex-basis:150px }
+    .lpHead{ --lprow:112px; gap:4px; padding:6px 8px }
+    .lpHead button, .lpHead .lpSound{ min-height:30px }
   }
   /* Tutorial guiado */
   #tour{position:fixed; inset:0; z-index:1000; display:none}
