@@ -2501,6 +2501,12 @@
     if (actx) silenceAll();
     sfReqId++;
     const parts = value.split(':');
+    if (parts[0] === 'sample') {
+      const sm = samples[parts[1]];
+      if (sm) { currentInstrument = { type: 'sample', id: parts[1] }; sfPlayer = null; if (instInfo) instInfo.textContent = 'Instrumento: ' + sm.name + ' (melódico)'; }
+      else { currentInstrument = { type: 'synth', preset: 'piano' }; instSel.value = 'synth:piano'; }
+      return;
+    }
     if (parts[0] === 'synth') { currentInstrument = { type: 'synth', preset: parts[1] }; sfPlayer = null; instInfo.textContent = ''; }
     else loadSoundfont(parts[1], instSel.selectedOptions[0] ? instSel.selectedOptions[0].textContent.trim() : parts[1]);
   }
@@ -2813,7 +2819,55 @@
     // botones de fila → Task 4
     libRowAction(ev);
   });
-  function libRowAction(ev){}
+
+  let libPreviewSrc = null;
+  async function libPreview(node) {
+    ensureAudio();
+    if (libPreviewSrc) { try { libPreviewSrc.stop(); } catch (e) {} libPreviewSrc = null; }
+    const buf = await libNodeBuffer(node); if (!buf) { alert('No pude leer ese audio.'); return; }
+    const src = actx.createBufferSource(); src.buffer = buf;
+    src.connect(masterDest()); src.start(); libPreviewSrc = src;
+    src.onended = () => { if (libPreviewSrc === src) libPreviewSrc = null; };
+  }
+  function libAddRecent(path) {
+    libState.recent = [path, ...libState.recent.filter(p => p !== path)].slice(0, 20);
+    libSave();
+  }
+  async function libRegister(node) {
+    const arr = await libNodeArrayBuffer(node); if (!arr) { alert('No pude leer ese audio.'); return null; }
+    const id = await addSample(node.name, arr);
+    libAddRecent(node.path);
+    return id;
+  }
+  async function libAssignChannel(node, chIndex) {
+    const i = (chIndex == null) ? selectedChannel : chIndex;
+    const id = await libRegister(node); if (!id) return;
+    lp.channels[i].sound = 'sample:' + id;
+    rebuildChannelSoundOptions(); saveLooper(); lpUpdateSelected();
+  }
+  async function libAssignInstrument(node) {
+    const id = await libRegister(node); if (!id) return;
+    if (actx) silenceAll();
+    currentInstrument = { type: 'sample', id }; sfPlayer = null;
+    // reflejar en el selector global con una opción dinámica
+    let opt = instSel.querySelector('option[value="sample:' + id + '"]');
+    if (!opt) { opt = document.createElement('option'); opt.value = 'sample:' + id; instSel.appendChild(opt); }
+    opt.textContent = '🎙 ' + samples[id].name;
+    instSel.value = 'sample:' + id;
+    if (typeof instInfo !== 'undefined' && instInfo) instInfo.textContent = 'Instrumento: ' + samples[id].name + ' (melódico)';
+    savePrefs();
+  }
+  function libRowAction(ev) {
+    const t = ev.target;
+    if (t.dataset.play != null) { libPreview(nodeByPath(decodeURIComponent(t.dataset.play))); }
+    else if (t.dataset.toch != null) { libAssignChannel(nodeByPath(decodeURIComponent(t.dataset.toch))); }
+    else if (t.dataset.toinst != null) { libAssignInstrument(nodeByPath(decodeURIComponent(t.dataset.toinst))); }
+    else if (t.dataset.fav != null) {
+      const p = decodeURIComponent(t.dataset.fav);
+      libState.favs = libState.favs.includes(p) ? libState.favs.filter(x => x !== p) : [...libState.favs, p];
+      libSave(); libRender();
+    }
+  }
   // Importar un sonido (sample) al canal que lo pidió
   $('lpSampleFile').addEventListener('change', async e => {
     const f = e.target.files && e.target.files[0]; e.target.value = '';
