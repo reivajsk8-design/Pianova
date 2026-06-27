@@ -93,9 +93,11 @@
   .lpTracks .stage{flex:1; border:none; border-radius:0; box-shadow:none; min-height:0}
   .lpHeads{flex:0 0 224px; display:flex; flex-direction:column; background:var(--panel);
     border-right:1px solid var(--line)}
-  .lpHead{height:var(--lprow,86px); box-sizing:border-box; display:flex; flex-direction:column;
-    justify-content:center; gap:6px; padding:7px 9px; border-bottom:1px solid var(--line);
+  .lpHead{height:var(--lprow,92px); box-sizing:border-box; display:flex; flex-direction:row;
+    align-items:stretch; gap:8px; padding:7px 9px; border-bottom:1px solid var(--line);
     border-left:4px solid var(--chcolor,#888); transition:background .2s ease}
+  .lpHeadMain{flex:1; min-width:0; display:flex; flex-direction:column; justify-content:center; gap:6px}
+  .lpHeadVol{flex:0 0 auto; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px}
   .lpHead:last-child{border-bottom:none}
   .lpHead.sel{background:rgba(255,206,122,0.07); box-shadow:inset 3px 0 0 var(--amber)}
   .lpHead.libDrop{ box-shadow:inset 0 0 0 2px var(--green) }
@@ -106,10 +108,11 @@
   .lpSound{flex:1; min-width:0; font-size:11px; padding:4px 22px 4px 7px;
     background:var(--panel2); color:var(--ink); border:1px solid var(--line); border-radius:7px}
   .lpVol{flex:1 1 40px; width:auto; min-width:0; accent-color:var(--amber)}
-  /* Fader vertical compacto de volumen en la cabecera del canal */
-  .lpVolSlot{flex:1; display:flex; justify-content:flex-start}
-  .lpVolSlot .fTrack{height:52px}
+  /* Fader vertical de volumen a la derecha de la cabecera (tira de mezclador) */
+  .lpVolSlot .fTrack{height:48px}
+  .lpVolSlot .fVal{display:none}
   .lpVolSlot .fLab{display:none}
+  .lpVolLearn{padding:1px 6px; font-size:11px; line-height:1; flex:0 0 auto}
   .lpHead button{padding:4px 7px; font-size:12px; line-height:1; flex:0 0 auto}
   .lpHead .lpHeadBot button{flex:1 1 auto}
   .lpHead button.rec{background:#e8746b; color:#1a0606; border-color:#e8746b; font-weight:700}
@@ -1193,20 +1196,22 @@
       el.style.setProperty('--chcolor', LP_COLORS[i]);
       const vol = (lp.channels[i] && lp.channels[i].vol != null) ? lp.channels[i].vol : 0.85;
       el.innerHTML =
-        '<div class="lpHeadTop">' +
-          '<span class="lpName" style="color:' + LP_COLORS[i] + '">Canal ' + (i + 1) + '</span>' +
-          '<select class="lpSound" data-sound="' + i + '"></select>' +
-          '<button class="lpEdit" data-edit="' + i + '" title="Editar el sonido importado">✏️</button>' +
+        '<div class="lpHeadMain">' +
+          '<div class="lpHeadTop">' +
+            '<span class="lpName" style="color:' + LP_COLORS[i] + '">Canal ' + (i + 1) + '</span>' +
+            '<select class="lpSound" data-sound="' + i + '"></select>' +
+            '<button class="lpEdit" data-edit="' + i + '" title="Editar el sonido importado">✏️</button>' +
+          '</div>' +
+          '<div class="lpHeadBot">' +
+            '<button class="rec" data-rec="' + i + '" title="Grabar en este canal">● Grabar</button>' +
+            '<button data-mute="' + i + '" title="Silenciar">🔇</button>' +
+            '<button data-clear="' + i + '" title="Borrar lo grabado">🗑</button>' +
+            '<button data-quant="' + i + '" title="Cuadrar al pulso">⊞</button>' +
+          '</div>' +
         '</div>' +
-        '<div class="lpHeadMid">' +
+        '<div class="lpHeadVol">' +
           '<div class="lpVolSlot" data-volslot="' + i + '"></div>' +
           '<button class="lpVolLearn" data-vollearn="' + i + '" title="Asignar un knob a este volumen">🎛</button>' +
-        '</div>' +
-        '<div class="lpHeadBot">' +
-          '<button class="rec" data-rec="' + i + '" title="Grabar en este canal">● Grabar</button>' +
-          '<button data-mute="' + i + '" title="Silenciar">🔇</button>' +
-          '<button data-clear="' + i + '" title="Borrar lo grabado">🗑</button>' +
-          '<button data-quant="' + i + '" title="Cuadrar al pulso">⊞</button>' +
         '</div>';
       lpChannelsEl.appendChild(el);
     }
