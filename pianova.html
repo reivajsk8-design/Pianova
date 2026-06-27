@@ -584,7 +584,14 @@
 
   // ---------- Bus maestro de efectos (filtro + delay) ----------
   let masterIn = null, fxHP = null, fxLP = null, fxDelay = null, fxFb = null, fxWet = null, masterOut = null;
-  let fxReverb = null, fxRevWet = null, masterFinal = null, masterLimiter = null;
+  let fxReverb = null, fxRevWet = null, masterFinal = null, masterLimiter = null, masterClip = null;
+  // Curva tanh para el soft-clipper (pared final): satura suave en vez de recortar.
+  // Señal baja ≈ unidad; picos calientes se acotan a ~0.76 (techo, nunca >1 → sin clipping).
+  function makeSoftClipCurve(n) {
+    const c = new Float32Array(n);
+    for (let i = 0; i < n; i++) { const x = (i / (n - 1)) * 2 - 1; c[i] = Math.tanh(x); }
+    return c;
+  }
   const fxParams = { filter: 0.5, delayTime: 0.3, delayAmount: 0, reverb: 0 };   // 0.5 filtro = sin efecto
   function makeImpulse(dur, decay) {
     const rate = actx.sampleRate, len = Math.max(1, Math.floor(rate * dur));
@@ -622,7 +629,14 @@
     fxReverb = actx.createConvolver(); fxReverb.buffer = makeImpulse(2.2, 2.5);
     fxRevWet = actx.createGain(); fxRevWet.gain.value = 0;
     masterOut.connect(fxReverb); fxReverb.connect(fxRevWet); fxRevWet.connect(masterLimiter);
-    masterLimiter.connect(masterFinal);
+    // Pared final: soft-clipper (WaveShaper tanh). El compresor nivela el grueso; este
+    // satura los transitorios que se le escapan (ataques coincidentes de varios canales),
+    // garantizando que la señal NUNCA pase de ~0.76 → cero clipping en la salida y en el export.
+    masterClip = actx.createWaveShaper();
+    masterClip.curve = makeSoftClipCurve(2048);
+    masterClip.oversample = '4x';        // reduce el aliasing de la saturación
+    masterLimiter.connect(masterClip);
+    masterClip.connect(masterFinal);
     masterFinal.connect(actx.destination);
     applyFx();
   }
