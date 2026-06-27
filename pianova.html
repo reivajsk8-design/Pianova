@@ -978,6 +978,16 @@
   // ---------- Piano-roll por canal (overlay) ----------
   const PR_ROWH = 16, PR_KEYS_W = 62, PR_VEL_H = 72;
   const prState = { ch:-1, grid:0.25, fold:false, scaleRoot:0, scaleType:'chromatic', scaleOn:false };
+  // Escalas: mapa tipo → clases de nota (0..11) incluidas
+  const PR_SCALES = { chromatic:[0,1,2,3,4,5,6,7,8,9,10,11], major:[0,2,4,5,7,9,11],
+    minor:[0,2,3,5,7,8,10], pentaMajor:[0,2,4,7,9], pentaMinor:[0,3,5,7,10], dorian:[0,2,3,5,7,9,10] };
+  // ¿Pertenece la nota MIDI a la escala activa? (manejo correcto de módulo negativo)
+  function prInScale(midi) {
+    const s = PR_SCALES[prState.scaleType] || PR_SCALES.chromatic;
+    return s.includes(((midi - prState.scaleRoot) % 12 + 12) % 12);
+  }
+  // Ajusta un beat a la rejilla activa (grid=0 → sin ajuste)
+  function prSnap(beat) { return prState.grid > 0 ? Math.round(beat / prState.grid) * prState.grid : beat; }
   let prW = 0, prRowsCache = [], prRAF = 0, prDrag = null;
   const prCanvas = $('prCanvas'), prCtx = prCanvas.getContext('2d');
   const prVel = $('prVel'), prVelCtx = prVel.getContext('2d');
