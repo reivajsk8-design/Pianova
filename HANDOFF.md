@@ -2,7 +2,17 @@
 
 Snapshot para retomar el proyecto en otra sesión (humana o con Claude Code).
 
-**Versión:** v1.19 (navegador de samples: librería de carpetas en el Looper)
+**Versión:** v1.20 (piano-roll por canal en el Looper)
+
+**Piano-roll por canal (v1.20):** editor de notas superpuesto (`#pianoroll`, overlay pantalla
+completa) que se abre con **doble-clic en el carril** de cualquier canal del Looper y se cierra
+con ✕ o Esc. Estado en `prState` (canal, scroll, modo). Geometría vertical `prRows` (semitono →
+fila de píxeles). Render: `prDraw` (rejilla 1/16, notas, cabezal sincronizado con `lp.beat`, Fold
+para ocultar octavas vacías) + `prDrawVel` (carril de velocity con barras arrastrables). Edición:
+crear / mover / alargar / borrar notas por ratón y toque táctil; snap `prSnap` (libre / 1/8 /
+1/16). Resalte de escala: `PR_SCALES` define los intervalos, `prInScale(midi, tonica, tipo)` marca
+las filas de la escala elegida. Actúa sobre `lp.channels[i].notes` directamente y llama a
+`saveLooper` → los cambios son inmediatos y persisten en `localStorage`.
 
 **Navegador de samples (v1.19):** panel lateral `#libPanel` (botón **📁 Librería**) en el Looper.
 Importa carpetas del disco vía File System Access API (`showDirectoryPicker`) con respaldo

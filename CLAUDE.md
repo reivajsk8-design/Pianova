@@ -143,6 +143,20 @@ App web (un solo archivo HTML) para aprender piano con notas que caen estilo Syn
   Persistencia: el handle de carpeta se guarda en **IndexedDB** (base `pianova`) para reabrirla
   sin volver a elegirla; `store.lib` guarda favoritos y recientes. Solo escritorio para importar
   carpeta (en móvil el fallback abre el selector de archivos sueltos).
+- **Piano-roll por canal (v1.20):** overlay `#pianoroll` (pantalla completa, z-index alto) que se
+  abre con **doble-clic en el carril** de cualquier canal del Looper y se cierra con el botón ✕ o
+  la tecla Esc. Estado en `prState` (canal activo, scroll, modo de edición). La geometría vertical
+  (`prRows`) mapea cada semitono a una fila de píxeles. El render principal es `prDraw` (rejilla
+  1/16, notas coloreadas, cabezal de reproducción sincronizado con `lp.beat`, Fold/rango visible) y
+  `prDrawVel` (carril de velocity en la parte inferior, con barras arrastrables). La edición es por
+  ratón y toque táctil: **crear** nota (clic en hueco), **mover** (arrastrar cuerpo), **alargar**
+  (arrastrar borde derecho) y **borrar** (doble-clic o clic derecho). El **snap** `prSnap` (botón de
+  rejilla: libre / 1/8 / 1/16) cuadra la posición y la duración al crear y mover. La paleta
+  `PR_SCALES` define los intervalos de las escalas disponibles; `prInScale(midi, tonica, tipo)` indica
+  si una tecla pertenece a la escala activa, y las filas de esas notas se iluminan con el resalte de
+  escala. El modo **Fold** oculta las octavas sin notas para que se vea mejor el contenido. Las
+  ediciones actúan directamente sobre `lp.channels[i].notes` (el mismo arreglo que usa el Looper) y
+  llaman a `saveLooper`, por lo que los cambios son inmediatos y persisten en `localStorage`.
 - **Secciones / bucle (Practicar y Acompañar):** `loopStart`/`loopEnd`/`loopOn`/`loopRounds` son
   índices de la **secuencia activa** (notas/`idx` en Practicar, acordes/`stepIdx` en Acompañar;
   helpers `seqLen`/`curSeqIdx`/`seqBeatAt`). Al acertar el final, vuelve al inicio (`seekToIndex`).
