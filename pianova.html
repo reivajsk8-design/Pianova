@@ -150,6 +150,17 @@
   .lpmidi button.learning{background:var(--amber); color:#1a1306; border-color:var(--amber)}
   .lpmidi i{color:var(--amber2); font-style:normal}
   #midiMonBtn.on{background:var(--green); color:#06140d; border-color:var(--green)}
+  .fader{display:flex; flex-direction:column; align-items:center; gap:4px; width:44px}
+  .fader .fVal{font-family:ui-monospace,monospace; font-size:11px; color:var(--ink)}
+  .fader .fTrack{position:relative; width:8px; height:96px; background:#12161d;
+    border:1px solid var(--line); border-radius:6px; touch-action:none; cursor:ns-resize}
+  .fader .fTrack::before{content:""; position:absolute; left:50%; top:6px; bottom:6px; width:2px;
+    transform:translateX(-50%); background:#222a36}
+  .fader .fFill{position:absolute; left:-1px; right:-1px; bottom:0; border-radius:0 0 6px 6px;
+    background:var(--amber)}
+  .fader .fCap{position:absolute; left:-7px; right:-7px; height:14px; border-radius:4px;
+    background:#cfd6e0; box-shadow:0 2px 5px rgba(0,0,0,.6)}
+  .fader .fLab{font-size:10px; color:var(--muted); text-align:center; line-height:1.05}
   .midiMon{margin-top:10px; padding:10px; border:1px solid var(--line); border-radius:8px;
     background:#0c0e13; color:var(--blue); font-family:ui-monospace,monospace; font-size:12px;
     white-space:pre-wrap; min-height:60px; max-height:160px; overflow:auto}
@@ -1575,6 +1586,45 @@
     const sl = lpChannelsEl.querySelector('[data-vol="' + ch + '"]');
     if (sl) sl.value = v;
     saveLooperDebounced();
+  }
+  // ---------- Fader vertical reutilizable (mezclador) ----------
+  const lpFaders = {};   // clave -> { el, setValue, value }
+  function makeFader(opts) {
+    const wrap = document.createElement('div'); wrap.className = 'fader';
+    wrap.innerHTML = '<span class="fVal"></span><div class="fTrack"><div class="fFill"></div>' +
+                     '<div class="fCap"></div></div><span class="fLab"></span>';
+    const fill = wrap.querySelector('.fFill'), cap = wrap.querySelector('.fCap'),
+          valEl = wrap.querySelector('.fVal'), labEl = wrap.querySelector('.fLab'),
+          track = wrap.querySelector('.fTrack');
+    if (opts.color) fill.style.background = opts.color;
+    labEl.innerHTML = opts.label || '';
+    const min = opts.min, max = opts.max, def = opts.def;
+    const fmt = opts.fmt || (v => String(Math.round(v)));
+    let value = (opts.value != null ? opts.value : def);
+    function render() {
+      const f = Math.max(0, Math.min(1, (value - min) / (max - min)));
+      fill.style.height = (f * 100) + '%';
+      cap.style.bottom = 'calc(' + (f * 100) + '% - 7px)';
+      valEl.textContent = fmt(value);
+    }
+    function set(v, fire) {
+      value = Math.max(min, Math.min(max, v));
+      if (opts.step) value = Math.round(value / opts.step) * opts.step;
+      render(); if (fire && opts.onInput) opts.onInput(value);
+    }
+    let dragging = false, dy = 0, dv = 0;
+    track.addEventListener('pointerdown', e => { dragging = true; dy = e.clientY; dv = value;
+      track.setPointerCapture(e.pointerId); e.preventDefault(); });
+    track.addEventListener('pointermove', e => { if (!dragging) return;
+      const h = track.getBoundingClientRect().height || 1;
+      set(dv + ((dy - e.clientY) / h) * (max - min), true); });
+    const end = () => { dragging = false; };
+    track.addEventListener('pointerup', end); track.addEventListener('pointercancel', end);
+    wrap.addEventListener('dblclick', () => set(def, true));
+    render();
+    const api = { el: wrap, setValue: v => set(v, false), get value() { return value; } };
+    if (opts.key) lpFaders[opts.key] = api;
+    return api;
   }
   function refreshVolLearnUI() {
     lpChannelsEl.querySelectorAll('[data-vollearn]').forEach(b => {
