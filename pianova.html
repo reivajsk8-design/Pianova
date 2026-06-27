@@ -71,25 +71,30 @@
   .loopbar{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
   .loopinfo{font-family:ui-monospace,monospace; font-size:12px; color:var(--muted)}
   button:disabled{opacity:.4; cursor:not-allowed}
-  .lpChannels{display:flex; gap:10px; margin-top:12px; flex-wrap:wrap}
-  .lpCh{flex:1 1 170px; min-width:170px; border:1px solid var(--line); border-radius:12px;
-    padding:10px; background:var(--panel); box-shadow:0 2px 10px rgba(6,10,20,.25);
-    transition:transform .15s cubic-bezier(.32,.72,0,1), border-color .2s ease}
-  .lpCh:hover{border-color:#3a4153; transform:translateY(-1px)}
-  .lpCh h4{margin:0 0 8px; font-family:var(--disp); font-size:13px}
-  .lpCh .row{display:flex; gap:6px; flex-wrap:wrap}
-  .lpSoundRow{display:flex; gap:6px; margin-bottom:8px}
-  .lpSound{flex:1; min-width:0; font-size:12px; padding:5px 26px 5px 8px;
-    background:var(--panel2); color:var(--ink); border:1px solid var(--line); border-radius:8px}
-  .lpVolRow{display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted); margin-bottom:8px}
-  .lpVol{flex:1; accent-color:var(--amber); min-width:0}
-  .lpVolLearn{padding:2px 6px; font-size:12px; line-height:1; flex:0 0 auto}
+  /* ---------- Looper: filas de pista (cabecera + carril alineados) ---------- */
+  .lpTracks{display:flex; min-height:380px; border:1px solid var(--line); border-radius:16px;
+    overflow:hidden; background:#0c0e13; box-shadow:0 18px 55px rgba(6,10,20,.55); margin-top:0}
+  .lpTracks .stage{flex:1; border:none; border-radius:0; box-shadow:none; min-height:0}
+  .lpHeads{flex:0 0 224px; display:flex; flex-direction:column; background:var(--panel);
+    border-right:1px solid var(--line)}
+  .lpHead{height:var(--lprow,86px); box-sizing:border-box; display:flex; flex-direction:column;
+    justify-content:center; gap:6px; padding:7px 9px; border-bottom:1px solid var(--line);
+    border-left:4px solid var(--chcolor,#888); transition:background .2s ease}
+  .lpHead:last-child{border-bottom:none}
+  .lpHead.sel{background:rgba(255,206,122,0.07); box-shadow:inset 3px 0 0 var(--amber)}
+  .lpHeadTop{display:flex; align-items:center; gap:6px}
+  .lpName{font-family:var(--disp); font-size:12px; font-weight:600; white-space:nowrap; flex:0 0 auto}
+  .lpHeadMid{display:flex; align-items:center; gap:6px}
+  .lpHeadBot{display:flex; align-items:center; gap:5px}
+  .lpSound{flex:1; min-width:0; font-size:11px; padding:4px 22px 4px 7px;
+    background:var(--panel2); color:var(--ink); border:1px solid var(--line); border-radius:7px}
+  .lpVol{flex:1 1 40px; width:auto; min-width:0; accent-color:var(--amber)}
+  .lpHead button{padding:4px 7px; font-size:12px; line-height:1; flex:0 0 auto}
+  .lpHead .lpHeadBot button{flex:1 1 auto}
+  .lpHead button.rec{background:#e8746b; color:#1a0606; border-color:#e8746b; font-weight:700}
+  .lpHead button.muted{opacity:.5}
   .lpVolLearn.assigned{border-color:var(--green); color:var(--green)}
   .lpVolLearn.learning{background:var(--amber); color:#1a1306; border-color:var(--amber)}
-  .lpCh button{padding:6px 8px; font-size:12px; flex:1 1 calc(50% - 3px); min-width:0}
-  .lpCh button.rec{background:#e8746b; color:#1a0606; border-color:#e8746b}
-  .lpCh button.muted{opacity:.5}
-  .lpCh.sel{border-color:var(--amber); box-shadow:0 0 0 1px var(--amber) inset}
   .lpfx{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:12px}
   .fxctl{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted)}
   .fxctl input[type=range]{width:110px; accent-color:var(--amber)}
@@ -369,8 +374,10 @@
       <input type="file" id="lpSampleFile" accept="audio/*" hidden>
     </div>
     <main>
-      <div class="stage"><canvas id="lpCanvas"></canvas></div>
-      <div class="lpChannels" id="lpChannels"></div>
+      <div class="lpTracks">
+        <div class="lpHeads" id="lpChannels"></div>
+        <div class="stage"><canvas id="lpCanvas"></canvas></div>
+      </div>
       <div class="lpfx" id="lpfx">
         <span class="lpmidiLabel">Efectos (maestro):</span>
         <label class="fxctl">Filtro <input type="range" data-fx="filter" min="0" max="1" step="0.01" value="0.5">
@@ -566,7 +573,7 @@
 
   // ---------- Bus maestro de efectos (filtro + delay) ----------
   let masterIn = null, fxHP = null, fxLP = null, fxDelay = null, fxFb = null, fxWet = null, masterOut = null;
-  let fxReverb = null, fxRevWet = null, masterFinal = null;
+  let fxReverb = null, fxRevWet = null, masterFinal = null, masterLimiter = null;
   const fxParams = { filter: 0.5, delayTime: 0.3, delayAmount: 0, reverb: 0 };   // 0.5 filtro = sin efecto
   function makeImpulse(dur, decay) {
     const rate = actx.sampleRate, len = Math.max(1, Math.floor(rate * dur));
@@ -591,11 +598,20 @@
     fxLP.connect(masterOut);                       // seco
     fxLP.connect(fxDelay); fxDelay.connect(fxWet); fxWet.connect(masterOut);   // delay
     fxDelay.connect(fxFb); fxFb.connect(fxDelay);  // realimentación
-    masterOut.connect(masterFinal);
-    // reverb en paralelo (envío de toda la mezcla)
+    // Limitador (brickwall) para que la suma de muchas notas no recorte (distorsión / "roto").
+    // Va antes de masterFinal, así protege también lo que se exporta.
+    masterLimiter = actx.createDynamicsCompressor();
+    masterLimiter.threshold.value = -6;   // empieza a contener al acercarse al techo
+    masterLimiter.knee.value = 0;         // rodilla dura = limitador, no compresor suave
+    masterLimiter.ratio.value = 20;       // ratio alto = pared
+    masterLimiter.attack.value = 0.003;
+    masterLimiter.release.value = 0.25;
+    masterOut.connect(masterLimiter);
+    // reverb en paralelo (envío de toda la mezcla), también pasa por el limitador
     fxReverb = actx.createConvolver(); fxReverb.buffer = makeImpulse(2.2, 2.5);
     fxRevWet = actx.createGain(); fxRevWet.gain.value = 0;
-    masterOut.connect(fxReverb); fxReverb.connect(fxRevWet); fxRevWet.connect(masterFinal);
+    masterOut.connect(fxReverb); fxReverb.connect(fxRevWet); fxRevWet.connect(masterLimiter);
+    masterLimiter.connect(masterFinal);
     masterFinal.connect(actx.destination);
     applyFx();
   }
@@ -823,19 +839,25 @@
     lpChannelsEl.innerHTML = '';
     for (let i = 0; i < LP_CHANNELS; i++) {
       const el = document.createElement('div');
-      el.className = 'lpCh'; el.dataset.ch = i;
+      el.className = 'lpHead'; el.dataset.ch = i;
+      el.style.setProperty('--chcolor', LP_COLORS[i]);
       const vol = (lp.channels[i] && lp.channels[i].vol != null) ? lp.channels[i].vol : 0.85;
       el.innerHTML =
-        '<h4 style="color:' + LP_COLORS[i] + '">Canal ' + (i + 1) + '</h4>' +
-        '<div class="lpSoundRow"><select class="lpSound" data-sound="' + i + '"></select>' +
-        '<button class="lpEdit" data-edit="' + i + '" title="Editar el sonido importado">✏️</button></div>' +
-        '<div class="lpVolRow"><span>Vol</span> <input class="lpVol" type="range" min="0" max="1" step="0.05" value="' + vol + '" data-vol="' + i + '">' +
-        '<button class="lpVolLearn" data-vollearn="' + i + '" title="Asignar un knob a este volumen">🎛</button></div>' +
-        '<div class="row">' +
-        '<button data-rec="' + i + '">Grabar</button>' +
-        '<button data-mute="' + i + '">Silenciar</button>' +
-        '<button data-clear="' + i + '">Borrar</button>' +
-        '<button data-quant="' + i + '" title="Cuadrar al pulso">Cuadrar</button></div>';
+        '<div class="lpHeadTop">' +
+          '<span class="lpName" style="color:' + LP_COLORS[i] + '">Canal ' + (i + 1) + '</span>' +
+          '<select class="lpSound" data-sound="' + i + '"></select>' +
+          '<button class="lpEdit" data-edit="' + i + '" title="Editar el sonido importado">✏️</button>' +
+        '</div>' +
+        '<div class="lpHeadMid">' +
+          '<input class="lpVol" type="range" min="0" max="1" step="0.05" value="' + vol + '" data-vol="' + i + '" title="Volumen">' +
+          '<button class="lpVolLearn" data-vollearn="' + i + '" title="Asignar un knob a este volumen">🎛</button>' +
+        '</div>' +
+        '<div class="lpHeadBot">' +
+          '<button class="rec" data-rec="' + i + '" title="Grabar en este canal">● Grabar</button>' +
+          '<button data-mute="' + i + '" title="Silenciar">🔇</button>' +
+          '<button data-clear="' + i + '" title="Borrar lo grabado">🗑</button>' +
+          '<button data-quant="' + i + '" title="Cuadrar al pulso">⊞</button>' +
+        '</div>';
       lpChannelsEl.appendChild(el);
     }
     rebuildChannelSoundOptions();
@@ -874,7 +896,7 @@
     });
   }
   function lpUpdateSelected() {
-    lpChannelsEl.querySelectorAll('.lpCh').forEach(el =>
+    lpChannelsEl.querySelectorAll('.lpHead').forEach(el =>
       el.classList.toggle('sel', +el.dataset.ch === selectedChannel));
   }
   // Transporte/grabación reutilizables (botones de pantalla y atajos MIDI).
