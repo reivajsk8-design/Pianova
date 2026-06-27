@@ -91,20 +91,20 @@
   .lpTracks{display:flex; min-height:380px; border:1px solid var(--line); border-radius:16px;
     overflow:hidden; background:#0c0e13; box-shadow:0 18px 55px rgba(6,10,20,.55); margin-top:0}
   .lpTracks .stage{flex:1; border:none; border-radius:0; box-shadow:none; min-height:0}
-  .lpHeads{flex:0 0 224px; display:flex; flex-direction:column; background:var(--panel);
-    border-right:1px solid var(--line)}
-  .lpHead{height:var(--lprow,92px); box-sizing:border-box; display:flex; flex-direction:row;
+  .lpHeads{flex:0 0 232px; width:232px; min-width:232px; max-width:232px; display:flex;
+    flex-direction:column; background:var(--panel); border-right:1px solid var(--line)}
+  .lpHead{height:var(--lprow,92px); box-sizing:border-box; min-width:0; display:flex; flex-direction:row;
     align-items:stretch; gap:8px; padding:7px 9px; border-bottom:1px solid var(--line);
     border-left:4px solid var(--chcolor,#888); transition:background .2s ease}
-  .lpHeadMain{flex:1; min-width:0; display:flex; flex-direction:column; justify-content:center; gap:6px}
-  .lpHeadVol{flex:0 0 auto; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px}
+  .lpHeadMain{flex:1 1 auto; min-width:0; overflow:hidden; display:flex; flex-direction:column; justify-content:center; gap:6px}
+  .lpHeadVol{flex:0 0 26px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px}
   .lpHead:last-child{border-bottom:none}
   .lpHead.sel{background:rgba(255,206,122,0.07); box-shadow:inset 3px 0 0 var(--amber)}
   .lpHead.libDrop{ box-shadow:inset 0 0 0 2px var(--green) }
   .lpHeadTop{display:flex; align-items:center; gap:6px}
   .lpName{font-family:var(--disp); font-size:12px; font-weight:600; white-space:nowrap; flex:0 0 auto}
   .lpHeadMid{display:flex; align-items:center; gap:6px}
-  .lpHeadBot{display:flex; align-items:center; gap:5px}
+  .lpHeadBot{display:flex; align-items:center; gap:5px; min-width:0}
   .lpSound{flex:1; min-width:0; font-size:11px; padding:4px 22px 4px 7px;
     background:var(--panel2); color:var(--ink); border:1px solid var(--line); border-radius:7px}
   .lpVol{flex:1 1 40px; width:auto; min-width:0; accent-color:var(--amber)}
@@ -114,7 +114,7 @@
   .lpVolSlot .fLab{display:none}
   .lpVolLearn{padding:1px 6px; font-size:11px; line-height:1; flex:0 0 auto}
   .lpHead button{padding:4px 7px; font-size:12px; line-height:1; flex:0 0 auto}
-  .lpHead .lpHeadBot button{flex:1 1 auto}
+  .lpHead .lpHeadBot button{flex:0 0 auto; padding:4px 6px}
   .lpHead button.rec{background:#e8746b; color:#1a0606; border-color:#e8746b; font-weight:700}
   .lpHead button.muted{opacity:.5}
   /* ---------- Navegador de samples ---------- */
