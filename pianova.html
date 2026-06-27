@@ -1150,8 +1150,9 @@
     pressed.add(midi);
     noteEl.textContent = solfege(midi);
     if (tab === 'looper') {
-      // suena según el canal que se está grabando (batería o piano); si ninguno, piano
-      const ch = lp.channels[lp.recording];
+      // Suena el canal que se está grabando; si ninguno graba, suena el canal SELECCIONADO
+      // (así puedes auditar el sonido de un canal al tocar, sin tener que grabarlo).
+      const ch = lp.channels[lp.recording] || lp.channels[selectedChannel];
       if (ch) playChannelSound(ch, midi, vel); else noteOn(midi, vel);
       lpCapture(midi, vel, true);
       return;
@@ -2661,6 +2662,10 @@
       refreshVolLearnUI();
     } else if (ev.target.dataset.edit != null) {
       openSampleEditor(+ev.target.dataset.edit);
+    } else {
+      // Clic en la cabecera (nombre, fondo, selector…) = seleccionar ese canal para auditarlo
+      const head = ev.target.closest('.lpHead');
+      if (head) { selectedChannel = +head.dataset.ch; lpUpdateSelected(); }
     }
   });
   // Volumen del canal en vivo (mientras arrastras el slider)
