@@ -1104,6 +1104,25 @@
   function prDoUndo(){ if (prState.ch < 0 || !prUndo.length) return; prRedo.push(prSnapshotNotes()); prRestore(prUndo.pop()); saveLooper(); prDraw(); }
   function prDoRedo(){ if (prState.ch < 0 || !prRedo.length) return; prUndo.push(prSnapshotNotes()); prRestore(prRedo.pop()); saveLooper(); prDraw(); }
 
+  // ---------- Piano-roll: comandos de edición ----------
+  function prSelectAll(){ if (prState.ch < 0) return; prSel = new Set(lp.channels[prState.ch].notes); prDraw(); }
+  function prCopySel(){ if (prSel.size) prClip = prRelClip([...prSel]); }
+  function prDeleteSel(){ if (prState.ch < 0 || !prSel.size) return; prPushUndo();
+    const a = lp.channels[prState.ch].notes;
+    for (let i = a.length - 1; i >= 0; i--) if (prSel.has(a[i])) a.splice(i, 1);
+    prSel = new Set(); saveLooper(); prDraw(); }
+  function prPaste(){ if (prState.ch < 0 || !prClip.length) return; prPushUndo();
+    const ch = lp.channels[prState.ch], total = lpLoopBeats();
+    const at = (lp.playing ? (lp.beat % total) : 0); const added = [];
+    prClip.forEach(c => { const n = { midi: c.midi, startBeat: Math.max(0, Math.min(total - c.dur, at + c.startBeat)), dur: c.dur, vel: c.vel };
+      ch.notes.push(n); added.push(n); });
+    prSel = new Set(added); saveLooper(); prDraw(); }
+  function prDuplicate(){ if (prState.ch < 0 || !prSel.size) return; prPushUndo();
+    const ch = lp.channels[prState.ch], total = lpLoopBeats(); const sel = [...prSel]; const span = prSpan(sel); const added = [];
+    sel.forEach(n => { const nn = { midi: n.midi, startBeat: Math.min(total - n.dur, n.startBeat + span), dur: n.dur, vel: n.vel };
+      ch.notes.push(nn); added.push(nn); });
+    prSel = new Set(added); saveLooper(); prDraw(); }
+
   // Devuelve las notas del canal cuyo rectángulo se superpone al área indicada (canvas coords)
   function prNotesInRect(x0,y0,x1,y1){
     const ch = lp.channels[prState.ch]; if (!ch) return [];
@@ -1765,6 +1784,16 @@
   const KEYMAP = { a:60, w:61, s:62, e:63, d:64, f:65, t:66, g:67, y:68, h:69, u:70, j:71, k:72 };
   window.addEventListener('keydown', ev => {
     if (ev.key === 'Escape' && !$('pianoroll').hidden) { prClose(); return; }
+    if (!$('pianoroll').hidden) {
+      const ctrl = ev.ctrlKey || ev.metaKey, k = ev.key.toLowerCase();
+      if (ctrl && k === 'a') { prSelectAll(); ev.preventDefault(); return; }
+      if (ctrl && k === 'c') { prCopySel(); ev.preventDefault(); return; }
+      if (ctrl && k === 'v') { prPaste(); ev.preventDefault(); return; }
+      if (ctrl && k === 'd') { prDuplicate(); ev.preventDefault(); return; }
+      if (ctrl && k === 'z' && !ev.shiftKey) { prDoUndo(); ev.preventDefault(); return; }
+      if (ctrl && (k === 'y' || (k === 'z' && ev.shiftKey))) { prDoRedo(); ev.preventDefault(); return; }
+      if (k === 'delete' || k === 'backspace') { prDeleteSel(); ev.preventDefault(); return; }
+    }
     if (ev.repeat) return;
     const m = KEYMAP[ev.key.toLowerCase()];
     if (m != null && !pressed.has(m)) handleNoteOn(m, 0.8);
