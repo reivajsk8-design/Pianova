@@ -93,6 +93,34 @@
   .lpHead .lpHeadBot button{flex:1 1 auto}
   .lpHead button.rec{background:#e8746b; color:#1a0606; border-color:#e8746b; font-weight:700}
   .lpHead button.muted{opacity:.5}
+  /* ---------- Navegador de samples ---------- */
+  .libPanel{flex:0 0 240px; display:flex; flex-direction:column; background:#0f1218;
+    border-right:1px solid var(--line); min-width:0}
+  .libPanel[hidden]{display:none}
+  .libHead{display:flex; align-items:center; padding:8px 10px; background:#12151d;
+    border-bottom:1px solid var(--line); font-family:var(--disp); font-weight:600; font-size:13px}
+  .libHeadActs{margin-left:auto}
+  .libHeadActs button{padding:2px 7px; font-size:12px; line-height:1}
+  .libTabs{display:flex; gap:2px; padding:6px; border-bottom:1px solid var(--line)}
+  .libTab{flex:1; padding:5px 4px; font-size:11px; background:transparent; border:1px solid transparent}
+  .libTab.on{background:#1d2733; color:#9fd0f0; border-color:#26384a}
+  .libSearch{margin:8px; padding:6px 8px; font-size:12px; background:#161b24;
+    border:1px solid var(--line); border-radius:7px; color:var(--ink)}
+  .libBody{flex:1; overflow:auto; min-height:0}
+  .libEmpty{padding:18px 12px; color:var(--muted); font-size:12px; text-align:center}
+  .libSec{padding:6px 12px 3px; font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
+  .libTreeItem{display:flex; gap:6px; align-items:center; padding:3px 10px; cursor:pointer; font-size:12px}
+  .libTreeItem:hover{background:#141a23}
+  .libTreeItem.on{background:#15202c; color:#9fd0f0; box-shadow:inset 2px 0 0 #4a90c2}
+  .libRow{display:flex; align-items:center; gap:8px; padding:5px 10px; border-bottom:1px solid #151a22; font-size:12px}
+  .libRow:hover{background:#141a23}
+  .libRow.dragging{opacity:.5}
+  .libRow .nm{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#cfd6e0}
+  .libRow.disabled .nm{color:#5a616e}
+  .libRow button{padding:2px 6px; font-size:12px; line-height:1; background:transparent; border:none}
+  .libRow .play{color:var(--green)} .libRow .toCh{color:#ffce7a} .libRow .toInst{color:#9fd0f0}
+  .libFoot{padding:8px; border-top:1px solid var(--line)}
+  .libFoot .primary{width:100%; font-size:12px}
   .lpVolLearn.assigned{border-color:var(--green); color:var(--green)}
   .lpVolLearn.learning{background:var(--amber); color:#1a1306; border-color:var(--amber)}
   /* Pulido (Emil): feedback táctil al pulsar + hover de fila sutil. Solo transform/opacity. */
@@ -382,10 +410,22 @@
       </label>
       <button id="lpDrum">🥁 Cargar batería (TR-808)</button>
       <button id="lpExport">⬇ Exportar audio (WAV)</button>
+      <button id="libBtn">📁 Librería</button>
       <input type="file" id="lpSampleFile" accept="audio/*" hidden>
     </div>
     <main>
       <div class="lpTracks">
+        <aside id="libPanel" class="libPanel" hidden>
+          <div class="libHead">📁 Librería <span class="libHeadActs"><button id="libClose" title="Cerrar">✕</button></span></div>
+          <div class="libTabs">
+            <button class="libTab on" data-libtab="folders">📁 Carpetas</button>
+            <button class="libTab" data-libtab="favs">⭐ Favoritos</button>
+            <button class="libTab" data-libtab="recent">🕘 Recientes</button>
+          </div>
+          <input id="libSearch" class="libSearch" type="search" placeholder="🔎 Buscar sample…">
+          <div id="libBody" class="libBody"></div>
+          <div class="libFoot"><button id="libImport" class="primary">📁 Importar librería…</button></div>
+        </aside>
         <div class="lpHeads" id="lpChannels"></div>
         <div class="stage"><canvas id="lpCanvas"></canvas></div>
       </div>
@@ -868,6 +908,10 @@
   };
   let selectedChannel = 0;          // canal "activo" para grabar con atajos MIDI
   let quantizeGrid = 0;             // 0 = libre; 0.5 = corchea; 0.25 = semicorchea
+  // Navegador de samples
+  const libState = { dirHandle: null, tree: null, current: null, tab: 'folders',
+                     favs: [], recent: [], query: '' };
+  let libFileMap = {};   // path -> {name, getFile()} para leer bajo demanda
   // Atajos MIDI del Looper: acción -> { kind:'cc'|'note', num }. Se aprenden y se guardan.
   const LP_ACTIONS = { lp_rec: 'Grabar canal', lp_prev: 'Canal ◀', lp_next: 'Canal ▶', lp_play: 'Play/Stop' };
   let midiMap = {};
@@ -2632,6 +2676,20 @@
   lpPlayBtn.addEventListener('click', lpTogglePlay);
   lpDrumBtn.addEventListener('click', loadDrumKit);
   lpExportBtn.addEventListener('click', exportLooperAudio);
+  function libImportFolder(){ alert('Importar: siguiente fase'); }
+  function libToggle(show) {
+    const p = $('libPanel');
+    p.hidden = (show == null) ? !p.hidden : !show;
+    if (!p.hidden) libRender();
+  }
+  function libRender() {
+    const body = $('libBody');
+    if (!libState.tree) { body.innerHTML = '<div class="libEmpty">Aún no has importado ninguna carpeta.<br>Pulsa "Importar librería…".</div>'; return; }
+    body.innerHTML = '<div class="libEmpty">Carpeta lista. (resultados en la siguiente fase)</div>';
+  }
+  $('libBtn').addEventListener('click', () => libToggle());
+  $('libClose').addEventListener('click', () => libToggle(false));
+  $('libImport').addEventListener('click', () => libImportFolder());
   // Importar un sonido (sample) al canal que lo pidió
   $('lpSampleFile').addEventListener('change', async e => {
     const f = e.target.files && e.target.files[0]; e.target.value = '';
