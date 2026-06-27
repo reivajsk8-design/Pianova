@@ -168,6 +168,18 @@ App web (un solo archivo HTML) para aprender piano con notas que caen estilo Syn
   escala. El modo **Fold** oculta las octavas sin notas para que se vea mejor el contenido. Las
   ediciones actúan directamente sobre `lp.channels[i].notes` (el mismo arreglo que usa el Looper) y
   llaman a `saveLooper`, por lo que los cambios son inmediatos y persisten en `localStorage`.
+- **Edición avanzada del piano-roll (v1.22):** selección múltiple (`prSel`, array de notas
+  seleccionadas), marquesina de recuadro (`prMarquee`; `prNotesInRect` devuelve las notas dentro del
+  rectángulo dibujado), selección por Shift-clic (añadir/quitar nota individual) y Ctrl+A (seleccionar
+  todo). Las notas seleccionadas se mueven en **grupo** arrastrando cualquiera de ellas (desplazamiento
+  relativo aplicado a todas). Portapapeles relativo `prClip` (Ctrl+C copia con offsets respecto a la
+  nota de menor beat; Ctrl+V pega en el **cabezal de reproducción** `lp.beat`; Ctrl+D duplica el
+  fragmento justo detrás). El portapapeles es global al overlay, así que se puede copiar en un canal y
+  pegar en otro. Deshacer/rehacer multinivel: `prPushUndo` guarda un snapshot de las notas antes de
+  cada mutación; `prUndo`/`prRedo` recorren la pila `prHistory`/`prFuture`. Atajos de teclado
+  (`keydown`) activos **solo con el overlay abierto** y con `preventDefault` para no interferir con el
+  navegador: Ctrl+A (todo), Ctrl+C (copiar), Ctrl+V (pegar), Ctrl+D (duplicar), Ctrl+Z (deshacer),
+  Ctrl+Y (rehacer) y Delete/Backspace (borrar notas seleccionadas).
 - **Secciones / bucle (Practicar y Acompañar):** `loopStart`/`loopEnd`/`loopOn`/`loopRounds` son
   índices de la **secuencia activa** (notas/`idx` en Practicar, acordes/`stepIdx` en Acompañar;
   helpers `seqLen`/`curSeqIdx`/`seqBeatAt`). Al acertar el final, vuelve al inicio (`seekToIndex`).

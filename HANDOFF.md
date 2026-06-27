@@ -2,7 +2,18 @@
 
 Snapshot para retomar el proyecto en otra sesión (humana o con Claude Code).
 
-**Versión:** v1.21 (transporte y faders pro en el Looper)
+**Versión:** v1.22 (piano-roll: edición avanzada — selección, portapapeles, deshacer)
+
+**Piano-roll edición avanzada (v1.22):** selección múltiple de notas en el overlay `#pianoroll`:
+marquesina de recuadro (`prMarquee` + `prNotesInRect`), Shift-clic para añadir/quitar una nota y
+Ctrl+A para seleccionar todo (`prSel`). Las notas seleccionadas se mueven en **grupo** con un solo
+arrastre. Portapapeles relativo `prClip`: Ctrl+C copia con offsets relativos a la nota más temprana;
+Ctrl+V pega en el cabezal de reproducción (`lp.beat`); Ctrl+D duplica el fragmento justo detrás.
+El portapapeles es global al overlay (permite copiar de un canal y pegar en otro).
+Deshacer/rehacer multinivel: `prPushUndo` guarda snapshot antes de cada mutación; `prUndo`/`prRedo`
+navegan la pila `prHistory`/`prFuture`. Atajos activos **solo con el overlay abierto**
+(Ctrl+A/C/V/D/Z/Y, Delete) con `preventDefault`. Sin cambios en la lógica del Looper ni del motor
+de audio.
 
 **Transporte y faders pro (v1.21):** lavado de cara de la interfaz del Looper sin cambios de
 lógica. `makeFader(opts)` es un helper reutilizable que crea un fader vertical draggable (ratón
