@@ -95,8 +95,9 @@
   .lpHead button.rec{background:#e8746b; color:#1a0606; border-color:#e8746b; font-weight:700}
   .lpHead button.muted{opacity:.5}
   /* ---------- Navegador de samples ---------- */
-  .libPanel{flex:0 0 240px; display:flex; flex-direction:column; background:#0f1218;
-    border-right:1px solid var(--line); min-width:0}
+  .libPanel{flex:0 0 210px; display:flex; flex-direction:column; background:#0f1218;
+    border-right:1px solid var(--line); min-width:0; transition:flex-basis .18s ease}
+  .libPanel.lib2col{flex-basis:440px}
   .libPanel[hidden]{display:none}
   .libHead{display:flex; align-items:center; padding:8px 10px; background:#12151d;
     border-bottom:1px solid var(--line); font-family:var(--disp); font-weight:600; font-size:13px}
@@ -107,9 +108,15 @@
   .libTab.on{background:#1d2733; color:#9fd0f0; border-color:#26384a}
   .libSearch{margin:8px; padding:6px 8px; font-size:12px; background:#161b24;
     border:1px solid var(--line); border-radius:7px; color:var(--ink)}
-  .libBody{flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden}
-  .libTree{flex:0 0 auto; max-height:38%; overflow-y:auto; overflow-x:hidden}
-  .libResults{flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden}
+  .libBody{flex:1; min-height:0; display:flex; flex-direction:row; overflow:hidden}
+  .libTreePane{flex:1 1 auto; min-width:0; overflow-y:auto; overflow-x:hidden}
+  .lib2col .libTreePane{flex:0 0 186px; border-right:1px solid var(--line)}
+  .libResultsPane{flex:1 1 auto; min-width:0; overflow-y:auto; overflow-x:hidden}
+  .libResHead{display:flex; align-items:center; gap:6px; padding:6px 10px 3px; font-size:9px;
+    letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
+  .libResHead span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .libResHead button{margin-left:auto; padding:1px 7px; font-size:12px; line-height:1;
+    background:transparent; border:none; color:var(--muted); cursor:pointer}
   .libEmpty{padding:18px 12px; color:var(--muted); font-size:12px; text-align:center}
   .libSec{flex:0 0 auto; padding:6px 12px 3px; font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
   .libTreeItem{padding:3px 10px; cursor:pointer; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
@@ -197,6 +204,8 @@
     .fxctl input[type=range]{ width:120px }
     .libPanel{ position:absolute; z-index:5; left:0; top:0; bottom:0; flex-basis:84%; max-width:340px;
       box-shadow:8px 0 30px rgba(0,0,0,.5) }
+    .libPanel.lib2col{ flex-basis:92%; max-width:92% }
+    .lib2col .libTreePane{ flex-basis:150px }
     #libImport{ min-height:42px }
   }
   /* Teléfono en horizontal (apaisado): dar el máximo espacio al escenario */
@@ -922,7 +931,7 @@
   let quantizeGrid = 0;             // 0 = libre; 0.5 = corchea; 0.25 = semicorchea
   // Navegador de samples
   const libState = { dirHandle: null, tree: null, current: null, tab: 'folders',
-                     favs: [], recent: [], query: '', expanded: {} };
+                     favs: [], recent: [], query: '', expanded: {}, showResults: true };
   let libFileMap = {};   // path -> {name, getFile()} para leer bajo demanda
   // Atajos MIDI del Looper: acción -> { kind:'cc'|'note', num }. Se aprenden y se guardan.
   const LP_ACTIONS = { lp_rec: 'Grabar canal', lp_prev: 'Canal ◀', lp_next: 'Canal ▶', lp_play: 'Play/Stop' };
@@ -2810,10 +2819,28 @@
   function fileNodeOf(ref){ const p = pathOf(ref); return { name: ref.name, kind:'file', path:p, ext:fileExt(ref.name) }; }
   function libRender() {
     const body = $('libBody');
-    if (!libState.tree) { body.innerHTML = '<div class="libEmpty">Aún no has importado ninguna carpeta.<br>Pulsa "Importar librería…".</div>'; return; }
+    if (!libState.tree) { body.innerHTML = '<div class="libEmpty">Aún no has importado ninguna carpeta.<br>Pulsa "Importar librería…".</div>'; $('libPanel').classList.remove('lib2col'); return; }
+    // Sonidos (resultados) de la pestaña/carpeta activa
+    const files = (libState.tab === 'favs')
+      ? Object.values(libFileMap).filter(r => libState.favs.includes(pathOf(r))).map(r => fileNodeOf(r))
+      : (libState.tab === 'recent')
+      ? libState.recent.map(p => ({ name: p.split('/').pop(), kind: 'file', path: p, ext: fileExt(p) }))
+      : libCurrentFiles();
+    let rows = '';
+    files.forEach(f => {
+      const fav = libState.favs.includes(f.path) ? '★' : '☆';
+      rows += '<div class="libRow" draggable="true" data-file="' + encodeURIComponent(f.path) + '">' +
+        '<span class="nm" title="' + esc(f.name) + '">♪ ' + esc(f.name) + '</span>' +
+        '<button class="fav" title="Favorito" data-fav="' + encodeURIComponent(f.path) + '">' + fav + '</button>' +
+        '<button class="play" title="Escuchar" data-play="' + encodeURIComponent(f.path) + '">▶</button>' +
+        '<button class="toCh" title="A canal seleccionado" data-toch="' + encodeURIComponent(f.path) + '">✚</button>' +
+        '<button class="toInst" title="Como instrumento" data-toinst="' + encodeURIComponent(f.path) + '">🎹</button>' +
+        '</div>';
+    });
     let html = '';
     if (libState.tab === 'folders') {
-      html += '<div class="libSec">Carpetas</div><div class="libTree">';
+      // Columna izquierda: árbol plegable de carpetas
+      html += '<div class="libTreePane"><div class="libSec">Carpetas</div>';
       const walk = (node, depth) => {
         if (node.kind !== 'dir') return;
         const subs = node.children.filter(c => c.kind === 'dir');
@@ -2828,25 +2855,17 @@
       };
       walk(libState.tree, 0);
       html += '</div>';
+      // Columna derecha: sonidos de la carpeta seleccionada (ocultable con ✕)
+      if (libState.showResults) {
+        html += '<div class="libResultsPane"><div class="libResHead"><span>' + esc(libState.current ? libState.current.name : 'Sonidos') + ' · ' + files.length + '</span>' +
+          '<button data-hideres title="Ocultar sonidos">✕</button></div>' + rows + '</div>';
+      }
+    } else {
+      // Favoritos / Recientes: solo la lista, a lo ancho
+      html += '<div class="libResultsPane full"><div class="libSec">' + (libState.tab === 'favs' ? 'Favoritos' : 'Recientes') + ' · ' + files.length + '</div>' + rows + '</div>';
     }
-    const files = (libState.tab === 'favs')
-      ? Object.values(libFileMap).filter(r => libState.favs.includes(pathOf(r))).map(r => fileNodeOf(r))
-      : (libState.tab === 'recent')
-      ? libState.recent.map(p => ({ name: p.split('/').pop(), kind: 'file', path: p, ext: fileExt(p) }))
-      : libCurrentFiles();
-    html += '<div class="libSec">' + (libState.tab === 'favs' ? 'Favoritos' : libState.tab === 'recent' ? 'Recientes' : 'Resultados · ' + files.length) + '</div><div class="libResults">';
-    files.forEach(f => {
-      const fav = libState.favs.includes(f.path) ? '★' : '☆';
-      html += '<div class="libRow" draggable="true" data-file="' + encodeURIComponent(f.path) + '">' +
-        '<span class="nm" title="' + esc(f.name) + '">♪ ' + esc(f.name) + '</span>' +
-        '<button class="fav" title="Favorito" data-fav="' + encodeURIComponent(f.path) + '">' + fav + '</button>' +
-        '<button class="play" title="Escuchar" data-play="' + encodeURIComponent(f.path) + '">▶</button>' +
-        '<button class="toCh" title="A canal seleccionado" data-toch="' + encodeURIComponent(f.path) + '">✚</button>' +
-        '<button class="toInst" title="Como instrumento" data-toinst="' + encodeURIComponent(f.path) + '">🎹</button>' +
-        '</div>';
-    });
-    html += '</div>';
     body.innerHTML = html;
+    $('libPanel').classList.toggle('lib2col', libState.tab === 'folders' && libState.showResults);
   }
   function libToggle(show) {
     const p = $('libPanel');
@@ -2862,14 +2881,15 @@
     t.classList.add('on'); libState.tab = t.dataset.libtab; libRender();
   }));
   $('libBody').addEventListener('click', ev => {
+    if (ev.target.closest('[data-hideres]')) { libState.showResults = false; libRender(); return; }   // ocultar columna de sonidos
     const tog = ev.target.closest('[data-toggle]');
     if (tog) { const p = decodeURIComponent(tog.dataset.toggle);   // chevron: plegar/desplegar
       libState.expanded[p] = !libState.expanded[p]; libRender(); return; }
     const dir = ev.target.closest('[data-dir]');
-    if (dir) { const p = decodeURIComponent(dir.dataset.dir);      // nombre: abrir y mostrar sus sonidos
+    if (dir) { const p = decodeURIComponent(dir.dataset.dir);      // nombre: abrir y mostrar sus sonidos a la derecha
       const find = n => { if (n.path===p) return n; for (const c of (n.children||[])){ const r=find(c); if (r) return r; } return null; };
       libState.current = find(libState.tree) || libState.tree;
-      libState.expanded[p] = true;
+      libState.expanded[p] = true; libState.showResults = true;
       libRender(); return; }
     // botones de fila → Task 4
     libRowAction(ev);
