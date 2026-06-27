@@ -3362,45 +3362,73 @@
   function prPos(ev) { const r = prCanvas.getBoundingClientRect(); return { px: ev.clientX - r.left, py: ev.clientY - r.top }; }
   prCanvas.addEventListener('pointerdown', ev => {
     if (prState.ch < 0) return;
-    const { px, py } = prPos(ev); if (px < PR_KEYS_W) return;     // zona de teclas: ignorar
+    const { px, py } = prPos(ev); if (px < PR_KEYS_W) return;   // zona de teclas
     const ch = lp.channels[prState.ch]; const hit = prNoteAt(px, py);
-    if (ev.button === 2) { if (hit) { ch.notes.splice(hit.k, 1); saveLooper(); prDraw(); } return; }  // clic derecho = borrar
-    if (hit) {
-      prDrag = { k: hit.k, mode: hit.edge ? 'resize' : 'move', offBeat: prXToBeat(px) - ch.notes[hit.k].startBeat };
-      prCanvas.setPointerCapture(ev.pointerId);
-    } else {                                                       // crear nota
-      const newDur = prState.grid > 0 ? prState.grid : 0.25;       // "Libre": duración por defecto 1/16
-      const rawB = ev.altKey ? prXToBeat(px) : prSnap(prXToBeat(px));   // Alt = sin cuadrar
-      const b = Math.max(0, Math.min(lpLoopBeats() - newDur, rawB));
-      ch.notes.push({ midi: prYToMidi(py), startBeat: b, dur: newDur, vel: 0.8 });
-      prDrag = { k: ch.notes.length - 1, mode: 'resize', offBeat: 0 };
-      prCanvas.setPointerCapture(ev.pointerId); saveLooper();
+    if (ev.button === 2) {   // clic derecho = borrar esa nota
+      if (hit) { prPushUndo(); const n = ch.notes[hit.k]; prSel.delete(n); ch.notes.splice(hit.k, 1); saveLooper(); prDraw(); }
+      return;
     }
-    prDraw();
+    if (hit) {
+      const n = ch.notes[hit.k];
+      if (ev.shiftKey) { if (prSel.has(n)) prSel.delete(n); else prSel.add(n); prDraw(); return; }  // Shift+clic = alternar
+      if (!prSel.has(n)) prSel = new Set([n]);
+      if (hit.edge) { prPushUndo(); prDrag = { mode: 'resize', note: n }; }   // redimensionar solo esa
+      else {                                                                  // mover el grupo
+        prPushUndo();
+        const downB = prSnap(prXToBeat(px)), downM = prYToMidi(py);
+        const orig = new Map(); prSel.forEach(s => orig.set(s, { startBeat: s.startBeat, midi: s.midi }));
+        prDrag = { mode: 'move', downB, downM, orig };
+      }
+      prCanvas.setPointerCapture(ev.pointerId); prDraw();
+    } else {   // zona vacía → empezar recuadro (al soltar se decide: seleccionar / crear / deseleccionar)
+      prMarquee = { x0: px, y0: py, x1: px, y1: py, add: ev.shiftKey, moved: false };
+      prCanvas.setPointerCapture(ev.pointerId);
+    }
   });
   prCanvas.addEventListener('pointermove', ev => {
-    if (!prDrag || prState.ch < 0) return;
-    const { px, py } = prPos(ev); const n = lp.channels[prState.ch].notes[prDrag.k];
-    if (!n) { prDrag = null; return; }
-    const total = lpLoopBeats();
-    const sn = b => ev.altKey ? b : prSnap(b);                    // mantener Alt = mover/ajustar libre
-    const minDur = prState.grid > 0 ? prState.grid : 0.05;
+    if (prState.ch < 0) return;
+    const { px, py } = prPos(ev);
+    if (prMarquee) { prMarquee.x1 = px; prMarquee.y1 = py; prMarquee.moved = true; prDraw(); return; }
+    if (!prDrag) return;
+    const total = lpLoopBeats(); const sn = b => ev.altKey ? b : prSnap(b);
     if (prDrag.mode === 'move') {
-      let b = sn(prXToBeat(px) - prDrag.offBeat);
-      n.startBeat = Math.max(0, Math.min(total - n.dur, b));
-      n.midi = prYToMidi(py);
-    } else {   // resize: el borde derecho
-      let end = sn(prXToBeat(px));
-      n.dur = Math.max(minDur, Math.min(total - n.startBeat, end - n.startBeat));
+      const dB = sn(prXToBeat(px)) - prDrag.downB;
+      const dM = prYToMidi(py) - prDrag.downM;
+      prDrag.orig.forEach((o, s) => {
+        s.startBeat = Math.max(0, Math.min(total - s.dur, o.startBeat + dB));
+        s.midi = Math.max(21, Math.min(108, o.midi + dM));
+      });
+    } else {   // resize una nota
+      const n = prDrag.note; if (n) { const minDur = prState.grid > 0 ? prState.grid : 0.05;
+        n.dur = Math.max(minDur, Math.min(total - n.startBeat, sn(prXToBeat(px)) - n.startBeat)); }
     }
     prDraw();
   });
-  function prEditUp() { if (prDrag) { prDrag = null; saveLooper(); } }
+  function prEditUp(ev) {
+    if (prMarquee) {
+      if (prMarquee.moved) {                      // recuadro → seleccionar lo que toca
+        const sel = prNotesInRect(prMarquee.x0, prMarquee.y0, prMarquee.x1, prMarquee.y1);
+        if (!prMarquee.add) prSel = new Set();
+        sel.forEach(n => prSel.add(n));
+      } else if (prSel.size) {                    // clic simple en vacío con selección → deseleccionar
+        prSel = new Set();
+      } else {                                     // clic simple en vacío sin selección → crear nota
+        prPushUndo(); const ch = lp.channels[prState.ch];
+        const newDur = prState.grid > 0 ? prState.grid : 0.25;
+        const b = Math.max(0, Math.min(lpLoopBeats() - newDur, prSnap(prXToBeat(prMarquee.x0))));
+        const n = { midi: prYToMidi(prMarquee.y0), startBeat: b, dur: newDur, vel: 0.8 };
+        ch.notes.push(n); prSel = new Set([n]); saveLooper();
+      }
+      prMarquee = null; prDraw(); return;
+    }
+    if (prDrag) { prDrag = null; saveLooper(); prDraw(); }
+  }
   prCanvas.addEventListener('pointerup', prEditUp);
   prCanvas.addEventListener('pointercancel', prEditUp);
-  prCanvas.addEventListener('dblclick', ev => {   // doble-clic en nota = borrar
+  prCanvas.addEventListener('dblclick', ev => {
     if (prState.ch < 0) return; const { px, py } = prPos(ev); const hit = prNoteAt(px, py);
-    if (hit) { lp.channels[prState.ch].notes.splice(hit.k, 1); saveLooper(); prDraw(); }
+    if (hit) { prPushUndo(); const n = lp.channels[prState.ch].notes[hit.k]; prSel.delete(n);
+      lp.channels[prState.ch].notes.splice(hit.k, 1); saveLooper(); prDraw(); }
   });
   prCanvas.addEventListener('contextmenu', ev => ev.preventDefault());   // permitir clic derecho = borrar
   $('prGrid').addEventListener('change', e => { prState.grid = parseFloat(e.target.value); prDraw(); });
