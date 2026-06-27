@@ -82,6 +82,17 @@ App web (un solo archivo HTML) para aprender piano con notas que caen estilo Syn
   knob queda asignado. `setChannelVolFromCC` aplica valor **absoluto** (0–127). Pensado para los
   8 knobs del **Arturia MiniLab MkII** (poner los encoders en modo *Absolute* en MIDI Control
   Center). Persistido en `localStorage` (`volmap`).
+- **Faders verticales y transporte pro (v1.21):** `makeFader(opts)` es un helper reutilizable
+  que crea un fader vertical draggable (ratón y táctil) con reset por doble-clic y `setValue()`
+  sin disparar `onInput` (para actualizar desde MIDI sin bucle). `lpFaders` agrupa los faders de
+  efectos (filtro, delay, reverb) que reemplazaron los sliders planos del bus maestro, formando
+  un **rack de faders** vertical estilo mezcladora. El volumen de cada canal también usa este
+  fader (en la cabecera del canal) y sigue asignable a un knob CC via `volMap`/`volLearn`. El
+  volumen del **metrónomo** (`lpClickVol`, rango 0–1) tiene su propio mini-fader en la barra de
+  transporte. La **barra de transporte pro** muestra el BPM con tipografía grande, editable por
+  doble-clic (prompt) o arrastre vertical (drag ↕), ligado al elemento `lpTempoEl`; el botón
+  Play ▶/⏹ es mapeable por MIDI-learn (`lp_play`). Reutiliza `volMap`/`fxMap` y toda la
+  persistencia anterior.
 - **Audio (motor de instrumentos):** `noteOn(midi, vel)` / `silence(midi)` despachan según
   `currentInstrument`. Si es **sintetizado** (`{type:'synth',preset}`), usa `synthNoteOn` con
   el preset de `SYNTH` (osciladores + envolvente; `sustain:true` para órgano/cuerda, percusivo

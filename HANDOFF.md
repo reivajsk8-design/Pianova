@@ -2,7 +2,18 @@
 
 Snapshot para retomar el proyecto en otra sesión (humana o con Claude Code).
 
-**Versión:** v1.20 (piano-roll por canal en el Looper)
+**Versión:** v1.21 (transporte y faders pro en el Looper)
+
+**Transporte y faders pro (v1.21):** lavado de cara de la interfaz del Looper sin cambios de
+lógica. `makeFader(opts)` es un helper reutilizable que crea un fader vertical draggable (ratón
+y táctil) con reset por doble-clic y `setValue()` sin disparar `onInput` (evita bucles al
+actualizar desde MIDI). `lpFaders` agrupa los faders de efectos (filtro, delay, reverb),
+formando un **rack de faders** vertical estilo mezcladora profesional. El volumen de cada canal
+pasa a ser también un fader vertical en su cabecera, con asignación CC via `volMap`/`volLearn`
+igual que antes. El **volumen del metrónomo** (`lpClickVol`) tiene su propio mini-fader en la
+barra de transporte. La **barra de transporte** muestra el BPM en tipografía grande, editable
+por doble-clic (prompt) o arrastre vertical (drag ↕), ligado a `lpTempoEl`; el Play ▶/⏹ es
+mapeable por MIDI-learn (`lp_play`). Toda la persistencia y `volMap`/`fxMap` se mantienen.
 
 **Piano-roll por canal (v1.20):** editor de notas superpuesto (`#pianoroll`, overlay pantalla
 completa) que se abre con **doble-clic en el carril** de cualquier canal del Looper y se cierra
