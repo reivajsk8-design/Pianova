@@ -3,3 +3,4 @@ Thumbs.db
 *.log
 pv_*.js
 midis/
+.superpowers/
