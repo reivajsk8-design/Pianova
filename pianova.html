@@ -1081,6 +1081,16 @@
     return null;
   }
 
+  // ---------- Piano-roll: utilidades de selección ----------
+  function rectsOverlap(ax0,ay0,ax1,ay1,bx0,by0,bx1,by1){
+    const aX0=Math.min(ax0,ax1),aX1=Math.max(ax0,ax1),aY0=Math.min(ay0,ay1),aY1=Math.max(ay0,ay1);
+    const bX0=Math.min(bx0,bx1),bX1=Math.max(bx0,bx1),bY0=Math.min(by0,by1),bY1=Math.max(by0,by1);
+    return aX0<=bX1 && aX1>=bX0 && aY0<=bY1 && aY1>=bY0;
+  }
+  function prRelClip(sel){ if(!sel.length) return []; const base=Math.min(...sel.map(n=>n.startBeat));
+    return sel.map(n=>({midi:n.midi,startBeat:n.startBeat-base,dur:n.dur,vel:n.vel})); }
+  function prSpan(sel){ return Math.max(...sel.map(n=>n.startBeat+n.dur)) - Math.min(...sel.map(n=>n.startBeat)); }
+
   // ---------- Piano-roll: dibujo principal ----------
   function prDraw() {
     const rows = prRowsCache, H = rows.length * PR_ROWH, gw = prGridW();
