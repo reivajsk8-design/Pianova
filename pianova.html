@@ -55,6 +55,22 @@
   .primary:hover{background:var(--amber2); border-color:var(--amber2)}
   .controls{display:flex; align-items:center; gap:14px; flex-wrap:wrap;
     padding:14px 22px; border-bottom:1px solid var(--line)}
+  .lpTransport{display:flex; align-items:center; gap:0; flex-wrap:wrap}
+  .lpTransport .tpSep{width:1px; height:40px; background:var(--line); margin:0 12px}
+  .tpPlay{width:44px; height:44px; border-radius:50%; font-size:18px; padding:0}
+  .tpCol{display:flex; flex-direction:column; align-items:flex-start; gap:3px}
+  .tpCol[data-center]{align-items:center}
+  .tpLab{font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
+  .tpBpm{font-family:ui-monospace,monospace; color:var(--muted); cursor:ns-resize; user-select:none}
+  .tpBpm b{font-size:26px; font-weight:700; color:var(--ink); line-height:1}
+  .tpBpm input{width:60px; font-size:22px; font-family:ui-monospace,monospace; background:var(--panel2);
+    border:1px solid var(--line); border-radius:6px; color:var(--ink)}
+  .tpMetro{display:flex; align-items:center; gap:8px}
+  .tpIc{display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px;
+    border-radius:8px; background:var(--panel2); border:1px solid var(--line); cursor:pointer}
+  .tpIc input{display:none} .tpIc:has(input:checked){background:#3a2e12; border-color:#7a5a1a}
+  #lpMetroSlot .fader{width:auto} #lpMetroSlot .fTrack{height:34px} #lpMetroSlot .fVal,#lpMetroSlot .fLab{display:none}
+  .tpTools{display:flex; gap:8px; margin-left:auto}
   .tabs{display:flex; gap:6px}
   .tab{border:1px solid var(--line); background:var(--panel); color:var(--muted)}
   .tab:hover{border-color:#3a4153; color:var(--ink)}
@@ -471,26 +487,31 @@
   </div><!-- /learnView -->
 
   <div id="looperView" hidden>
-    <div class="controls">
-      <button class="primary" id="lpPlay">Reproducir</button>
-      <label class="fld">Tempo
-        <input type="range" id="lpTempo" min="50" max="160" value="90">
-        <span class="tempoval"><span id="lpTempoVal">90</span> BPM</span>
-      </label>
-      <label class="fld">Compases
-        <select id="lpBars"><option>1</option><option selected>2</option><option>4</option></select>
-      </label>
-      <label class="fld"><input type="checkbox" id="lpClick" checked> Metrónomo</label>
-      <label class="fld">Cuadrícula
-        <select id="lpQuant">
-          <option value="0">Libre</option>
-          <option value="0.5">♪ Corchea</option>
-          <option value="0.25">♬ Semicorchea</option>
-        </select>
-      </label>
-      <button id="lpDrum">🥁 Cargar batería (TR-808)</button>
-      <button id="lpExport">⬇ Exportar audio (WAV)</button>
-      <button id="libBtn">📁 Librería</button>
+    <div class="controls lpTransport">
+      <button class="primary tpPlay" id="lpPlay" title="Play/Stop (mapeable a MIDI)">▶</button>
+      <span class="tpSep"></span>
+      <div class="tpCol"><span class="tpLab">Tempo</span>
+        <span class="tpBpm"><b id="lpBpmNum">90</b> BPM</span>
+        <input type="range" id="lpTempo" min="50" max="160" value="90" hidden>
+        <span id="lpTempoVal" hidden>90</span>
+      </div>
+      <span class="tpSep"></span>
+      <div class="tpCol"><span class="tpLab">Compás</span>
+        <select id="lpBars"><option>1</option><option selected>2</option><option>4</option></select></div>
+      <span class="tpSep"></span>
+      <div class="tpCol"><span class="tpLab">Metrónomo</span>
+        <div class="tpMetro"><label class="tpIc"><input type="checkbox" id="lpClick" checked><span>🥁</span></label>
+          <div id="lpMetroSlot"></div></div></div>
+      <span class="tpSep"></span>
+      <div class="tpCol"><span class="tpLab">Rejilla</span>
+        <select id="lpQuant"><option value="0">Libre</option><option value="0.5">♪ Corchea</option>
+          <option value="0.25">♬ Semicorchea</option></select></div>
+      <span class="tpSep"></span>
+      <div class="tpTools">
+        <button id="lpDrum">🥁 Batería</button>
+        <button id="lpExport">⬇ WAV</button>
+        <button id="libBtn">📁 Librería</button>
+      </div>
       <input type="file" id="lpSampleFile" accept="audio/*" hidden>
       <input type="file" id="libFolderInput" webkitdirectory hidden>
     </div>
@@ -1240,14 +1261,14 @@
   // Transporte/grabación reutilizables (botones de pantalla y atajos MIDI).
   function lpStartPlay() {
     if (!lp.playing) {
-      lp.playing = true; lpPlayBtn.textContent = 'Parar';
+      lp.playing = true; lpPlayBtn.textContent = '⏹';
       lp.beat = 0; lp.lastClickBeat = -1; lp.channels.forEach(c => c.fired = new Set());
     }
   }
   function lpTogglePlay() {
     ensureAudio();
     lp.playing = !lp.playing;
-    lpPlayBtn.textContent = lp.playing ? 'Parar' : 'Reproducir';
+    lpPlayBtn.textContent = lp.playing ? '⏹' : '▶';
     if (lp.playing) { lp.beat = 0; lp.lastClickBeat = -1; lp.channels.forEach(c => c.fired = new Set()); }
     else { lpStopRecording(); for (const m in voices) silence(+m); }
   }
@@ -1657,7 +1678,7 @@
       const f = makeFader({ key:d.key, label:d.label, min:d.min, max:d.max, step:d.step, def:d.def,
         color:d.color, fmt:d.fmt,
         value: d.metro ? lpClickVol : fxParams[d.param],
-        onInput: v => { if (d.metro) { lpClickVol = v; saveStoreDebounced(); }
+        onInput: v => { if (d.metro) { lpClickVol = v; if(lpFaders['metroTp']) lpFaders['metroTp'].setValue(v); saveStoreDebounced(); }
                         else { setFxParam(d.param, v); saveStoreDebounced(); } } });
       col.appendChild(f.el);
       if (!d.metro) {   // botón 🎛 para mapear el efecto a un knob
@@ -2750,7 +2771,7 @@
     const L = store.looper;
     if (!L || !L.channels) return;
     lp.bars = L.bars || 2; lpBarsEl.value = lp.bars;
-    if (L.tempo) { lpTempoEl.value = L.tempo; lpTempoVal.textContent = L.tempo; }
+    if (L.tempo) { lpTempoEl.value = L.tempo; lpTempoVal.textContent = L.tempo; const bn=$('lpBpmNum'); if(bn) bn.textContent=L.tempo; }
     if (L.quant != null) { quantizeGrid = L.quant; const q = $('lpQuant'); if (q) q.value = String(L.quant); }
     L.channels.forEach((c, i) => {
       if (!lp.channels[i]) return;
@@ -2972,8 +2993,15 @@
     seekToBeat(f * (songLenBeats() || 0));
   });
 
-  // Transporte del looper
-  lpTempoEl.addEventListener('input', () => { lpTempoVal.textContent = lpTempoEl.value; });
+  // Transporte del looper — BPM grande editable (doble clic = prompt, arrastrar ↕ = subir/bajar)
+  const lpBpmWrap = document.querySelector('.tpBpm');
+  function setBpm(v){ v=Math.max(50,Math.min(160,Math.round(v))); lpTempoEl.value=v; lpTempoVal.textContent=v; $('lpBpmNum').textContent=v; }
+  lpBpmWrap.addEventListener('dblclick', () => { const r = prompt('BPM (50-160):', lpTempoEl.value); if (r!=null && !isNaN(parseFloat(r))) setBpm(parseFloat(r)); });
+  let bpmDrag=null;
+  lpBpmWrap.addEventListener('pointerdown', e => { bpmDrag={y:e.clientY,v:parseFloat(lpTempoEl.value)}; e.preventDefault(); });
+  window.addEventListener('pointermove', e => { if(bpmDrag) setBpm(bpmDrag.v + (bpmDrag.y - e.clientY)*0.5); });
+  window.addEventListener('pointerup', () => bpmDrag=null);
+  lpTempoEl.addEventListener('input', () => { lpTempoVal.textContent = lpTempoEl.value; $('lpBpmNum').textContent = lpTempoEl.value; });
   lpBarsEl.addEventListener('change', () => {
     const hasContent = lp.channels.some(c => c.notes.length);
     if (hasContent && !confirm('Cambiar la longitud vaciará los canales. ¿Seguir?')) {
@@ -2983,6 +3011,11 @@
     lpInitChannels(); rebuildChannelSoundOptions(); saveLooper();
   });
   lpPlayBtn.addEventListener('click', lpTogglePlay);
+  // Fader de metrónomo en el transporte (sincronizado con el del rack de efectos)
+  (function(){ const slot=$('lpMetroSlot'); if(!slot) return;
+    const f = makeFader({ key:'metroTp', min:0, max:1, step:0.05, def:0.8, value:lpClickVol,
+      color:'#ffce7a', onInput:v=>{ lpClickVol=v; if(lpFaders['metro']) lpFaders['metro'].setValue(v); saveStoreDebounced(); } });
+    slot.appendChild(f.el); })();
   lpDrumBtn.addEventListener('click', loadDrumKit);
   lpExportBtn.addEventListener('click', exportLooperAudio);
   // Recorre un FileSystemDirectoryHandle y devuelve un árbol ligero (sin leer audios).
