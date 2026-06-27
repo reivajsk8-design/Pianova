@@ -2504,7 +2504,7 @@
     if (parts[0] === 'sample') {
       const sm = samples[parts[1]];
       if (sm) { currentInstrument = { type: 'sample', id: parts[1] }; sfPlayer = null; if (instInfo) instInfo.textContent = 'Instrumento: ' + sm.name + ' (melódico)'; }
-      else { currentInstrument = { type: 'synth', preset: 'piano' }; instSel.value = 'synth:piano'; }
+      else { currentInstrument = { type: 'synth', preset: 'piano' }; sfPlayer = null; instSel.value = 'synth:piano'; }
       return;
     }
     if (parts[0] === 'synth') { currentInstrument = { type: 'synth', preset: parts[1] }; sfPlayer = null; instInfo.textContent = ''; }
@@ -2834,10 +2834,13 @@
     libSave();
   }
   async function libRegister(node) {
-    const arr = await libNodeArrayBuffer(node); if (!arr) { alert('No pude leer ese audio.'); return null; }
-    const id = await addSample(node.name, arr);
-    libAddRecent(node.path);
-    return id;
+    try {
+      const arr = await libNodeArrayBuffer(node);
+      if (!arr) { alert('No pude leer ese audio.'); return null; }
+      const id = await addSample(node.name, arr);
+      libAddRecent(node.path);
+      return id;
+    } catch (e) { alert('No pude leer ese audio. Prueba con un WAV o MP3.'); return null; }
   }
   async function libAssignChannel(node, chIndex) {
     const i = (chIndex == null) ? selectedChannel : chIndex;
@@ -2848,6 +2851,7 @@
   async function libAssignInstrument(node) {
     const id = await libRegister(node); if (!id) return;
     if (actx) silenceAll();
+    sfReqId++;
     currentInstrument = { type: 'sample', id }; sfPlayer = null;
     // reflejar en el selector global con una opción dinámica
     let opt = instSel.querySelector('option[value="sample:' + id + '"]');
@@ -2857,11 +2861,11 @@
     if (typeof instInfo !== 'undefined' && instInfo) instInfo.textContent = 'Instrumento: ' + samples[id].name + ' (melódico)';
     savePrefs();
   }
-  function libRowAction(ev) {
+  async function libRowAction(ev) {
     const t = ev.target;
-    if (t.dataset.play != null) { libPreview(nodeByPath(decodeURIComponent(t.dataset.play))); }
-    else if (t.dataset.toch != null) { libAssignChannel(nodeByPath(decodeURIComponent(t.dataset.toch))); }
-    else if (t.dataset.toinst != null) { libAssignInstrument(nodeByPath(decodeURIComponent(t.dataset.toinst))); }
+    if (t.dataset.play != null) { await libPreview(nodeByPath(decodeURIComponent(t.dataset.play))); }
+    else if (t.dataset.toch != null) { await libAssignChannel(nodeByPath(decodeURIComponent(t.dataset.toch))); }
+    else if (t.dataset.toinst != null) { await libAssignInstrument(nodeByPath(decodeURIComponent(t.dataset.toinst))); }
     else if (t.dataset.fav != null) {
       const p = decodeURIComponent(t.dataset.fav);
       libState.favs = libState.favs.includes(p) ? libState.favs.filter(x => x !== p) : [...libState.favs, p];
