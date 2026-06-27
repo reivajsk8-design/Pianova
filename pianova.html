@@ -107,10 +107,12 @@
   .libTab.on{background:#1d2733; color:#9fd0f0; border-color:#26384a}
   .libSearch{margin:8px; padding:6px 8px; font-size:12px; background:#161b24;
     border:1px solid var(--line); border-radius:7px; color:var(--ink)}
-  .libBody{flex:1; overflow:auto; min-height:0}
+  .libBody{flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden}
+  .libTree{flex:0 0 auto; max-height:38%; overflow-y:auto; overflow-x:hidden}
+  .libResults{flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden}
   .libEmpty{padding:18px 12px; color:var(--muted); font-size:12px; text-align:center}
-  .libSec{padding:6px 12px 3px; font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
-  .libTreeItem{display:flex; gap:6px; align-items:center; padding:3px 10px; cursor:pointer; font-size:12px}
+  .libSec{flex:0 0 auto; padding:6px 12px 3px; font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
+  .libTreeItem{padding:3px 10px; cursor:pointer; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .libTreeItem:hover{background:#141a23}
   .libTreeItem.on{background:#15202c; color:#9fd0f0; box-shadow:inset 2px 0 0 #4a90c2}
   .libRow{display:flex; align-items:center; gap:8px; padding:5px 10px; border-bottom:1px solid #151a22; font-size:12px}
@@ -2742,12 +2744,12 @@
   }
   async function libImportFolder() {
     ensureAudio();
-    libFileMap = {};
     if (window.showDirectoryPicker) {
       try {
         const handle = await window.showDirectoryPicker({ id: 'pianova-lib', mode: 'read' });
         libState.dirHandle = handle;
         $('libBody').innerHTML = '<div class="libEmpty">Escaneando…</div>';
+        libFileMap = {};   // solo se vacía cuando ya hay carpeta nueva (cancelar no rompe la actual)
         libState.tree = await scanDirHandle(handle, handle.name);
         libState.current = libState.tree;
         await idbSet('dir', handle);        // Task 6 (persistencia); si no existe aún, no rompe
@@ -2807,21 +2809,22 @@
     if (!libState.tree) { body.innerHTML = '<div class="libEmpty">Aún no has importado ninguna carpeta.<br>Pulsa "Importar librería…".</div>'; return; }
     let html = '';
     if (libState.tab === 'folders') {
-      html += '<div class="libSec">Carpetas</div>';
+      html += '<div class="libSec">Carpetas</div><div class="libTree">';
       const walk = (node, depth) => {
         if (node.kind !== 'dir') return;
         const on = (libState.current === node) ? ' on' : '';
-        html += '<div class="libTreeItem' + on + '" data-dir="' + encodeURIComponent(node.path) + '" style="padding-left:' + (10 + depth * 12) + 'px">📁 ' + esc(node.name) + '</div>';
+        html += '<div class="libTreeItem' + on + '" data-dir="' + encodeURIComponent(node.path) + '" style="padding-left:' + (10 + depth * 12) + 'px" title="' + esc(node.name) + '">📁 ' + esc(node.name) + '</div>';
         node.children.forEach(c => walk(c, depth + 1));
       };
       walk(libState.tree, 0);
+      html += '</div>';
     }
     const files = (libState.tab === 'favs')
       ? Object.values(libFileMap).filter(r => libState.favs.includes(pathOf(r))).map(r => fileNodeOf(r))
       : (libState.tab === 'recent')
       ? libState.recent.map(p => ({ name: p.split('/').pop(), kind: 'file', path: p, ext: fileExt(p) }))
       : libCurrentFiles();
-    html += '<div class="libSec">' + (libState.tab === 'favs' ? 'Favoritos' : libState.tab === 'recent' ? 'Recientes' : 'Resultados · ' + files.length) + '</div>';
+    html += '<div class="libSec">' + (libState.tab === 'favs' ? 'Favoritos' : libState.tab === 'recent' ? 'Recientes' : 'Resultados · ' + files.length) + '</div><div class="libResults">';
     files.forEach(f => {
       const fav = libState.favs.includes(f.path) ? '★' : '☆';
       html += '<div class="libRow" draggable="true" data-file="' + encodeURIComponent(f.path) + '">' +
@@ -2832,6 +2835,7 @@
         '<button class="toInst" title="Como instrumento" data-toinst="' + encodeURIComponent(f.path) + '">🎹</button>' +
         '</div>';
     });
+    html += '</div>';
     body.innerHTML = html;
   }
   function libToggle(show) {
@@ -2869,7 +2873,10 @@
   async function libPreview(node) {
     ensureAudio();
     if (libPreviewSrc) { try { libPreviewSrc.stop(); } catch (e) {} libPreviewSrc = null; }
-    const buf = await libNodeBuffer(node); if (!buf) { alert('No pude leer ese audio.'); return; }
+    let buf;
+    try { buf = await libNodeBuffer(node); }
+    catch (e) { alert('No pude decodificar ese audio (formato no soportado por el navegador). Prueba un WAV de 16 bits o un MP3.'); return; }
+    if (!buf) { alert('No encuentro ese archivo. Vuelve a pulsar «Importar librería…» para reconectar la carpeta.'); return; }
     const src = actx.createBufferSource(); src.buffer = buf;
     src.connect(masterDest()); src.start(); libPreviewSrc = src;
     src.onended = () => { if (libPreviewSrc === src) libPreviewSrc = null; };
@@ -2881,7 +2888,7 @@
   async function libRegister(node) {
     try {
       const arr = await libNodeArrayBuffer(node);
-      if (!arr) { alert('No pude leer ese audio.'); return null; }
+      if (!arr) { alert('No encuentro ese archivo. Vuelve a pulsar «Importar librería…» para reconectar la carpeta.'); return null; }
       const id = await addSample(node.name, arr);
       libAddRecent(node.path);
       return id;
