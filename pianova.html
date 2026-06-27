@@ -739,10 +739,42 @@
     setTimeout(() => os.forEach(x => { try { x.stop(); } catch (e) {} }), rel * 1000 + 60);
     delete voices[midi];
   }
+  const sampleVoices = {};   // midi -> {src,g} del instrumento global tipo 'sample'
+  function pitchRate(midi, base) { return Math.pow(2, (midi - (base || 60)) / 12); }
+  // Registra un audio (ArrayBuffer) en el motor de samples y devuelve su id. Persiste si es pequeño.
+  async function addSample(name, arr) {
+    ensureAudio();
+    const buffer = await actx.decodeAudioData(arr.slice(0));
+    const id = 'smp_' + (++sampleSeq);
+    const b64 = (arr.byteLength <= 1500000) ? abToB64(arr) : null;
+    samples[id] = { name: name.replace(/\.[^.]+$/, ''), buffer, b64,
+                    trimStart: 0, trimEnd: 1, melodic: false, base: 60 };
+    if (b64) saveSamples();
+    return id;
+  }
+  function sampleNoteOn(midi, vel) {
+    const inst = currentInstrument; const sm = samples[inst.id];
+    if (!sm || !sm.buffer) return;
+    const dur = sm.buffer.duration;
+    const ts = (sm.trimStart || 0) * dur, te = (sm.trimEnd != null ? sm.trimEnd : 1) * dur;
+    const src = actx.createBufferSource(); src.buffer = sm.buffer;
+    src.playbackRate.value = pitchRate(midi, sm.base);   // melódico por tecla
+    const g = actx.createGain(); g.gain.value = Math.max(0.0002, 0.9 * (vel == null ? 0.8 : vel));
+    src.connect(g); g.connect(masterDest());
+    src.start(0, Math.max(0, ts), Math.max(0.02, te - ts));
+    sampleVoices[midi] = { src, g };
+  }
+  function sampleSilence(midi) {
+    const v = sampleVoices[midi]; if (!v) return;
+    try { v.src.stop(); } catch (e) {}
+    delete sampleVoices[midi];
+  }
   function noteOn(midi, vel = 0.8) {
     ensureAudio();
-    if (voices[midi] || sfStops[midi]) silence(midi);
-    if (currentInstrument.type === 'sf' && sfPlayer) {
+    if (voices[midi] || sfStops[midi] || sampleVoices[midi]) silence(midi);
+    if (currentInstrument.type === 'sample') {
+      sampleNoteOn(midi, vel);
+    } else if (currentInstrument.type === 'sf' && sfPlayer) {
       try { sfStops[midi] = sfPlayer.start({ note: midi, velocity: Math.round(vel * 127) }); } catch (e) {}
     } else {
       synthNoteOn(midi, vel, SYNTH[currentInstrument.preset] || SYNTH.piano);
@@ -750,11 +782,13 @@
   }
   function silence(midi) {
     if (sfStops[midi]) { try { sfStops[midi](); } catch (e) {} delete sfStops[midi]; }
+    if (sampleVoices[midi]) sampleSilence(midi);
     if (voices[midi]) synthSilence(midi);
   }
   function silenceAll() {
     for (const m in voices) synthSilence(+m);
     for (const m in sfStops) { try { sfStops[m](); } catch (e) {} delete sfStops[m]; }
+    for (const m in sampleVoices) sampleSilence(+m);
   }
 
   // Carga (perezosa, desde CDN) de un instrumento real con la librería smplr.
@@ -2604,17 +2638,13 @@
     const ch = importChannel; importChannel = -1;
     if (!f || ch < 0) return;
     try {
-      ensureAudio();
       const arr = await f.arrayBuffer();
-      const buffer = await actx.decodeAudioData(arr.slice(0));
-      const id = 'smp_' + (++sampleSeq);
-      const b64 = (arr.byteLength <= 1500000) ? abToB64(arr) : null;   // guardar solo los pequeños
-      samples[id] = { name: f.name.replace(/\.[^.]+$/, ''), buffer, b64, trimStart: 0, trimEnd: 1, melodic: false, base: 60 };
+      const big = arr.byteLength > 1500000;
+      const id = await addSample(f.name, arr);
       lp.channels[ch].sound = 'sample:' + id;
       rebuildChannelSoundOptions();
-      if (b64) saveSamples();
       saveLooper();
-      if (!b64) alert('Sonido cargado para esta sesión. Es grande (> 1,5 MB), así que no se guardará al recargar.');
+      if (big) alert('Sonido cargado para esta sesión. Es grande (> 1,5 MB), así que no se guardará al recargar.');
     } catch (err) {
       alert('No pude leer ese audio. Prueba con un WAV o MP3.');
     }
