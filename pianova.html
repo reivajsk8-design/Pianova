@@ -2143,7 +2143,7 @@
     canvas.height = Math.round(H * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
-  window.addEventListener('resize', () => { resize(); if (tab === 'looper') looperResize(); });
+  window.addEventListener('resize', () => { resize(); if (tab === 'looper') looperResize(); if (!$('pianoroll').hidden) { prResize(); prDraw(); prDrawVel(); } });
 
   function rrect(x, y, w, h, r) {
     r = Math.min(r, w / 2, Math.abs(h) / 2);
@@ -3188,6 +3188,8 @@
   $('prClose').addEventListener('click', prClose);
   $('prFold').addEventListener('change', e => { prState.fold = e.target.checked; prResize(); prDraw(); });
   $('prScaleOn').addEventListener('change', e => { prState.scaleOn = e.target.checked; prDraw(); });
+  $('prRoot').addEventListener('change', e => { prState.scaleRoot = parseInt(e.target.value, 10); prDraw(); });
+  $('prScale').addEventListener('change', e => { prState.scaleType = e.target.value; prDraw(); });
 
   // ---------- Piano-roll: edición de notas (crear / mover / redimensionar / borrar) ----------
   function prPos(ev) { const r = prCanvas.getBoundingClientRect(); return { px: ev.clientX - r.left, py: ev.clientY - r.top }; }
