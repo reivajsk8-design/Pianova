@@ -2819,6 +2819,15 @@
     // botones de fila → Task 4
     libRowAction(ev);
   });
+  // Arrastrar filas del navegador → canal del looper (escritorio)
+  $('libBody').addEventListener('dragstart', ev => {
+    const row = ev.target.closest('.libRow'); if (!row) return;
+    ev.dataTransfer.setData('text/pianova-sample', decodeURIComponent(row.dataset.file));
+    ev.dataTransfer.effectAllowed = 'copy'; row.classList.add('dragging');
+  });
+  $('libBody').addEventListener('dragend', ev => {
+    const row = ev.target.closest('.libRow'); if (row) row.classList.remove('dragging');
+  });
 
   let libPreviewSrc = null;
   async function libPreview(node) {
@@ -2961,6 +2970,25 @@
       lp.channels[+vch].vol = parseFloat(ev.target.value);
       saveLooper();
     }
+  });
+
+  // Soltar una fila del navegador de samples sobre una cabecera de canal (escritorio)
+  lpChannelsEl.addEventListener('dragover', ev => {
+    if ([...ev.dataTransfer.types].includes('text/pianova-sample')) {
+      ev.preventDefault(); ev.dataTransfer.dropEffect = 'copy';
+      const h = ev.target.closest('.lpHead'); if (h) h.classList.add('sel');
+    }
+  });
+  lpChannelsEl.addEventListener('dragleave', ev => {
+    const h = ev.target.closest('.lpHead'); if (h) h.classList.remove('sel');
+  });
+  lpChannelsEl.addEventListener('drop', ev => {
+    const path = ev.dataTransfer.getData('text/pianova-sample'); if (!path) return;
+    ev.preventDefault();
+    const h = ev.target.closest('.lpHead'); if (!h) return;
+    h.classList.remove('sel');
+    const i = +h.dataset.ch; selectedChannel = i; lpUpdateSelected();
+    libAssignChannel(nodeByPath(path), i);
   });
 
   // Asignar atajos MIDI (aprender): clic en una acción y luego pulsa un botón del teclado.
