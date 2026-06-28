@@ -809,6 +809,48 @@
     return buf;
   }
   function masterDest() { return masterIn || (actx && actx.destination); }
+
+  // ---------- EQ maestro ----------
+  // Presets musicales del EQ maestro (spec común: preamp dB + bandas biquad).
+  const EQ_PRESETS = {
+    plano:     { label: 'Plano',      preamp: 0, bands: [] },
+    cuerpo:    { label: 'Más cuerpo', preamp: 0, bands: [
+      { type: 'lowshelf', freq: 120, gain: 4, q: 0.7 }, { type: 'peaking', freq: 2500, gain: 2, q: 1 } ] },
+    calido:    { label: 'Cálido',     preamp: 0, bands: [
+      { type: 'lowshelf', freq: 120, gain: 3, q: 0.7 }, { type: 'highshelf', freq: 8000, gain: -2.5, q: 0.7 } ] },
+    brillante: { label: 'Brillante',  preamp: 0, bands: [
+      { type: 'highshelf', freq: 8000, gain: 4, q: 0.7 }, { type: 'peaking', freq: 4000, gain: 1.5, q: 1 } ] },
+    loudness:  { label: 'Loudness',   preamp: 0, bands: [
+      { type: 'lowshelf', freq: 100, gain: 5, q: 0.7 }, { type: 'highshelf', freq: 9000, gain: 3, q: 0.7 } ] }
+  };
+  let eqInput = null, eqNodes = [], currentEq = EQ_PRESETS.plano;
+
+  // (Re)construye la cadena de EQ: masterIn -> eqInput(preamp) -> bandas -> fxHP. Antes del limitador.
+  function buildEq(spec) {
+    if (!masterIn || !fxHP || !actx) return;
+    try { masterIn.disconnect(); } catch (e) {}           // su única salida es la cadena EQ->fxHP
+    eqNodes.forEach(n => { try { n.disconnect(); } catch (e) {} });
+    eqNodes = [];
+    eqInput = actx.createGain();
+    eqInput.gain.value = Math.pow(10, (spec.preamp || 0) / 20);
+    let last = eqInput;
+    (spec.bands || []).forEach(b => {
+      const f = actx.createBiquadFilter();
+      f.type = b.type; f.frequency.value = b.freq; f.gain.value = b.gain; f.Q.value = b.q;
+      last.connect(f); last = f; eqNodes.push(f);
+    });
+    eqNodes.unshift(eqInput);
+    masterIn.connect(eqInput);
+    last.connect(fxHP);
+  }
+  function eqApply(spec) { currentEq = spec || EQ_PRESETS.plano; buildEq(currentEq); }
+  // Resuelve el spec activo a partir de store.eq (preset o perfil importado).
+  function eqSpecFromStore() {
+    const e = (store && store.eq) || {};
+    if (e.preset === 'custom' && e.custom) return e.custom;
+    return EQ_PRESETS[e.preset] || EQ_PRESETS.plano;
+  }
+
   // ---------- Transporte: reloj de audio + conversión de duración (reproducción fluida) ----------
   // Adelanto del agendador (segundos): se programan las notas ~100 ms antes de que suenen.
   const LOOKAHEAD_SEC = 0.1;
@@ -884,7 +926,9 @@
     fxFb = actx.createGain(); fxFb.gain.value = 0;
     fxWet = actx.createGain(); fxWet.gain.value = 0;
     masterFinal = actx.createGain();               // mezcla final (lo que se exporta)
-    masterIn.connect(fxHP); fxHP.connect(fxLP);
+    currentEq = eqSpecFromStore();
+    buildEq(currentEq);                         // masterIn -> eqInput -> bandas -> fxHP
+    fxHP.connect(fxLP);
     fxLP.connect(masterOut);                       // seco
     fxLP.connect(fxDelay); fxDelay.connect(fxWet); fxWet.connect(masterOut);   // delay
     fxDelay.connect(fxFb); fxFb.connect(fxDelay);  // realimentación
@@ -3012,7 +3056,7 @@
 
   // ---------- Persistencia (localStorage) ----------
   const STORE_KEY = 'pianova-v1';
-  let store = { songs: {}, prefs: {}, progress: {}, instGain: {} };
+  let store = { songs: {}, prefs: {}, progress: {}, instGain: {}, eq: { preset: 'plano', custom: null } };
   function loadStore() {
     try {
       const raw = localStorage.getItem(STORE_KEY);
@@ -3020,6 +3064,7 @@
         const o = JSON.parse(raw);
         store.songs = o.songs || {}; store.prefs = o.prefs || {}; store.progress = o.progress || {};
         store.instGain = o.instGain || {};
+        store.eq = o.eq || { preset: 'plano', custom: null };
         store.lib = o.lib || null;
         midiMap = o.midi || {};
         volMap = o.volmap || {};
