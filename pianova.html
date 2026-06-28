@@ -3769,7 +3769,7 @@
     refreshEqUI();
     eqApply(eqSpecFromStore());            // construye las 8 bandas
     eqSelBand = -1;
-    $('eqPreamp').value = eqManual().preamp || 0; $('eqPreampVal').textContent = ($('eqPreamp').value | 0) + ' dB';
+    $('eqPreamp').value = eqManual().preamp || 0; $('eqPreampVal').textContent = (+$('eqPreamp').value) + ' dB';
     if (typeof eqBuildBands === 'function') eqBuildBands();
     $('eqEditor').hidden = false;
     if (!eqRAF) eqRAF = requestAnimationFrame(eqFrame);
