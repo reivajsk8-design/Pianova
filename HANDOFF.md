@@ -2,7 +2,15 @@
 
 Snapshot para retomar el proyecto en otra sesión (humana o con Claude Code).
 
-**Versión:** v1.34 (ecualizador maestro: presets + importar perfil Equalizer APO)
+**Versión:** v1.35 (EQ gráfico editable estilo EQ Eight)
+
+**EQ gráfico editable (v1.35):** editor visual de 8 bandas sobre el motor v1.34. `store.eq.manual` guarda
+los ajustes del preset `'manual'` (mapeo estable de 8 biquads; cuando una banda está apagada, ganancia = 0).
+`eqUpdateSlot`/`eqUpdatePreamp` editan en vivo sin reconstruir la cadena. Overlay `#eqEditor` con
+`<canvas>` mostrando rejilla, espectro en tiempo real (vía `eqAnalyser` sobre `masterFinal`) y curva de
+respuesta (via `getFrequencyResponse` de los `eqNodes` vivos). Interacción por arrastrar/rueda/táctil:
+funciones `freqToX`/`xToFreq`/`gainToY`/`yToGain` convierten píxeles ↔ unidades de audio. Render del
+bucle rAF (`eqFrame`) solo mientras el overlay está abierto. Botón "✎ Editar EQ" en "Mezcla maestra".
 
 **Ecualizador maestro (v1.34):** nueva etapa de ecualización en el bus maestro. `buildEq()` configura
 una cadena `masterIn → eqInput (preamp) → bandas biquad → fxHP`, insertándose **antes** del limitador/
