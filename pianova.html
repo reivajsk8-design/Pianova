@@ -3814,6 +3814,59 @@
     });
     wrap.innerHTML = html;
   }
+  // ---------- Interacción del editor de EQ ----------
+  // Devuelve el índice de la banda ACTIVA cuyo nodo está bajo (px,py), o -1.
+  function eqBandAt(px, py, w, h) {
+    const slots = eqManual().slots; let best = -1, bd = 16 * 16;
+    slots.forEach((s, i) => { if (!s.on) return; const x = freqToX(s.freq, w), y = gainToY(s.gain, h);
+      const d = (x - px) * (x - px) + (y - py) * (y - py); if (d < bd) { bd = d; best = i; } });
+    return best;
+  }
+  let eqDrag = -1;
+  eqCanvas.addEventListener('pointerdown', e => {
+    const r = eqCanvas.getBoundingClientRect(), w = r.width, h = r.height;
+    const px = e.clientX - r.left, py = e.clientY - r.top;
+    const i = eqBandAt(px, py, w, h);
+    if (i >= 0) { eqSelBand = i; eqDrag = i; eqSyncSel(); eqDraw(); eqCanvas.setPointerCapture(e.pointerId); }
+  });
+  eqCanvas.addEventListener('pointermove', e => {
+    if (eqDrag < 0) return; const r = eqCanvas.getBoundingClientRect(), w = r.width, h = r.height;
+    const px = Math.max(0, Math.min(w, e.clientX - r.left)), py = Math.max(0, Math.min(h, e.clientY - r.top));
+    const s = eqManual().slots[eqDrag];
+    s.freq = Math.max(EQ_FMIN, Math.min(EQ_FMAX, xToFreq(px, w)));
+    s.gain = Math.max(-EQ_GAIN_RANGE, Math.min(EQ_GAIN_RANGE, yToGain(py, h)));
+    eqUpdateSlot(eqDrag); eqDraw(); saveStoreDebounced();
+  });
+  eqCanvas.addEventListener('pointerup', () => { eqDrag = -1; });
+  eqCanvas.addEventListener('wheel', e => {
+    const r = eqCanvas.getBoundingClientRect(), w = r.width, h = r.height;
+    const i = eqBandAt(e.clientX - r.left, e.clientY - r.top, w, h);
+    if (i < 0) return; e.preventDefault();
+    const s = eqManual().slots[i]; s.q = Math.max(0.3, Math.min(8, s.q * (e.deltaY > 0 ? 0.9 : 1.1)));
+    eqSelBand = i; eqUpdateSlot(i); eqSyncSel(); eqDraw(); saveStoreDebounced();
+  }, { passive: false });
+  function eqSyncSel() {
+    const lab = $('eqSelLab'), q = $('eqQ');
+    if (eqSelBand < 0) { lab.textContent = '—'; q.value = 1; q.disabled = true; return; }
+    lab.textContent = '' + (eqSelBand + 1); q.disabled = false; q.value = eqManual().slots[eqSelBand].q;
+  }
+  $('eqEdBands').addEventListener('click', e => {
+    const b = e.target.closest('[data-eqband]'); if (!b) return;
+    const i = +b.dataset.eqband, s = eqManual().slots[i]; s.on = !s.on;
+    eqSelBand = s.on ? i : -1; eqUpdateSlot(i); eqBuildBands(); eqSyncSel(); eqDraw(); saveStore();
+  });
+  $('eqEdBands').addEventListener('change', e => {
+    const sel = e.target.closest('[data-eqtype]'); if (!sel) return;
+    const i = +sel.dataset.eqtype; eqManual().slots[i].type = sel.value; eqUpdateSlot(i); eqDraw(); saveStore();
+  });
+  $('eqQ').addEventListener('input', e => {
+    if (eqSelBand < 0) return; eqManual().slots[eqSelBand].q = parseFloat(e.target.value);
+    eqUpdateSlot(eqSelBand); eqDraw(); saveStoreDebounced();
+  });
+  $('eqPreamp').addEventListener('input', e => {
+    eqManual().preamp = parseFloat(e.target.value); $('eqPreampVal').textContent = (+e.target.value) + ' dB';
+    eqUpdatePreamp(); saveStoreDebounced();
+  });
   function eqOpenEditor() {
     ensureAudio();
     store.eq.preset = 'manual'; saveStore();
