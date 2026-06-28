@@ -1,0 +1,13 @@
+:root { --bg:#0b0d12; --panel:#12151c; --line:#262b38; --ink:#e7e9ee; --muted:#8a909e; --amber:#f2a33c; }
+* { box-sizing: border-box; }
+body { margin:0; font-family: system-ui, sans-serif; background:var(--bg); color:var(--ink); }
+.topbar { display:flex; align-items:center; gap:14px; padding:12px 18px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+.brand { font-weight:700; font-size:18px; } .brand span { color:var(--muted); font-weight:500; font-size:12px; }
+.tabs { display:inline-flex; gap:0; background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:3px; }
+.tab { border:0; background:transparent; color:var(--muted); padding:7px 16px; border-radius:8px; font:inherit; cursor:pointer; }
+.tab.on { background:var(--amber); color:#1a1306; }
+.grow { flex:1; }
+button { font:inherit; cursor:pointer; border:1px solid var(--line); background:var(--panel); color:var(--ink); border-radius:10px; padding:8px 14px; }
+button:hover { border-color:#3a4153; }
+main { padding:24px 18px; }
+.view { color:var(--muted); font-size:15px; }

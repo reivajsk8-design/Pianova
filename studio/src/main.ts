@@ -1,2 +1,5 @@
+import './ui/styles.css';
+import { mountShell } from './app/shell';
+
 const app = document.getElementById('app');
-if (app) app.textContent = 'Estudio — cimientos';
+if (app) mountShell(app);
