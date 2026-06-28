@@ -806,6 +806,9 @@
   const LOOKAHEAD_SEC = 0.1;
   // Duración en beats -> segundos al bpm dado (mínimo 0.02s para no crear notas de longitud nula).
   function durBeatsToSec(durBeats, bpm) { return Math.max(0.02, durBeats * (60 / bpm)); }
+  // Ganancia de sonidos: 1 = 100% (normal); hasta GAIN_MAX = 3 (300%) para subir flojos.
+  const GAIN_MAX = 3;
+  function clampGain(v) { return Math.max(0, Math.min(GAIN_MAX, v)); }
   // Reloj de transporte: la posición (en beats) se deriva de actx.currentTime contra un ancla,
   // así un tirón de imagen no mueve el ritmo. nowFn es inyectable para poder testear.
   function makeTransport(nowFn) {
@@ -1424,8 +1427,8 @@
     // Crear un fader vertical de volumen por canal (reemplaza el input range anterior)
     for (let i = 0; i < LP_CHANNELS; i++) {
       const slot = lpChannelsEl.querySelector('[data-volslot="' + i + '"]'); if (!slot) continue;
-      const vol = (lp.channels[i] && lp.channels[i].vol != null) ? lp.channels[i].vol : 0.85;
-      const f = makeFader({ key: 'vol:' + i, min: 0, max: 1, step: 0.05, def: 0.85, value: vol,
+      const vol = (lp.channels[i] && lp.channels[i].vol != null) ? lp.channels[i].vol : 1;
+      const f = makeFader({ key: 'vol:' + i, min: 0, max: GAIN_MAX, step: 0.05, def: 1, value: vol,
         color: LP_COLORS[i], fmt: v => Math.round(v * 100),
         onInput: v => { lp.channels[i].vol = v; saveLooperDebounced(); } });
       slot.appendChild(f.el);
@@ -1510,7 +1513,7 @@
         const ts = (sm.trimStart || 0) * dur, te = (sm.trimEnd != null ? sm.trimEnd : 1) * dur;
         const src = actx.createBufferSource(); src.buffer = sm.buffer;
         if (sm.melodic) src.playbackRate.value = Math.pow(2, (midi - (sm.base || 60)) / 12);  // tono por tecla
-        const g = actx.createGain(); g.gain.value = Math.max(0, Math.min(1, v));
+        const g = actx.createGain(); g.gain.value = Math.max(0, v);   // permite ganancia > 100%
         src.connect(g); g.connect(masterDest());
         src.start(startNow, Math.max(0, ts), Math.max(0.02, te - ts));
       }
@@ -1830,7 +1833,7 @@
     return false;
   }
   function setChannelVolFromCC(ch, val) {
-    const v = Math.max(0, Math.min(1, val / 127));
+    const v = clampGain((val / 127) * GAIN_MAX);   // 0..127 -> 0..300%
     if (lp.channels[ch]) lp.channels[ch].vol = v;
     const f = lpFaders['vol:' + ch]; if (f) f.setValue(v);
     saveLooperDebounced();
