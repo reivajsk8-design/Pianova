@@ -525,7 +525,7 @@
       <button class="primary tpPlay" id="lpPlay" title="Play/Stop (mapeable a MIDI)">▶</button>
       <span class="tpSep"></span>
       <div class="tpCol"><span class="tpLab">Tempo</span>
-        <span class="tpBpm"><b id="lpBpmNum">90</b> BPM</span>
+        <span class="tpBpm" id="lpBpmWrap"><b id="lpBpmNum">90</b> BPM</span>
         <input type="range" id="lpTempo" min="50" max="160" value="90" hidden>
         <span id="lpTempoVal" hidden>90</span>
       </div>
@@ -596,7 +596,7 @@
   'use strict';
 
   // ---------- Configuración ----------
-  const VERSION = 'v1.26';             // versión visible (soft-clipper con drive: sin clipping en acordes)
+  const VERSION = 'v1.27';             // versión visible (fix BPM bloqueado: colisión de .tpBpm Aprender/Looper)
   let LOW = 60, HIGH = 84;              // rango del teclado (se ajusta por canción)
   const LOOKAHEAD = 4.2;                // beats visibles por encima de la línea
   const SOLFEGE = ['Do','Do#','Re','Re#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'];
@@ -3117,7 +3117,7 @@
   });
 
   // Transporte del looper — BPM grande editable (doble clic = prompt, arrastrar ↕ = subir/bajar)
-  const lpBpmWrap = document.querySelector('.tpBpm');
+  const lpBpmWrap = $('lpBpmWrap');   // id propio: NO usar querySelector('.tpBpm') (Aprender también la usa)
   function setBpm(v){ v=Math.max(50,Math.min(160,Math.round(v))); lpTempoEl.value=v; lpTempoVal.textContent=v; $('lpBpmNum').textContent=v; }
   lpBpmWrap.addEventListener('dblclick', () => { const r = prompt('BPM (50-160):', lpTempoEl.value); if (r!=null && !isNaN(parseFloat(r))) setBpm(parseFloat(r)); });
   let bpmDrag=null;

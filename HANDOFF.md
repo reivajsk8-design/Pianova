@@ -2,6 +2,16 @@
 
 Snapshot para retomar el proyecto en otra sesión (humana o con Claude Code).
 
+**Versión:** v1.27 (fix BPM "bloqueado": colisión de clase .tpBpm entre Aprender y Looper)
+
+**Fix BPM bloqueado (v1.27):** desde v1.23 la cabecera de Aprender (`#lnBpmWrap`) usa la clase
+`.tpBpm`, igual que el BPM del Looper. El transporte del Looper lo localizaba con
+`document.querySelector('.tpBpm')`, que devuelve el **primero** del DOM (el de Aprender, que va
+antes) → el BPM de Aprender quedaba con handlers DOBLES (pointerdown/dblclick suyos + los del
+Looper) que se pisaban, y el del Looper sin handler. Arreglo: el span del BPM del Looper recibe
+`id="lpBpmWrap"` y el JS usa `$('lpBpmWrap')` en vez de `querySelector('.tpBpm')`. Ahora cada BPM
+tiene su único juego de handlers (Aprender 40–160, Looper 50–160).
+
 **Versión:** v1.26 (soft-clipper con drive: acordes ya no hacen clipping)
 
 **Fix clipping en acordes (v1.26):** el `WaveShaper` final solo mapea entradas en [-1,1] y CLAMPA lo
