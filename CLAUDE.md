@@ -45,8 +45,9 @@ App web (un solo archivo HTML) para aprender piano con notas que caen estilo Syn
    toca y se oye)* · **F2** suite de efectos
    **TAP completa** (~19, el usuario los quiere todos) *(en curso: Tanda 1 hecha — marco de efectos +
    rack reutilizable en instrumento y maestro + guardar/abrir proyecto a archivo; **Tanda 2 Delays/Espacio
-   hecha** — Echo, Stereo Echo, Reflector, Reverberator (todos nativos); pendientes: Modulación, Dinámica,
-   Color/EQ, Tono)* · **F3** DAW/groovebox (canales, step-grid,
+   hecha** — Echo, Stereo Echo, Reflector, Reverberator (todos nativos); **Tanda 3 Modulación hecha** —
+   Tremolo, AutoPanner, Chorus/Flanger, Rotary Speaker, Fractal Doubler (el marco ya para los LFO en
+   dispose); pendientes: Dinámica, Color/EQ, Tono)* · **F3** DAW/groovebox (canales, step-grid,
    patrones/song mode, solo/pan, swing, MIDI) · **F4** módulo Aprender · **F5** conmutar el sitio a la
    app nueva. Ver `studio/` y los specs/plans en `docs/superpowers/`.
 
