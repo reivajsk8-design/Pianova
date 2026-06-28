@@ -30,6 +30,13 @@ describe('impulseSamples', () => {
     expect(last).toBeLessThan(first);
   });
   it('es determinista con la misma semilla', () => {
-    expect(impulseSamples(50, 2, 5)[0]).toBe(impulseSamples(50, 2, 5)[0]);
+    const a = impulseSamples(50, 2, 5);
+    const b = impulseSamples(50, 2, 5);
+    expect(Array.from(a)).toEqual(Array.from(b));
+  });
+  it('semillas distintas dan impulsos distintos', () => {
+    const a = impulseSamples(50, 2, 1);
+    const b = impulseSamples(50, 2, 2);
+    expect(Array.from(a)).not.toEqual(Array.from(b));
   });
 });
