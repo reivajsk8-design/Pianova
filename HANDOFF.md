@@ -2,7 +2,14 @@
 
 Snapshot para retomar el proyecto en otra sesión (humana o con Claude Code).
 
-**Versión:** v1.29 (pulido responsive de las cabeceras pro en móvil)
+**Versión:** v1.30 (reproducción fluida: reloj de audio + adelanto en Escuchar y Looper)
+
+**Reproducción fluida (v1.30):** el tiempo de reproducción de **Escuchar** y **Looper** ahora va por
+**reloj de audio** (`makeTransport`, posición desde `actx.currentTime`) con **adelanto** (lookahead):
+agendado con `LOOKAHEAD_SEC = 0.1` (`dueLinear` para Escuchar, `dueLoop` en beats absolutos para el
+Looper). El motor dispone cada nota/sonido con instante futuro `when` (`synthNoteOn`/`synthStopAt`/
+`playChannelSound`/`noteOnAt`), lo que evita glitches y jitter. El modo en vivo (Practicar/Acompañar)
+sigue siendo **inmediato** (sin adelanto). Tests puros en `docs/superpowers/tests/`.
 
 **Cabeceras pro en móvil (v1.29):** en `@media (max-width:860px)`, las barras `.lnBar` (Aprender) y
 `.lpTransport` (Looper) ocultan los **separadores verticales** (`.tpSep`, que sueltos entre filas

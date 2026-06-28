@@ -191,7 +191,9 @@ App web (un solo archivo HTML) para aprender piano con notas que caen estilo Syn
   `seekToBeat()` salta a ese punto (con `markAutoFiredBefore`/`markFullFiredBefore` para no
   redisparar lo ya pasado). `start()` arranca desde el inicio del fragmento si hay bucle.
 - **Tiempo:** todo en **beats**. `songBeat` avanza con `dt * (bpm/60)`. `LOOKAHEAD` (≈4.2)
-  son los beats visibles por encima de la línea de impacto.
+  son los beats visibles por encima de la línea de impacto. En **Escuchar y Looper**, el tiempo va por
+  **reloj de audio + adelanto** (`makeTransport`, `LOOKAHEAD_SEC = 0.1`, `dueLinear`/`dueLoop`,
+  `noteOnAt`/`synthStopAt`/`playChannelSound(...,when)`); el modo en vivo sigue siendo inmediato.
 - **Lógica pedagógica:** ambos modos esperan a que toques (congelan `songBeat`).
   - `practice`: melodía a una nota; `waiting` hasta que `judge` recibe `notes[idx]`, avanza `idx`.
   - `playalong` (Acompañar): la **canción completa por acordes**. `rebuildSteps()` arma `steps`
