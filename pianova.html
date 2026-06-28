@@ -1133,6 +1133,8 @@
     lastClickBeat: -1,  // último tiempo entero en el que sonó el clic
     channels: []        // { notes:[{midi,startBeat,dur,vel}], open:{}, muted, fired:Set }
   };
+  let lpTr = null;             // transporte (reloj de audio) del Looper
+  let lpSchedAbs = 0;          // último beat ABSOLUTO ya agendado
   let selectedChannel = 0;          // canal "activo" para grabar con atajos MIDI
   let quantizeGrid = 0;             // 0 = libre; 0.5 = corchea; 0.25 = semicorchea
 
@@ -1455,14 +1457,16 @@
     if (!lp.playing) {
       lp.playing = true; lpPlayBtn.textContent = '⏹';
       lp.beat = 0; lp.lastClickBeat = -1; lp.channels.forEach(c => c.fired = new Set());
+      lpTr = makeTransport(); lpTr.anchor(0, parseFloat(lpTempoEl.value)); lpSchedAbs = 0;
     }
   }
   function lpTogglePlay() {
     ensureAudio();
     lp.playing = !lp.playing;
     lpPlayBtn.textContent = lp.playing ? '⏹' : '▶';
-    if (lp.playing) { lp.beat = 0; lp.lastClickBeat = -1; lp.channels.forEach(c => c.fired = new Set()); }
-    else { lpStopRecording(); for (const m in voices) silence(+m); }
+    if (lp.playing) { lp.beat = 0; lp.lastClickBeat = -1; lp.channels.forEach(c => c.fired = new Set());
+      lpTr = makeTransport(); lpTr.anchor(0, parseFloat(lpTempoEl.value)); lpSchedAbs = 0; }
+    else { lpStopRecording(); silenceAll(); }
   }
   function lpToggleRecord(i) {
     ensureAudio();
@@ -2769,37 +2773,41 @@
   }
 
   function lpTick(dt) {
-    if (!lp.playing) return;
+    if (!lp.playing || !lpTr) return;
     const bpm = parseFloat(lpTempoEl.value);
-    const adv = dt * (bpm / 60);
     const total = lpLoopBeats();
 
-    // cuenta de entrada antes de grabar
+    // cuenta de entrada antes de grabar (sigue por dt; aún no corre el bucle)
     if (lp.countIn > 0) {
       const before = lp.countIn;
-      lp.countIn -= adv;
+      lp.countIn -= dt * (bpm / 60);
       if (Math.floor(before) !== Math.floor(lp.countIn) && lpClickEl.checked) lpClickSound(false);
-      if (lp.countIn <= 0) { lp.countIn = 0; lp.beat = 0; lp.lastClickBeat = -1; lpBeginCapture(); }
-      else return;  // aún contando, no avanzar el bucle
+      if (lp.countIn <= 0) {
+        lp.countIn = 0; lp.lastClickBeat = -1; lpBeginCapture();
+        lpTr.anchor(0, bpm); lpSchedAbs = 0;     // re-ancla al empezar el bucle de verdad
+      }
+      return;
     }
 
-    const prev = lp.beat;
-    lp.beat += adv;
-
-    // metrónomo en cada tiempo entero
-    const beatNow = Math.floor(lp.beat % total);
-    if (lpClickEl.checked && beatNow !== lp.lastClickBeat) {
-      lp.lastClickBeat = beatNow;
-      lpClickSound(beatNow % 4 === 0);
+    const beatNow = lpTr.beatNow();              // posición absoluta (monótona)
+    // agendar notas en (lpSchedAbs, horizon] de todos los canales audibles
+    const horizon = beatNow + LOOKAHEAD_SEC * (bpm / 60);
+    for (let i = 0; i < lp.channels.length; i++) {
+      const ch = lp.channels[i];
+      if (ch.muted || i === lp.recording || !ch.notes.length) continue;
+      const due = dueLoop(ch.notes, lpSchedAbs, horizon, total);
+      for (const e of due) playChannelSound(ch, e.note.midi, e.note.vel, e.note.dur, lpTr.timeForBeat(e.beat));
     }
+    lpSchedAbs = horizon;
 
-    // ¿cruzamos el final del bucle?
-    if (lp.beat >= total) {
-      lp.beat -= total;
-      lp.channels.forEach(c => c.fired = new Set());
-      if (lp.recording >= 0) lpFinishRecording();
-    }
-    lpPlayback(prev % total, lp.beat);
+    // posición visible y cierre de grabación al cruzar vueltas
+    const prevBeat = lp.beat;
+    lp.beat = beatNow % total;
+    if (lp.beat < prevBeat && lp.recording >= 0) lpFinishRecording();   // dimos una vuelta grabando
+
+    // metrónomo en cada tiempo entero (por cruce de la posición visible)
+    const ib = Math.floor(lp.beat);
+    if (lpClickEl.checked && ib !== lp.lastClickBeat) { lp.lastClickBeat = ib; lpClickSound(ib % 4 === 0); }
   }
 
   // ---------- Looper: render ----------
@@ -3244,7 +3252,7 @@
   lpBpmWrap.addEventListener('pointerdown', e => { bpmDrag={y:e.clientY,v:parseFloat(lpTempoEl.value)}; e.preventDefault(); });
   window.addEventListener('pointermove', e => { if(bpmDrag) setBpm(bpmDrag.v + (bpmDrag.y - e.clientY)*0.5); });
   window.addEventListener('pointerup', () => bpmDrag=null);
-  lpTempoEl.addEventListener('input', () => { lpTempoVal.textContent = lpTempoEl.value; $('lpBpmNum').textContent = lpTempoEl.value; });
+  lpTempoEl.addEventListener('input', () => { lpTempoVal.textContent = lpTempoEl.value; $('lpBpmNum').textContent = lpTempoEl.value; if (lp.playing && lpTr) lpTr.setBpm(parseFloat(lpTempoEl.value)); });
   lpBarsEl.addEventListener('change', () => {
     const hasContent = lp.channels.some(c => c.notes.length);
     if (hasContent && !confirm('Cambiar la longitud vaciará los canales. ¿Seguir?')) {
