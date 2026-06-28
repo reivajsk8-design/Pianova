@@ -115,8 +115,11 @@ funcional (paso seco), dos puntos de inserción, persistencia + guardar/abrir pr
 - **Echo** — `DelayNode` + realimentación (`gain`) + filtro paso-bajo en el lazo + wet/dry.
 - **Stereo Echo** — dos líneas de delay (L/R) con tiempos/realimentación independientes + cruce.
 - **Reflector** — delay con realimentación invertida (efecto "reflexión"); nativo.
-- **Reverberator (W)** — red de filtros peine + all-pass con presets de sala (Ambience/Room/Hall…),
-  port del algoritmo TAP; parámetros: tamaño, decay, dry/wet, color.
+- **Reverberator** — **(decisión 2026-06-28: nativo, no AudioWorklet)** `ConvolverNode` con impulso
+  generado (ruido con caída exponencial, presets sala/hall/placa por tamaño/decay) + filtro de color +
+  dry/wet. Suena muy bien y es ligero; la maquinaria AudioWorklet se introduce cuando un efecto la
+  necesite de verdad (p. ej. Pitch Shifter o la curva de Dynamics). La generación del impulso es **pura
+  y testeable** (muestras = ruido·envolvente, PRNG con semilla).
 
 **Tanda 3 — Modulación** (`family: 'mod'`)
 - **Tremolo** — `GainNode` modulado por LFO (`OscillatorNode`); profundidad, frecuencia, forma.
@@ -144,7 +147,7 @@ funcional (paso seco), dos puntos de inserción, persistencia + guardar/abrir pr
 - **Pitch Shifter (W)** — desplazamiento de tono granular/PSOLA; semitonos + mezcla.
 - **Pink/Fractal Noise (W)** — generador de ruido rosa/fractal (fuente); nivel.
 
-Resumen: **12 nativos** + **7 AudioWorklet**. Total **19**.
+Resumen: **13 nativos** + **6 AudioWorklet** (Reverberator pasó a nativo, decisión 2026-06-28). Total **19**.
 
 ## Flujo de datos (resumen)
 ```
