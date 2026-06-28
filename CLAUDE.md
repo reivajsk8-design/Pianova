@@ -43,7 +43,9 @@ App web (un solo archivo HTML) para aprender piano con notas que caen estilo Syn
    **F0** cimientos *(hecha)* · **F1** motor de instrumentos *(hecha, v0.2.0: synth de 5 presets +
    cadena maestra anti-clipping + entrada MIDI + teclado, todo cableado en la vista Estudio; ya se
    toca y se oye)* · **F2** suite de efectos
-   **TAP completa** (~19, el usuario los quiere todos) · **F3** DAW/groovebox (canales, step-grid,
+   **TAP completa** (~19, el usuario los quiere todos) *(en curso: Tanda 1 hecha — marco de efectos +
+   rack reutilizable en instrumento y maestro + guardar/abrir proyecto a archivo; pendientes las tandas
+   de efectos: Delays, Modulación, Dinámica, Color/EQ, Tono)* · **F3** DAW/groovebox (canales, step-grid,
    patrones/song mode, solo/pan, swing, MIDI) · **F4** módulo Aprender · **F5** conmutar el sitio a la
    app nueva. Ver `studio/` y los specs/plans en `docs/superpowers/`.
 
