@@ -244,6 +244,12 @@
     button{ padding:10px 14px }
     .seg{ flex-wrap:wrap }
     .seg button{ padding:10px 12px; font-size:14px; min-height:40px }
+    /* Cabeceras pro (Aprender .lnBar + transporte Looper): envolver limpio en móvil */
+    .lnBar, .lpTransport{ gap:10px 14px }
+    .lnBar .tpSep, .lpTransport .tpSep{ display:none }   /* líneas verticales sobran al envolver */
+    .tpBpm b{ font-size:22px }                            /* BPM grande, pero más contenido */
+    .lnIcon{ width:42px; height:42px }                    /* iconos cuadrados y cómodos al tacto */
+    .lnSongRow #song{ max-width:46vw; min-width:0 }       /* el nombre largo se recorta, no desborda */
     .foot{ gap:14px }
     .stats{ gap:18px; margin-left:0; width:100% }
     .stat .v{ font-size:18px }
@@ -596,7 +602,7 @@
   'use strict';
 
   // ---------- Configuración ----------
-  const VERSION = 'v1.28';             // versión visible (tempo hasta 240 BPM: drum and bass)
+  const VERSION = 'v1.29';             // versión visible (cabeceras pro: pulido responsive en móvil)
   let LOW = 60, HIGH = 84;              // rango del teclado (se ajusta por canción)
   const LOOKAHEAD = 4.2;                // beats visibles por encima de la línea
   const SOLFEGE = ['Do','Do#','Re','Re#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'];

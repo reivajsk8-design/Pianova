@@ -55,6 +55,10 @@ App web (un solo archivo HTML) para aprender piano con notas que caen estilo Syn
 - **Responsive:** media queries (`max-width:860px` y apaisado) + teclado más alto en táctil
   (`COARSE`/`kbH`) + `touch-action:none` en los `<canvas>`. El escritorio queda **igual**.
   Las dos vistas se alternan con `[hidden]` (regla `#learnView[hidden],#looperView[hidden]`).
+  **Cabeceras pro en móvil (v1.29):** en `<860px`, las barras `.lnBar` (Aprender) y `.lpTransport`
+  (Looper) **ocultan los separadores verticales** (`.tpSep`) y usan `gap:10px 14px` para envolver
+  limpio; el BPM grande baja a 22px, los `.lnIcon` son cuadrados 42×42 (táctil cómodo) y el
+  desplegable de canción se limita (`#song{max-width:46vw}`) para no desbordar.
 - **Wake Lock (v1.14):** al detectar teclado MIDI (`bindInputs`) se pide `navigator.wakeLock`
   ('screen') para que la pantalla no se apague; se libera sin teclado y se re-pide en
   `visibilitychange`. Sin tocar ajustes del móvil.

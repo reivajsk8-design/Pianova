@@ -2,6 +2,15 @@
 
 Snapshot para retomar el proyecto en otra sesión (humana o con Claude Code).
 
+**Versión:** v1.29 (pulido responsive de las cabeceras pro en móvil)
+
+**Cabeceras pro en móvil (v1.29):** en `@media (max-width:860px)`, las barras `.lnBar` (Aprender) y
+`.lpTransport` (Looper) ocultan los **separadores verticales** (`.tpSep`, que sueltos entre filas
+envueltas quedaban feos) y pasan a `gap:10px 14px`. El BPM grande baja a 22px, los `.lnIcon` se
+hacen cuadrados 42×42 (objetivo táctil cómodo) y `#song` se limita a `max-width:46vw` para no
+desbordar con nombres largos. Desktop intacto. Al ocultar `.lnLoopSep` (un `.tpSep`), el grupo del
+bucle A–B fluye en línea en vez de irse al extremo derecho.
+
 **Versión:** v1.28 (tempo máximo 240 BPM, para drum and bass)
 
 **Tempo hasta 240 (v1.28):** el tope subió de 160 a **240 BPM** en los cuatro sitios: slider
