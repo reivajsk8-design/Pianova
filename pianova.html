@@ -630,6 +630,8 @@
   let fullNotes = [];          // todas las notas (acordes + 2 manos) para Escuchar/Acompañar
   let lastFull = 0;            // último beat de fullNotes
   let firedFull = new Set();   // índices ya disparados en esta reproducción (Escuchar)
+  let listenTr = null;          // transporte (reloj de audio) del modo Escuchar
+  let listenIdx = 0;            // índice de la próxima nota de fullNotes por agendar
   let steps = [];              // Acompañar: acordes agrupados [{beat, midis:[...]}]
   let stepIdx = 0;             // paso (acorde) actual en Acompañar
   let stepGot = new Set();     // midis del acorde actual ya tocados
@@ -1972,6 +1974,11 @@
       seekToIndex(i);
     } else if (mode === 'listen') {
       songBeat = Math.max(0, b); markFullFiredBefore(songBeat);
+      if (mode === 'listen' && listenTr) {
+        listenTr.anchor(songBeat, parseFloat(tempoEl.value));
+        listenIdx = 0;
+        while (listenIdx < fullNotes.length && fullNotes[listenIdx].startBeat <= songBeat) listenIdx++;
+      }
     }
   }
 
@@ -2152,6 +2159,7 @@
     playing = false; waiting = false; idx = 0; songBeat = -4;
     hits = 0; wrong = 0; total = 0;
     firedFull = new Set();
+    listenIdx = 0; if (typeof silenceAll === 'function') silenceAll();
     firedAuto = new Set();
     stepIdx = 0; stepGot = new Set();
     if (actx) silenceAll();
@@ -2171,6 +2179,13 @@
     reset();
     playing = true;
     if (loopOn && loopStart != null) seekToIndex(loopStart);   // arranca desde el fragmento
+    if (mode === 'listen') {
+      listenTr = makeTransport();
+      listenTr.anchor(songBeat, parseFloat(tempoEl.value));
+      // arranca el puntero en la primera nota cuyo startBeat sea > songBeat (respeta seek/bucle)
+      listenIdx = 0;
+      while (listenIdx < fullNotes.length && fullNotes[listenIdx].startBeat <= songBeat) listenIdx++;
+    }
     status(mode === 'listen' ? 'Reproduciendo la canción completa…'
          : mode === 'playalong' ? 'Toca todas las notas del acorde iluminado para avanzar.'
          : 'Toca la nota iluminada para avanzar.');
@@ -2244,6 +2259,24 @@
       }
     }
   }
+  // Agenda fullNotes con adelanto y deriva la posición/teclas del reloj de audio (modo Escuchar).
+  function listenSchedule() {
+    const bpm = parseFloat(tempoEl.value);
+    const horizon = listenTr.beatNow() + LOOKAHEAD_SEC * (bpm / 60);
+    const r = dueLinear(fullNotes, listenTr.beatNow() - 1e-9, horizon, listenIdx);
+    for (const e of r.entries) {
+      noteOnAt(e.note.midi, e.note.vel != null ? e.note.vel : 0.8,
+               listenTr.timeForBeat(e.beat), durBeatsToSec(e.note.dur, bpm));
+    }
+    listenIdx = r.nextIdx;
+    songBeat = listenTr.beatNow();
+    // teclas iluminadas = notas que están sonando ahora (no interfiere: en Escuchar no tocas tú)
+    pressed.clear();
+    for (const n of fullNotes) {
+      if (n.startBeat <= songBeat && songBeat < n.startBeat + n.dur) pressed.add(n.midi);
+    }
+  }
+
   // Dispara las notas de fullNotes cuyo inicio cae en (fromBeat, toBeat] (modo Escuchar).
   function playFullAt(fromBeat, toBeat) {
     for (let i = 0; i < fullNotes.length; i++) {
@@ -2891,9 +2924,7 @@
               }
             }
           } else if (mode === 'listen') {
-            const prev = songBeat;
-            songBeat += dt * (bpm / 60);
-            playFullAt(prev, songBeat);
+            listenSchedule();
             if (songBeat > lastFull + 2) finish();
           } else if (mode === 'reto') {
             songBeat += dt * (levelTempo(retoLevel) / 60);   // a tempo del nivel (tiempo real)
@@ -3129,7 +3160,7 @@
   });
   $('start').addEventListener('click', start);
   $('reset').addEventListener('click', reset);
-  tempoEl.addEventListener('input', () => { tempoVal.textContent = tempoEl.value; $('lnBpmNum').textContent = tempoEl.value; });
+  tempoEl.addEventListener('input', () => { tempoVal.textContent = tempoEl.value; $('lnBpmNum').textContent = tempoEl.value; if (playing && mode === 'listen' && listenTr) listenTr.setBpm(parseFloat(tempoEl.value)); });
   // BPM grande editable (Aprender): doble-clic = escribir, arrastrar ↕ = cambiar
   function setLnBpm(v) { v = Math.max(40, Math.min(240, Math.round(v))); tempoEl.value = v; tempoVal.textContent = v; $('lnBpmNum').textContent = v; }
   const lnBpmWrap = $('lnBpmWrap');
