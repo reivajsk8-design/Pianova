@@ -1170,6 +1170,33 @@
     } catch (e) {}
     voice.o.forEach(x => { try { x.stop(when + rel + 0.02); } catch (e) {} });
   }
+  // Voz de "Sinte editable": 3 osciladores (seno/cuadrada/sierra) -> ADSR -> filtro -> masterDest.
+  // Reutiliza voices/synthStopAt/synthSilence y el instante 'when' (agendado). p = channel.synth.
+  function synthVoiceAdj(midi, vel, p, gainMul, when) {
+    const freq = 440 * Math.pow(2, (midi - 69) / 12);
+    const t = (when == null ? actx.currentTime : when);
+    const g = actx.createGain();
+    const filt = actx.createBiquadFilter();
+    filt.type = (p.filterType === 'bandpass') ? 'bandpass' : 'lowpass';
+    filt.frequency.value = clampHz(p.cutoff); filt.Q.value = clampQ(p.resonance);
+    g.connect(filt); filt.connect(masterDest());
+    const oscs = [];
+    [['sine', p.sine], ['square', p.square], ['sawtooth', p.saw]].forEach(pair => {
+      if (!(pair[1] > 0)) return;
+      const o = actx.createOscillator(); o.type = pair[0]; o.frequency.value = freq;
+      const og = actx.createGain(); og.gain.value = clamp01(pair[1]); o.connect(og); og.connect(g);
+      oscs.push(o);
+    });
+    const peak = Math.max(0.0002, (0.16 + 0.22 * vel) * (gainMul == null ? 1 : gainMul));
+    const sus = Math.max(0.0001, peak * clamp01(p.sustain));
+    const a = Math.max(0.001, clampTime(p.attack)), d = Math.max(0.001, clampTime(p.decay));
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + a);
+    g.gain.exponentialRampToValueAtTime(sus, t + a + d);
+    oscs.forEach(o => o.start(t));
+    voices[midi] = { o: oscs, g, release: Math.max(0.02, clampTime(p.release)) };
+    return voices[midi];
+  }
   const sampleVoices = {};   // midi -> {src,g} del instrumento global tipo 'sample'
   function pitchRate(midi, base) { return Math.pow(2, (midi - (base || 60)) / 12); }
   const AUDIO_EXT = /\.(wav|aiff?|flac|mp3|ogg|m4a)$/i;
@@ -1719,6 +1746,15 @@
           setTimeout(() => { try { stop(); } catch (e) {} }, ms);
         }
       } catch (e) {}
+      return;
+    }
+    if (sound === 'synthx') {
+      const p = ch.synth || synthDefault();
+      const voice = synthVoiceAdj(midi, (vel == null ? 0.8 : vel), p, vol, at);
+      if (!live) {
+        if (at != null) synthStopAt(voice, at + durBeatsToSec(durBeats, parseFloat(lpTempoEl.value)));
+        else { const ms = Math.max(80, durBeats * (60 / parseFloat(lpTempoEl.value)) * 1000); setTimeout(() => silence(midi), ms); }
+      }
       return;
     }
     // synth:<preset>
