@@ -2,6 +2,13 @@
 
 Snapshot para retomar el proyecto en otra sesión (humana o con Claude Code).
 
+**Versión:** v1.28 (tempo máximo 240 BPM, para drum and bass)
+
+**Tempo hasta 240 (v1.28):** el tope subió de 160 a **240 BPM** en los cuatro sitios: slider
+`#tempo` (Aprender) y clamp de `setLnBpm` (40–240) + su prompt; slider `#lpTempo` (Looper) y clamp
+de `setBpm` (50–240) + su prompt; y el clamp del BPM al **importar .mid** (`parsedBpm`, 40–240).
+El arrastre ↕ mantiene 0.5 BPM/píxel (para saltos grandes, doble-clic y escribir el número).
+
 **Versión:** v1.27 (fix BPM "bloqueado": colisión de clase .tpBpm entre Aprender y Looper)
 
 **Fix BPM bloqueado (v1.27):** desde v1.23 la cabecera de Aprender (`#lnBpmWrap`) usa la clase

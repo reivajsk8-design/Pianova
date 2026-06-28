@@ -453,7 +453,7 @@
     <span class="tpSep"></span>
     <div class="tpCol"><span class="tpLab">Tempo</span>
       <span class="tpBpm" id="lnBpmWrap" title="Doble-clic para escribir · arrastrar ↕ para cambiar"><b id="lnBpmNum">80</b> BPM</span>
-      <input type="range" id="tempo" min="40" max="160" value="80" hidden>
+      <input type="range" id="tempo" min="40" max="240" value="80" hidden>
       <span id="tempoVal" hidden>80</span>
     </div>
     <span class="tpSep"></span>
@@ -526,7 +526,7 @@
       <span class="tpSep"></span>
       <div class="tpCol"><span class="tpLab">Tempo</span>
         <span class="tpBpm" id="lpBpmWrap"><b id="lpBpmNum">90</b> BPM</span>
-        <input type="range" id="lpTempo" min="50" max="160" value="90" hidden>
+        <input type="range" id="lpTempo" min="50" max="240" value="90" hidden>
         <span id="lpTempoVal" hidden>90</span>
       </div>
       <span class="tpSep"></span>
@@ -596,7 +596,7 @@
   'use strict';
 
   // ---------- Configuración ----------
-  const VERSION = 'v1.27';             // versión visible (fix BPM bloqueado: colisión de .tpBpm Aprender/Looper)
+  const VERSION = 'v1.28';             // versión visible (tempo hasta 240 BPM: drum and bass)
   let LOW = 60, HIGH = 84;              // rango del teclado (se ajusta por canción)
   const LOOKAHEAD = 4.2;                // beats visibles por encima de la línea
   const SOLFEGE = ['Do','Do#','Re','Re#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'];
@@ -2321,7 +2321,7 @@
       })).sort((a, b) => a.startBeat - b.startBeat);
       const full = assignHands(toNotes(fullRaw));
       const melody = melRaw.length ? toNotes(melRaw) : full;
-      const parsedBpm = Math.max(40, Math.min(160, Math.round(parsed.bpm || 120)));
+      const parsedBpm = Math.max(40, Math.min(240, Math.round(parsed.bpm || 120)));
       const key = 'midi_' + (++midiCounter);
       const name = file.name.replace(/\.midi?$/i, '');
       SONGS[key] = { name, bpm: parsedBpm, notes: melody, full };
@@ -3042,9 +3042,9 @@
   $('reset').addEventListener('click', reset);
   tempoEl.addEventListener('input', () => { tempoVal.textContent = tempoEl.value; $('lnBpmNum').textContent = tempoEl.value; });
   // BPM grande editable (Aprender): doble-clic = escribir, arrastrar ↕ = cambiar
-  function setLnBpm(v) { v = Math.max(40, Math.min(160, Math.round(v))); tempoEl.value = v; tempoVal.textContent = v; $('lnBpmNum').textContent = v; }
+  function setLnBpm(v) { v = Math.max(40, Math.min(240, Math.round(v))); tempoEl.value = v; tempoVal.textContent = v; $('lnBpmNum').textContent = v; }
   const lnBpmWrap = $('lnBpmWrap');
-  lnBpmWrap.addEventListener('dblclick', () => { const r = prompt('Tempo (40-160 BPM):', tempoEl.value); if (r != null && !isNaN(parseFloat(r))) setLnBpm(parseFloat(r)); });
+  lnBpmWrap.addEventListener('dblclick', () => { const r = prompt('Tempo (40-240 BPM):', tempoEl.value); if (r != null && !isNaN(parseFloat(r))) setLnBpm(parseFloat(r)); });
   let lnBpmDrag = null;
   lnBpmWrap.addEventListener('pointerdown', e => { lnBpmDrag = { y: e.clientY, v: parseFloat(tempoEl.value) }; e.preventDefault(); });
   window.addEventListener('pointermove', e => { if (lnBpmDrag) setLnBpm(lnBpmDrag.v + (lnBpmDrag.y - e.clientY) * 0.5); });
@@ -3118,8 +3118,8 @@
 
   // Transporte del looper — BPM grande editable (doble clic = prompt, arrastrar ↕ = subir/bajar)
   const lpBpmWrap = $('lpBpmWrap');   // id propio: NO usar querySelector('.tpBpm') (Aprender también la usa)
-  function setBpm(v){ v=Math.max(50,Math.min(160,Math.round(v))); lpTempoEl.value=v; lpTempoVal.textContent=v; $('lpBpmNum').textContent=v; }
-  lpBpmWrap.addEventListener('dblclick', () => { const r = prompt('BPM (50-160):', lpTempoEl.value); if (r!=null && !isNaN(parseFloat(r))) setBpm(parseFloat(r)); });
+  function setBpm(v){ v=Math.max(50,Math.min(240,Math.round(v))); lpTempoEl.value=v; lpTempoVal.textContent=v; $('lpBpmNum').textContent=v; }
+  lpBpmWrap.addEventListener('dblclick', () => { const r = prompt('BPM (50-240):', lpTempoEl.value); if (r!=null && !isNaN(parseFloat(r))) setBpm(parseFloat(r)); });
   let bpmDrag=null;
   lpBpmWrap.addEventListener('pointerdown', e => { bpmDrag={y:e.clientY,v:parseFloat(lpTempoEl.value)}; e.preventDefault(); });
   window.addEventListener('pointermove', e => { if(bpmDrag) setBpm(bpmDrag.v + (bpmDrag.y - e.clientY)*0.5); });
