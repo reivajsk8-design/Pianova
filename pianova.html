@@ -920,9 +920,9 @@
   let sfPlayer = null;          // reproductor smplr cargado (instrumento real)
   const sfStops = {};           // midi -> función de parada del reproductor real
 
-  function synthNoteOn(midi, vel, preset, gainMul) {
+  function synthNoteOn(midi, vel, preset, gainMul, when) {
     const freq = 440 * Math.pow(2, (midi - 69) / 12);
-    const t = actx.currentTime;
+    const t = (when == null ? actx.currentTime : when);
     const g = actx.createGain();
     let out = g;
     if (preset.filter) {
@@ -953,6 +953,7 @@
     if (!preset.sustain) g.gain.exponentialRampToValueAtTime(0.0001, t + preset.decay);
     oscs.forEach(o => o.start(t));
     voices[midi] = { o: oscs, g, release: preset.release || 0.18 };
+    return voices[midi];
   }
   function synthSilence(midi) {
     const v = voices[midi];
@@ -967,6 +968,17 @@
     const os = v.o;
     setTimeout(() => os.forEach(x => { try { x.stop(); } catch (e) {} }), rel * 1000 + 60);
     delete voices[midi];
+  }
+  // Agenda el apagado de un voice concreto en el instante 'when' (para secuencias con adelanto).
+  function synthStopAt(voice, when) {
+    if (!voice) return;
+    const rel = voice.release || 0.18;
+    try {
+      voice.g.gain.cancelScheduledValues(when);
+      voice.g.gain.setValueAtTime(Math.max(0.0001, voice.g.gain.value), when);
+      voice.g.gain.exponentialRampToValueAtTime(0.0001, when + rel);
+    } catch (e) {}
+    voice.o.forEach(x => { try { x.stop(when + rel + 0.02); } catch (e) {} });
   }
   const sampleVoices = {};   // midi -> {src,g} del instrumento global tipo 'sample'
   function pitchRate(midi, base) { return Math.pow(2, (midi - (base || 60)) / 12); }
@@ -1016,6 +1028,27 @@
     if (sfStops[midi]) { try { sfStops[midi](); } catch (e) {} delete sfStops[midi]; }
     if (sampleVoices[midi]) sampleSilence(midi);
     if (voices[midi]) synthSilence(midi);
+  }
+  // Toca el instrumento GLOBAL empezando en 'when' y agendando su parada en when+durSec (Escuchar).
+  function noteOnAt(midi, vel, when, durSec) {
+    ensureAudio();
+    if (currentInstrument.type === 'sf' && sfPlayer) {
+      try { sfPlayer.start({ note: midi, velocity: Math.round((vel == null ? 0.8 : vel) * 127),
+                             time: when, duration: durSec }); } catch (e) {}
+    } else if (currentInstrument.type === 'sample') {
+      const sm = samples[currentInstrument.id];
+      if (sm && sm.buffer) {
+        const src = actx.createBufferSource(); src.buffer = sm.buffer;
+        src.playbackRate.value = Math.pow(2, (midi - (sm.base || 60)) / 12);
+        const g = actx.createGain(); g.gain.value = Math.max(0.0002, 0.9 * (vel == null ? 0.8 : vel));
+        src.connect(g); g.connect(masterDest());
+        src.start(when); try { src.stop(when + Math.max(0.05, durSec)); } catch (e) {}
+      }
+    } else {
+      const voice = synthNoteOn(midi, (vel == null ? 0.8 : vel),
+                                SYNTH[currentInstrument.preset] || SYNTH.piano, null, when);
+      synthStopAt(voice, when + Math.max(0.05, durSec));
+    }
   }
   function silenceAll() {
     for (const m in voices) synthSilence(+m);
@@ -1442,11 +1475,13 @@
   const lpLiveStops = {};   // notas reales (sf) sonando en directo mientras grabas: midi -> stop()
   // Reproduce una nota con el sonido y volumen del canal. durBeats null = en directo (se corta al
   // soltar la tecla); con durBeats = reproducción (se programa el corte).
-  function playChannelSound(ch, midi, vel, durBeats) {
+  function playChannelSound(ch, midi, vel, durBeats, when) {
     const sound = (ch && ch.sound) || 'synth:piano';
     const vol = (ch && ch.vol != null) ? ch.vol : 0.85;
     const v = (vel == null ? 0.8 : vel) * vol;
     const live = (durBeats == null);
+    const at = (when == null ? undefined : when);
+    const startNow = (when == null ? actx.currentTime : when);
     if (sound.indexOf('sample:') === 0) {                // sonido importado
       const sm = samples[sound.slice(7)];
       if (sm && sm.buffer) {
@@ -1456,25 +1491,28 @@
         if (sm.melodic) src.playbackRate.value = Math.pow(2, (midi - (sm.base || 60)) / 12);  // tono por tecla
         const g = actx.createGain(); g.gain.value = Math.max(0, Math.min(1, v));
         src.connect(g); g.connect(masterDest());
-        src.start(0, Math.max(0, ts), Math.max(0.02, te - ts));
+        src.start(startNow, Math.max(0, ts), Math.max(0.02, te - ts));
       }
       return;
     }
     if (sound === 'drumkit') {                           // kit completo: cada nota/pad un tambor
-      if (drumKit) { const g = drumForNote(midi); if (g) { try { drumKit.start({ note: g, velocity: Math.max(1, Math.round(v * 127)) }); } catch (e) {} } }
+      if (drumKit) { const g = drumForNote(midi); if (g) { try { drumKit.start({ note: g, velocity: Math.max(1, Math.round(v * 127)), time: at }); } catch (e) {} } }
       return;
     }
     if (sound.indexOf('drum:') === 0) {                 // un tambor fijo: one-shot
-      if (drumKit) { try { drumKit.start({ note: sound.slice(5), velocity: Math.max(1, Math.round(v * 127)) }); } catch (e) {} }
+      if (drumKit) { try { drumKit.start({ note: sound.slice(5), velocity: Math.max(1, Math.round(v * 127)), time: at }); } catch (e) {} }
       return;
     }
     if (sound.indexOf('sf:') === 0) {                   // instrumento real (sampleado)
       const name = sound.slice(3), player = sfCache[name];
       if (!player) { ensureSoundfont(name).catch(() => {}); return; }   // aún cargando: este golpe no suena
       try {
-        const stop = player.start({ note: midi, velocity: Math.max(1, Math.round(v * 127)) });
-        if (live) { if (stop) lpLiveStops[midi] = stop; }
-        else if (stop) {
+        const opts = { note: midi, velocity: Math.max(1, Math.round(v * 127)) };
+        if (at != null) opts.time = at;
+        if (!live) opts.duration = durBeatsToSec(durBeats, parseFloat(lpTempoEl.value));
+        const stop = player.start(opts);
+        if (live && stop) lpLiveStops[midi] = stop;
+        else if (!live && at == null && stop) {      // respaldo solo si NO agendamos por audio
           const ms = Math.max(120, durBeats * (60 / parseFloat(lpTempoEl.value)) * 1000);
           setTimeout(() => { try { stop(); } catch (e) {} }, ms);
         }
@@ -1483,10 +1521,11 @@
     }
     // synth:<preset>
     const preset = SYNTH[sound.indexOf('synth:') === 0 ? sound.slice(6) : 'piano'] || SYNTH.piano;
-    synthNoteOn(midi, (vel == null ? 0.8 : vel), preset, vol);
+    const voice = synthNoteOn(midi, (vel == null ? 0.8 : vel), preset, vol, at);
     if (!live) {
-      const ms = Math.max(80, durBeats * (60 / parseFloat(lpTempoEl.value)) * 1000);
-      setTimeout(() => silence(midi), ms);
+      if (at != null) synthStopAt(voice, at + durBeatsToSec(durBeats, parseFloat(lpTempoEl.value)));
+      else { const ms = Math.max(80, durBeats * (60 / parseFloat(lpTempoEl.value)) * 1000);
+             setTimeout(() => silence(midi), ms); }
     }
   }
   async function loadDrumKit() {
