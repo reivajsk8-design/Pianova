@@ -30,12 +30,15 @@ export function registerEffect(type: string, def: EffectDef): void { EFFECTS[typ
 let _idc = 0;
 
 // Crea un efecto nativo con puerta de bypass (seco/húmedo) sin tocar la ganancia interna del efecto.
-// `build` conecta input -> (cadena interna del efecto) -> sink, y devuelve una función apply(nombre,valor).
+// `build` conecta input -> (cadena interna del efecto) -> sink, y devuelve una función apply(nombre,valor)
+// o un objeto {apply, teardown?}. El teardown se llama en dispose() para limpiar recursos (p.ej. LFOs).
 export function makeEffect(
   actx: AudioContext,
   type: string,
   params: ParamSpec[],
-  build: (actx: AudioContext, input: GainNode, sink: GainNode) => (name: string, value: number) => void,
+  build: (actx: AudioContext, input: GainNode, sink: GainNode) =>
+    | ((name: string, value: number) => void)
+    | { apply: (name: string, value: number) => void; teardown?: () => void },
   state?: EffectState
 ): Effect {
   const input = actx.createGain();
@@ -45,7 +48,9 @@ export function makeEffect(
   wet.connect(output);
   input.connect(dry); dry.connect(output);
 
-  const apply = build(actx, input, wet);
+  const built = build(actx, input, wet);
+  const apply = typeof built === 'function' ? built : built.apply;
+  const teardown = typeof built === 'function' ? undefined : built.teardown;
 
   const values: Record<string, number> = {};
   let bypassed = false;
@@ -67,6 +72,9 @@ export function makeEffect(
     isBypassed: () => bypassed,
     bypass: setBypass,
     serialize: () => ({ type, params: { ...values }, bypassed }),
-    dispose: () => { for (const n of [input, output, wet, dry]) { try { n.disconnect(); } catch { /* ya */ } } }
+    dispose: () => {
+      try { teardown?.(); } catch { /* ya */ }
+      for (const n of [input, output, wet, dry]) { try { n.disconnect(); } catch { /* ya */ } }
+    }
   };
 }
