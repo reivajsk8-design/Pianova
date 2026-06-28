@@ -1,14 +1,17 @@
 // studio/src/fx/effects/worklets/pitch-processor.ts
 // AudioWorkletProcessor: pitch shifter granular (dos lecturas con crossfade triangular sobre un buffer
 // circular). Corre en el AudioWorkletGlobalScope (sin DOM): se declaran sus tipos ambientales.
-import { triWindow } from '../pitch-dsp';
-
-declare const sampleRate: number;
+// Es AUTOCONTENIDO a propósito (sin imports): un AudioWorklet se carga con addModule y conviene que
+// no dependa de resolución de imports. `triWindow` se duplica aquí; su versión pura/testeada vive en
+// `pitch-dsp.ts` (idéntica).
 declare function registerProcessor(name: string, ctor: unknown): void;
 interface AudioWorkletProcessorImpl {
   process(inputs: Float32Array[][], outputs: Float32Array[][], parameters: Record<string, Float32Array>): boolean;
 }
 declare const AudioWorkletProcessor: { prototype: AudioWorkletProcessorImpl; new (): AudioWorkletProcessorImpl };
+
+// Ventana triangular del crossfade granular (igual que pitch-dsp.triWindow).
+function triWindow(x: number): number { return 1 - Math.abs(2 * x - 1); }
 
 const BUF = 8192;     // tamaño del buffer circular (muestras)
 const GRAIN = 2048;   // tamaño del grano (afecta al desfase de las dos lecturas)
@@ -62,8 +65,5 @@ class PitchProcessor extends AudioWorkletProcessor {
     return true;
   }
 }
-
-// Silencia la advertencia de TS sobre sampleRate no usado (es necesario en el scope del worklet).
-void (sampleRate as number);
 
 registerProcessor('pitch-processor', PitchProcessor);

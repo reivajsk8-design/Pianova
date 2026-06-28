@@ -1,19 +1,6 @@
 import { defineConfig } from 'vite';
 
+// base:'./' para que el dist se pueda abrir en Live Server / rutas relativas.
 export default defineConfig({
   base: './',
-  build: {
-    rollupOptions: {
-      input: {
-        index: 'index.html',
-        'pitch-processor': 'src/fx/effects/worklets/pitch-processor.ts',
-      },
-      output: {
-        entryFileNames: (chunk) =>
-          chunk.name === 'pitch-processor'
-            ? 'assets/[name]-[hash].js'
-            : 'assets/[name]-[hash].js',
-      },
-    },
-  },
 });
