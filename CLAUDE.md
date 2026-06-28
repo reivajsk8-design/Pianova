@@ -67,7 +67,11 @@ App web (un solo archivo HTML) para aprender piano con notas que caen estilo Syn
   ('screen') para que la pantalla no se apague; se libera sin teclado y se re-pide en
   `visibilitychange`. Sin tocar ajustes del móvil.
 
-## Arquitectura (todo en `pianova.html`)
+## Arquitectura
+
+**Nota:** existe un **proyecto pro en `studio/`** (Vite + TypeScript, reescritura **modular** DAW/groovebox + aprendizaje como módulo reutilizable) que portará los motores de `pianova.html` por fases (F0–F5). `pianova.html` sigue completamente funcional y publicado hasta la conmutación final (Fase 5). El contenido siguiente describe la arquitectura actual de `pianova.html`.
+
+### Pianova.html (todo en un archivo)
 
 - **Entrada MIDI:** `navigator.requestMIDIAccess` → `onmidimessage`. Status `0x90` con
   velocity>0 = note on; `0x80` o `0x90` con velocity 0 = note off. Se escuchan **todas** las

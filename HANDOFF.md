@@ -2,6 +2,8 @@
 
 Snapshot para retomar el proyecto en otra sesión (humana o con Claude Code).
 
+**Proyecto pro `studio/` (Fase 0):** se inició una **reescritura modular pro** (DAW/groovebox + aprendizaje como módulo) en la carpeta `studio/`, con **Vite + TypeScript + Vitest**. El **Fase 0 (cimientos)** incluye: scaffold del proyecto, esqueletos de las vistas Estudio (DAW/looper visual) y Aprender (reproductor de prácticas), bus maestro mínimo (`masterIn`/`masterDest`), transporte portado (`makeTransport`, con test de matemática en Vitest) y tono de prueba. **Comandos:** `cd studio && npm install`, `npm run dev` / `npm test` / `npm run build`. Vite está configurado con `base:'./'`, así el `dist/` se abre directamente en Live Server. Despliegue futuro: crear un **2º sitio Netlify con `base directory = studio`** (no es automático; requiere configuración manual). `pianova.html` **(v1.36) sigue siendo la app publicada hasta la Fase 5** (conmutación completa). **Roadmap:** F1 = instrumentos + mixer avanzado, F2 = suite TAP completa, F3 = DAW/groovebox, F4 = Aprender, F5 = cambio (Aprender a módulo del studio).
+
 **Versión:** v1.36 (Sinte editable por canal en el Looper)
 
 **Sinte editable por canal (v1.36):** cada canal del Looper puede asignar sonido `'synthx'` (sinte
