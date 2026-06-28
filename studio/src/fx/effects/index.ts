@@ -17,3 +17,4 @@ import './sigmoid';
 import './equalizer';
 import './equalizer-bw';
 import './pitch';
+import './pink-noise';
