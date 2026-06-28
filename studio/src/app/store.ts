@@ -44,7 +44,8 @@ export function saveStore(p: ProjectState): void {
 export function downloadProject(p: ProjectState, filename = 'proyecto.estudio.json'): void {
   const blob = new Blob([serializeProject(p)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+  const a = document.createElement('a'); a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();   // appendChild: Firefox ignora el clic si el <a> no está en el DOM
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
