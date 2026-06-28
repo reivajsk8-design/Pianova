@@ -14,3 +14,5 @@ import './dynamics';
 import './deesser';
 import './tubewarmth';
 import './sigmoid';
+import './equalizer';
+import './equalizer-bw';
