@@ -9,9 +9,11 @@ en v1.26). **En el Looper (por canal):** cada canal tiene un fader de ganancia (
 que multiplica la velocity de synth/sample completo (quitando recorte del sample si lo hay), eleva sf/batería al
 máximo (no pueden exceder su reproductor compartido). El fader es **asignable a un knob CC** (`volMap`/`volLearn`)
 para control en tiempo real, escala 0–127 CC → 0–300% ganancia. **En el instrumento global:** la ganancia
-`instGain` (`store.instGain[clave]`) escala **por tipo de instrumento**: synth/sample por multiplicación
-(quitando el recorte del sample), sf global (`globalSf`, reproductor independiente con destino `instGain`)
-al máximo (límite inherente del reproductor). Control visual arrastrable en la cabecera (`#instGainWrap`
+`instGain` se guarda **por instrumento** (`store.instGain[clave]`, `currentInstGain`/`applyInstGain`) y sube
+**del todo** hasta 300% para TODOS los tipos: synth/sample por multiplicación y el sf global por su nodo de
+ganancia propio (`globalSf`, reproductor independiente con destino `instGain`, separado del `sfCache` de los
+canales). La limitación de "no pasar del máximo" aplica **solo a sf/batería en los canales del Looper**
+(reproductor compartido) y se resolverá con "instrumento por canal". Control visual arrastrable en la cabecera (`#instGainWrap`
 deslizador ↕ de % con doble-clic = prompt). El bus maestro v1.26 (limitador + soft-clipper) contiene
 saturación sin distorsión audible.
 
