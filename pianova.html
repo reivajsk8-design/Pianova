@@ -105,6 +105,7 @@
   .hdrLab{font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
   .hdrIcon{width:40px; height:40px; padding:0; border-radius:10px; font-size:16px; font-weight:700;
     display:inline-flex; align-items:center; justify-content:center; line-height:1}
+  #instGainWrap b{font-size:18px}
   #learnView,#looperView{flex:1; display:flex; flex-direction:column; min-height:0}
   #learnView[hidden],#looperView[hidden]{display:none}   /* ocultar de verdad la vista inactiva */
   .seek{position:relative; height:16px; margin-top:10px; border:1px solid var(--line);
@@ -379,6 +380,9 @@
           <option value="sf:acoustic_guitar_nylon">🎸 Guitarra</option>
         </optgroup>
       </select>
+    </div>
+    <div class="hdrCol"><span class="hdrLab">Ganancia</span>
+      <span class="tpBpm" id="instGainWrap" title="Doble-clic para escribir · arrastrar ↕ para cambiar"><b id="instGainNum">100</b>%</span>
     </div>
     <span class="device" id="instInfo"></span>
     <div class="connChip" id="connChip"><span class="dot"></span><span class="device" id="device">Sin conectar</span></div>
@@ -3106,10 +3110,12 @@
       const sm = samples[parts[1]];
       if (sm) { currentInstrument = { type: 'sample', id: parts[1] }; sfPlayer = null; if (instInfo) instInfo.textContent = 'Instrumento: ' + sm.name + ' (melódico)'; }
       else { currentInstrument = { type: 'synth', preset: 'piano' }; sfPlayer = null; instSel.value = 'synth:piano'; }
+      if (typeof refreshInstGainUI === 'function') refreshInstGainUI();
       return;
     }
     if (parts[0] === 'synth') { currentInstrument = { type: 'synth', preset: parts[1] }; sfPlayer = null; instInfo.textContent = ''; }
     else loadSoundfont(parts[1], instSel.selectedOptions[0] ? instSel.selectedOptions[0].textContent.trim() : parts[1]);
+    if (typeof refreshInstGainUI === 'function') refreshInstGainUI();
   }
   function restoreSongs() {
     let maxN = 0;
@@ -3213,6 +3219,25 @@
   lnBpmWrap.addEventListener('pointerdown', e => { lnBpmDrag = { y: e.clientY, v: parseFloat(tempoEl.value) }; e.preventDefault(); });
   window.addEventListener('pointermove', e => { if (lnBpmDrag) setLnBpm(lnBpmDrag.v + (lnBpmDrag.y - e.clientY) * 0.5); });
   window.addEventListener('pointerup', () => lnBpmDrag = null);
+  // Ganancia del instrumento global: número arrastrable (patrón del BPM). v en 0..GAIN_MAX (×).
+  const instGainWrap = $('instGainWrap');
+  function refreshInstGainUI() { const n = $('instGainNum'); if (n) n.textContent = Math.round(currentInstGain * 100); }
+  function setInstGain(v) {
+    currentInstGain = clampGain(v);
+    applyInstGain();
+    refreshInstGainUI();
+    if (instSel) { store.instGain[instSel.value] = currentInstGain; saveStore(); }
+  }
+  if (instGainWrap) {
+    instGainWrap.addEventListener('dblclick', () => {
+      const r = prompt('Ganancia (0-300%):', Math.round(currentInstGain * 100));
+      if (r != null && !isNaN(parseFloat(r))) setInstGain(parseFloat(r) / 100);
+    });
+    let igDrag = null;
+    instGainWrap.addEventListener('pointerdown', e => { igDrag = { y: e.clientY, v: currentInstGain }; e.preventDefault(); });
+    window.addEventListener('pointermove', e => { if (igDrag) setInstGain(igDrag.v + (igDrag.y - e.clientY) * 0.01); });
+    window.addEventListener('pointerup', () => igDrag = null);
+  }
   songSel.addEventListener('change', e => { setSong(e.target.value); savePrefs(); });
   $('hands').addEventListener('change', e => { handMode = e.target.value; rebuildSteps(); reset(); savePrefs(); });
   $('chords').addEventListener('change', e => { chordLevel = e.target.value; rebuildSteps(); reset(); savePrefs(); });
