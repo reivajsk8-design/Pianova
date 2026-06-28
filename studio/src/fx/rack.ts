@@ -51,7 +51,10 @@ export function createRack(actx: AudioContext, input: AudioNode, output: AudioNo
     restore(state) {
       effects.forEach(e => { try { e.dispose(); } catch { /* nada */ } });
       effects = [];
-      for (const es of state.effects) { const def = EFFECTS[es.type]; if (def) effects.push(def.create(actx, es)); }
+      for (const es of state.effects) {
+        const def = EFFECTS[es.type]; if (!def) continue;
+        try { effects.push(def.create(actx, es)); } catch { /* p. ej. worklet no cargado: se omite ese efecto */ }
+      }
       reconnect(); notify();
     },
     onChange(cb) { changeCb = cb; },
