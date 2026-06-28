@@ -108,7 +108,12 @@ App web (un solo archivo HTML) para aprender piano con notas que caen estilo Syn
   reproductor `smplr` (`sfPlayer`), con `sfStops[midi]` para parar cada nota. `loadSoundfont()`
   importa `smplr` desde CDN y carga el soundfont; si falla (sin internet) vuelve al synth.
   `lpClickSound()` es el clic del metrónomo (va directo a `destination`, sin efectos). El selector
-  `#instrument` (cabecera) cambia el instrumento global (Aprender + Looper).
+  `#instrument` (cabecera) cambia el instrumento global (Aprender + Looper). **Ganancia de los sonidos
+  (v1.32):** ajustable 0–300% — por canal en el Looper (synth/sample completo, sf/batería al máximo via
+  reproductor compartido) mediante fader (`makeFader max:GAIN_MAX def:1`) asignable a knob CC
+  (`volMap`/`volLearn`, escala 0–127 CC); y por instrumento global (`instGain`/`currentInstGain`/
+  `store.instGain[clave]`, control deslizador en `#instGainWrap`) con destino propio `globalSf`. El bus
+  maestro limitador + soft-clipper (v1.26) contiene saturación.
 - **Bus maestro de efectos (v1.6):** `setupMasterBus()` (en `ensureAudio`) crea
   `masterIn → fxHP → fxLP → (seco + delay con realimentación) → masterOut → destination`. El synth
   conecta a `masterDest()` y `smplr` se crea con `{ destination: masterDest() }`. `fxParams`

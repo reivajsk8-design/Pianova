@@ -2,7 +2,18 @@
 
 Snapshot para retomar el proyecto en otra sesión (humana o con Claude Code).
 
-**Versión:** v1.31 (cabecera superior pro: segmentado, chip de conexión, responsive móvil)
+**Versión:** v1.32 (ganancia ajustable de los sonidos por canal e instrumento)
+
+**Ganancia de los sonidos (v1.32):** control de volumen avanzado con rango 0–300% (sin distorsión, limitador
+en v1.26). **En el Looper (por canal):** cada canal tiene un fader de ganancia (`makeFader max:GAIN_MAX def:1`),
+que multiplica la velocity de synth/sample completo (quitando recorte del sample si lo hay), eleva sf/batería al
+máximo (no pueden exceder su reproductor compartido). El fader es **asignable a un knob CC** (`volMap`/`volLearn`)
+para control en tiempo real, escala 0–127 CC → 0–300% ganancia. **En el instrumento global:** la ganancia
+`instGain` (`store.instGain[clave]`) escala **por tipo de instrumento**: synth/sample por multiplicación
+(quitando el recorte del sample), sf global (`globalSf`, reproductor independiente con destino `instGain`)
+al máximo (límite inherente del reproductor). Control visual arrastrable en la cabecera (`#instGainWrap`
+deslizador ↕ de % con doble-clic = prompt). El bus maestro v1.26 (limitador + soft-clipper) contiene
+saturación sin distorsión audible.
 
 **Cabecera superior pro (v1.31):** el header ahora usa **segmentado de pestañas** (clase `.tabs`/`.tab` en
 Aprender/Looper, solo CSS, sin `<button class="seg">`), **grupo Instrumento** con etiqueta (`.hdrCol` +
