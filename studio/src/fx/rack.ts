@@ -14,6 +14,8 @@ export interface Rack {
   dispose(): void;
 }
 
+// `input` debe ser un nodo de inserción DEDICADO al rack (un GainNode propio, como instrumentBus o
+// masterFxIn): reconnect() hace input.disconnect() de TODAS sus salidas. No pasar un nodo compartido.
 export function createRack(actx: AudioContext, input: AudioNode, output: AudioNode): Rack {
   let effects: Effect[] = [];
   let changeCb: (() => void) | null = null;
