@@ -43,6 +43,10 @@ export const SYNTH: Record<string, Preset> = {
 
 const voices: Record<number, Voice> = {};
 let currentPreset = 'piano';
+let synthOut: AudioNode | null = null;
+
+// Redirige la salida de las voces (p. ej. al rack del instrumento). null = directo al bus maestro.
+export function setSynthOut(node: AudioNode | null): void { synthOut = node; }
 
 export function setPreset(name: string): void { if (SYNTH[name]) currentPreset = name; }
 export function getPresetNames(): [string, string][] {
@@ -63,7 +67,7 @@ export function noteOn(midi: number, vel = 0.8): void {
     f.frequency.exponentialRampToValueAtTime(Math.max(freq * preset.filter.end, preset.filter.endMin), t + preset.filter.time);
     g.connect(f); out = f;
   }
-  out.connect(masterDest());
+  out.connect(synthOut ?? masterDest());
   const oscs: OscillatorNode[] = [];
   for (const part of preset.partials) {
     const o = actx.createOscillator(); o.type = part.type; o.frequency.value = freq * part.ratio;

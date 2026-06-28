@@ -1,6 +1,7 @@
-// Bus maestro: masterIn -> limitador -> makeup/pre -> soft-clipper (tanh) -> final -> destino.
-// Portado de pianova.html (misma pared anti-clipping con potencia). Aquí se colgarán EQ/efectos luego.
+// Bus maestro: masterIn -> [rack maestro] -> limitador -> makeup/pre -> soft-clipper (tanh) -> final -> destino.
+// Portado de pianova.html (misma pared anti-clipping). El rack maestro se inserta entre masterIn y masterFx.
 let masterIn: GainNode | null = null;
+let masterFx: GainNode | null = null;   // retorno del rack maestro -> limitador
 
 const SOFTCLIP_DRIVE = 2.5;
 const MASTER_MAKEUP = 2.5;
@@ -14,16 +15,18 @@ export function makeSoftClipCurve(n: number, drive: number): Float32Array {
 
 export function setupMasterBus(actx: AudioContext): void {
   masterIn = actx.createGain();
+  masterFx = actx.createGain();
   const limiter = actx.createDynamicsCompressor();
   limiter.threshold.value = -6; limiter.knee.value = 0; limiter.ratio.value = 20;
   limiter.attack.value = 0.003; limiter.release.value = 0.25;
   const clipPre = actx.createGain();
-  clipPre.gain.value = MASTER_MAKEUP / SOFTCLIP_DRIVE;   // makeup + drive antes del shaper
+  clipPre.gain.value = MASTER_MAKEUP / SOFTCLIP_DRIVE;
   const clip = actx.createWaveShaper();
   clip.curve = makeSoftClipCurve(2048, SOFTCLIP_DRIVE) as Float32Array<ArrayBuffer>;
   clip.oversample = '4x';
   const final = actx.createGain();
-  masterIn.connect(limiter);
+  masterIn.connect(masterFx);     // por defecto seco; el rack maestro re-enruta masterIn pero siempre acaba en masterFx
+  masterFx.connect(limiter);
   limiter.connect(clipPre);
   clipPre.connect(clip);
   clip.connect(final);
@@ -33,6 +36,16 @@ export function setupMasterBus(actx: AudioContext): void {
 export function masterDest(): AudioNode {
   if (!masterIn) throw new Error('Bus maestro no inicializado (llama a ensureAudio primero).');
   return masterIn;
+}
+
+// Anclas del rack maestro: el rack va de masterFxIn() a masterFxOut().
+export function masterFxIn(): AudioNode {
+  if (!masterIn) throw new Error('Bus maestro no inicializado (llama a ensureAudio primero).');
+  return masterIn;
+}
+export function masterFxOut(): AudioNode {
+  if (!masterFx) throw new Error('Bus maestro no inicializado (llama a ensureAudio primero).');
+  return masterFx;
 }
 
 // Tono de prueba (440 Hz, 0.4 s) para verificar que el audio suena por el bus.
