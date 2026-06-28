@@ -86,12 +86,18 @@
   .lnLoop .loopbar{gap:6px}
   .lnLoop .loopinfo{font-size:11px; max-width:150px; line-height:1.15}
   #loopStart{font-weight:700}               /* la "A" del inicio resalta */
-  .tabs{display:flex; gap:6px}
-  .tab{border:1px solid var(--line); background:var(--panel); color:var(--muted)}
-  .tab:hover{border-color:#3a4153; color:var(--ink)}
-  .tab.on{background:var(--amber); color:#1a1306; border-color:var(--amber)}
-  .seg button:hover{color:var(--ink)}
-  .tab.on:hover{background:var(--amber2); border-color:var(--amber2)}
+  .tabs{display:inline-flex; gap:0; background:var(--panel); border:1px solid var(--line);
+    border-radius:11px; padding:3px}
+  .tab{border:0; background:transparent; color:var(--muted); padding:7px 16px; border-radius:8px;
+    font-size:14px}
+  .tab:hover{color:var(--ink)}
+  .tab.on{background:var(--amber); color:#1a1306}
+  .tab.on:hover{color:#1a1306}
+  /* Cabecera superior pro: grupo con etiqueta (estilo .tpCol/.tpLab) y botón icono */
+  .hdrCol{display:flex; flex-direction:column; align-items:flex-start; gap:3px}
+  .hdrLab{font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
+  .hdrIcon{width:40px; height:40px; padding:0; border-radius:10px; font-size:16px; font-weight:700;
+    display:inline-flex; align-items:center; justify-content:center; line-height:1}
   #learnView,#looperView{flex:1; display:flex; flex-direction:column; min-height:0}
   #learnView[hidden],#looperView[hidden]{display:none}   /* ocultar de verdad la vista inactiva */
   .seek{position:relative; height:16px; margin-top:10px; border:1px solid var(--line);
@@ -345,7 +351,7 @@
       <button class="tab" data-tab="looper">Looper</button>
     </div>
     <div class="grow"></div>
-    <label class="fld">Instrumento
+    <div class="hdrCol"><span class="hdrLab">Instrumento</span>
       <select id="instrument">
         <optgroup label="Sintetizados (offline)">
           <option value="synth:piano">🎹 Piano</option>
@@ -364,10 +370,10 @@
           <option value="sf:acoustic_guitar_nylon">🎸 Guitarra</option>
         </optgroup>
       </select>
-    </label>
+    </div>
     <span class="device" id="instInfo"></span>
     <div class="device" id="device">Sin conectar</div>
-    <button id="help" title="Ver el tutorial">❔ Ayuda</button>
+    <button id="help" class="hdrIcon" title="Ver el tutorial">?</button>
     <button class="primary" id="connect">Conectar teclado</button>
   </header>
 
