@@ -192,6 +192,7 @@
   .lpHead button:active{transform:scale(.95)}
   @media (hover:hover) and (pointer:fine){ .lpHead:not(.sel):hover{background:rgba(255,255,255,0.025)} }
   .lpfx{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:12px}
+  .eqCtl{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px}
   .fxLearn{padding:2px 6px; font-size:12px; line-height:1}
   .fxLearn.assigned{border-color:var(--green); color:var(--green)}
   .fxLearn.learning{background:var(--amber); color:#1a1306; border-color:var(--amber)}
@@ -593,6 +594,12 @@
       <div class="lpfx" id="lpfx">
         <span class="lpmidiLabel">Mezcla maestra:</span>
         <div id="lpfxRack" class="lpfxRack"></div>
+        <div class="eqCtl">
+          <span class="lpmidiLabel">EQ:</span>
+          <select id="eqPreset" aria-label="Ecualizador maestro"></select>
+          <button id="eqImport" title="Importar un perfil Equalizer APO (.txt)">📂 Importar perfil EQ</button>
+          <input type="file" id="eqFile" accept=".txt,text/plain" hidden>
+        </div>
       </div>
       <div class="lpmidi" id="lpmidi">
         <span class="lpmidiLabel">Atajos del teclado MIDI (opcional):</span>
@@ -3667,6 +3674,32 @@
     }
   });
   $('lpQuant').addEventListener('change', e => { quantizeGrid = parseFloat(e.target.value); saveLooper(); });
+  // Rellena el desplegable de EQ (presets + perfil importado) y selecciona el activo.
+  function refreshEqUI() {
+    const sel = $('eqPreset'); if (!sel) return;
+    let html = '';
+    for (const k in EQ_PRESETS) html += '<option value="' + k + '">' + EQ_PRESETS[k].label + '</option>';
+    const cust = store.eq && store.eq.custom;
+    if (cust) html += '<option value="custom">Perfil: ' + (cust.name || 'importado') + '</option>';
+    sel.innerHTML = html;
+    sel.value = (store.eq && store.eq.preset) || 'plano';
+  }
+  $('eqPreset').addEventListener('change', e => {
+    store.eq.preset = e.target.value; saveStore();
+    eqApply(eqSpecFromStore());
+  });
+  $('eqImport').addEventListener('click', () => $('eqFile').click());
+  $('eqFile').addEventListener('change', async e => {
+    const f = e.target.files && e.target.files[0]; e.target.value = '';
+    if (!f) return;
+    try {
+      const spec = parseApoEq(await f.text());
+      spec.name = f.name.replace(/\.txt$/i, '');
+      store.eq.custom = spec; store.eq.preset = 'custom'; saveStore();
+      refreshEqUI(); eqApply(eqSpecFromStore());
+      status('Perfil EQ cargado: ' + spec.name + ' (' + spec.bands.length + ' bandas).');
+    } catch (err) { status('No pude leer el perfil EQ.'); }
+  });
   // Efectos: asignar knob (🎛) — el input de faders lo maneja buildFxRack > onInput
   $('lpfx').addEventListener('click', e => {
     const b = e.target.closest('[data-fxlearn]');
@@ -3896,6 +3929,7 @@
   refreshMidiMapUI();
   refreshVolLearnUI();
   buildFxRack();
+  refreshEqUI();
   if (!store.seenIntro) setTimeout(startTour, 700);   // tutorial la primera vez
   requestAnimationFrame(frame);
 })();
