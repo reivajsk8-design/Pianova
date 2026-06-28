@@ -17,3 +17,7 @@ main { padding:24px 18px; }
 .kb-white.on { background:var(--amber); }
 .kb-black { position:absolute; top:0; width:calc((100% / var(--whites)) * 0.6); height:62%; background:#1b1f29; border:1px solid #000; border-radius:0 0 5px 5px; z-index:2; }
 .kb-black.on { background:var(--amber); }
+.studioBar { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+.fld { display:flex; align-items:center; gap:8px; color:var(--muted); font-size:13px; }
+.fld select { font:inherit; background:var(--panel); color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:6px 9px; }
+.muted { color:var(--muted); font-size:13px; }

@@ -1,5 +1,6 @@
 import { ensureAudio } from '../audio/context';
 import { testTone } from '../audio/masterBus';
+import { mountStudioView } from './studioView';
 
 // Monta la barra superior (Estudio / Aprender) + arranque de audio. Vistas vacías por ahora.
 export function mountShell(root: HTMLElement): void {
@@ -20,6 +21,7 @@ export function mountShell(root: HTMLElement): void {
     </main>`;
   const studio = root.querySelector('#viewStudio') as HTMLElement;
   const learn = root.querySelector('#viewLearn') as HTMLElement;
+  mountStudioView(studio);
   root.querySelectorAll<HTMLButtonElement>('.tab').forEach(btn => {
     btn.addEventListener('click', () => {
       root.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b === btn));
