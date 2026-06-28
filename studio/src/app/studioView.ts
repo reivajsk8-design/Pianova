@@ -1,5 +1,9 @@
-import { ensureAudio } from '../audio/context';
+import { ensureAudio, getAudioContext } from '../audio/context';
 import * as synth from '../audio/synth';
+import { makeTransport } from '../audio/transport';
+import { makeSequencer } from '../daw/sequencer';
+import { mountTransport } from '../ui/transport';
+import { mountStepGrid } from '../ui/stepgrid';
 import { masterDest, masterFxIn, masterFxOut } from '../audio/masterBus';
 import { connectMidi } from '../midi/input';
 import { mountKeyboard } from '../ui/keyboard';
@@ -29,6 +33,11 @@ export function mountStudioView(root: HTMLElement): void {
     </div>
     <div id="stKeyboard"></div>
     <p class="muted">Toca con el ratón, las teclas <b>A S D F G H J K</b> / <b>W E T Y U</b>, o tu teclado MIDI. Pulsa una tecla para activar los efectos.</p>
+    <div id="transport"></div>
+    <section class="seqWrap">
+      <h3>Secuenciador (toca el instrumento seleccionado)</h3>
+      <div id="stepGrid"></div>
+    </section>
     <div class="racks">
       <div id="instRack"></div>
       <div id="masterRack"></div>
@@ -103,5 +112,38 @@ export function mountStudioView(root: HTMLElement): void {
     onNoteOn: (m, v) => { audioOn(); synth.noteOn(m, v); },
     onNoteOff: (m) => synth.noteOff(m),
     lowMidi: 60, highMidi: 84, baseMidi: 60
+  });
+
+  // --- Secuenciador de pasos (3A) ---
+  const STEPS = 16;
+  const STEPS_PER_BEAT = 4;          // semicorcheas
+  const SEQ_NOTE = 60;               // Do central (nota fija por ahora; pitch por paso llega después)
+  const seqSteps: boolean[] = new Array(STEPS).fill(false);
+
+  const transport = makeTransport(() => getAudioContext()?.currentTime ?? 0);
+  const seq = makeSequencer(transport, {
+    stepsPerBeat: STEPS_PER_BEAT,
+    getTotalSteps: () => STEPS,
+    onStep: (i, when) => { if (seqSteps[i]) synth.triggerAt(SEQ_NOTE, 0.95, when, 0.12); }
+  });
+
+  const grid = mountStepGrid(root.querySelector('#stepGrid') as HTMLElement, {
+    total: STEPS,
+    isOn: (i) => seqSteps[i],
+    onToggle: (i) => { seqSteps[i] = !seqSteps[i]; }
+  });
+
+  let phRaf = 0;
+  function playhead(): void {
+    const s = Math.floor(transport.beatNow() * STEPS_PER_BEAT);
+    grid.setPlayhead(((s % STEPS) + STEPS) % STEPS);
+    phRaf = requestAnimationFrame(playhead);
+  }
+
+  const tUI = mountTransport(root.querySelector('#transport') as HTMLElement, {
+    getBpm: () => transport.bpm,
+    onPlay: () => { audioOn(); seq.play(); tUI.setPlaying(true); phRaf = requestAnimationFrame(playhead); },
+    onStop: () => { seq.stop(); tUI.setPlaying(false); cancelAnimationFrame(phRaf); grid.setPlayhead(-1); },
+    onBpm: (bpm) => seq.setBpm(bpm)
   });
 }
