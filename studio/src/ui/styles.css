@@ -36,3 +36,14 @@ main { padding:24px 18px; }
 .fxParam { display:grid; grid-template-columns:110px 1fr 64px; align-items:center; gap:8px; color:var(--muted); font-size:12px; }
 .fxParam input[type="range"] { width:100%; }
 .fxVal { text-align:right; }
+.tbar { display:flex; align-items:center; gap:14px; margin:18px 0 10px; }
+.tbPlay { width:44px; height:44px; border-radius:50%; font-size:16px; background:var(--amber); color:#1a1306; border:0; }
+.tbPlay.on { background:#e0533a; color:#fff; }
+.tbar input[type="number"] { width:66px; font:inherit; background:var(--panel); color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:6px 8px; }
+.seqWrap { margin:8px 0 4px; }
+.seqWrap h3 { font-size:13px; color:var(--muted); font-weight:600; margin:0 0 8px; }
+.stepRow { display:flex; gap:6px; flex-wrap:wrap; }
+.stepCell { width:30px; height:38px; border-radius:7px; background:var(--panel); border:1px solid var(--line); cursor:pointer; padding:0; }
+.stepCell.beat { border-color:#3a4153; }
+.stepCell.on { background:var(--amber); border-color:var(--amber); }
+.stepCell.play { outline:2px solid #fff; outline-offset:1px; }
