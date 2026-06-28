@@ -8,7 +8,8 @@ Snapshot para retomar el proyecto en otra sesión (humana o con Claude Code).
 Aprender/Looper, solo CSS, sin `<button class="seg">`), **grupo Instrumento** con etiqueta (`.hdrCol` +
 `.hdrLab` = "Instrumento" en gris; `#instrument` limitado a `max-width:46vw` en móvil), **chip de
 conexión** (`.connChip` + `.dot` rojo/verde) que es **un estado visual puro** — toma la clase `.on`
-cuando hay teclado conectado (`bindInputs` y `leave()`), y el DOM interno es fijo (solo 1 render). El
+cuando hay teclado conectado, mediante un único toggle en `bindInputs` (al que `access.onstatechange`
+llama también al desconectar, así cubre ambos sentidos). El
 botón **Ayuda** pasa a icono cuadrado (`.hdrIcon`). En móvil <620px, el chip deja visible solo el punto
 (`.device` dentro de `.connChip` oculto), y `#instInfo` (texto antiguo) también desaparece; el nombre
 del instrumento se ve en el selector mismo.
