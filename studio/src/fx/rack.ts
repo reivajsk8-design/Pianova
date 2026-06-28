@@ -35,7 +35,8 @@ export function createRack(actx: AudioContext, input: AudioNode, output: AudioNo
   return {
     add(type, state) {
       const def = EFFECTS[type]; if (!def) return null;
-      const fx = def.create(actx, state);
+      let fx: Effect;
+      try { fx = def.create(actx, state); } catch { return null; }   // p. ej. worklet no cargado
       effects.push(fx); reconnect(); notify(); return fx;
     },
     remove(id) {

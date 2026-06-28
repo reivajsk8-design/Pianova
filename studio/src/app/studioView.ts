@@ -7,6 +7,7 @@ import { createRack, Rack } from '../fx/rack';
 import { mountRack } from '../ui/rack';
 import '../fx/effects';   // registra los efectos disponibles
 import { loadStore, saveStore, downloadProject, readProjectFile, ProjectState } from './store';
+import { ensureWorklets } from '../fx/worklets';
 
 // Vista Estudio: instrumento + MIDI + teclado + racks de efectos (instrumento y maestro) + guardar/abrir proyecto.
 export function mountStudioView(root: HTMLElement): void {
@@ -45,20 +46,23 @@ export function mountStudioView(root: HTMLElement): void {
     saveStore(store);
   }
 
-  function initRacks(): void {
-    if (instRack) return;
-    const actx = ensureAudio();
-    const instrumentBus = actx.createGain();
-    synth.setSynthOut(instrumentBus);
-    instRack = createRack(actx, instrumentBus, masterDest());
-    masterRack = createRack(actx, masterFxIn(), masterFxOut());
-    instRack.restore(store.instrumentRack);
-    masterRack.restore(store.masterRack);
-    mountRack(root.querySelector('#instRack') as HTMLElement, instRack, 'Instrumento', persist);
-    mountRack(root.querySelector('#masterRack') as HTMLElement, masterRack, 'Maestro', persist);
+  let racksPromise: Promise<void> | null = null;
+  function initRacks(): Promise<void> {
+    if (!racksPromise) racksPromise = (async () => {
+      const actx = ensureAudio();
+      try { await ensureWorklets(actx); } catch { /* sin worklets: los efectos que los usan no se podrán añadir */ }
+      const instrumentBus = actx.createGain();
+      synth.setSynthOut(instrumentBus);
+      instRack = createRack(actx, instrumentBus, masterDest());
+      masterRack = createRack(actx, masterFxIn(), masterFxOut());
+      instRack.restore(store.instrumentRack);
+      masterRack.restore(store.masterRack);
+      mountRack(root.querySelector('#instRack') as HTMLElement, instRack, 'Instrumento', persist);
+      mountRack(root.querySelector('#masterRack') as HTMLElement, masterRack, 'Maestro', persist);
+    })();
+    return racksPromise;
   }
-
-  function audioOn(): void { ensureAudio(); initRacks(); }
+  function audioOn(): void { ensureAudio(); void initRacks(); }
 
   (root.querySelector('#stInstrument') as HTMLSelectElement).addEventListener('change', e => {
     synth.setPreset((e.target as HTMLSelectElement).value); persist();
@@ -86,9 +90,9 @@ export function mountStudioView(root: HTMLElement): void {
       store.instrument = p.instrument; store.instrumentRack = p.instrumentRack; store.masterRack = p.masterRack;
       (root.querySelector('#stInstrument') as HTMLSelectElement).value = p.instrument;
       synth.setPreset(p.instrument);
-      audioOn();
-      instRack!.restore(store.instrumentRack);
-      masterRack!.restore(store.masterRack);
+      await initRacks();
+      if (instRack) instRack.restore(store.instrumentRack);
+      if (masterRack) masterRack.restore(store.masterRack);
       saveStore(store);
     } catch {
       (root.querySelector('#stMidi') as HTMLElement).textContent = '🔴 No se pudo abrir el proyecto.';
