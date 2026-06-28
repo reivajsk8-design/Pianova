@@ -2,7 +2,19 @@
 
 Snapshot para retomar el proyecto en otra sesión (humana o con Claude Code).
 
-**Versión:** v1.25 (bucle A–B a iconos A/B/✕ al extremo derecho)
+**Versión:** v1.26 (soft-clipper con drive: acordes ya no hacen clipping)
+
+**Fix clipping en acordes (v1.26):** el `WaveShaper` final solo mapea entradas en [-1,1] y CLAMPA lo
+de fuera (techo plano = distorsión). En modo Escuchar la suma de varias notas supera 1.0 y el
+ataque del limitador (3 ms) deja pasar el transitorio del acorde → chocaba contra ese techo plano.
+Arreglo: `makeSoftClipCurve(n, drive)` usa `tanh(drive*x)` y se añade una **pre-ganancia `1/drive`**
+(`masterClipPre`) antes del shaper, con `SOFTCLIP_DRIVE=2.5`. Transferencia neta = `tanh(señal)` para
+señales hasta ±2.5 → satura suave (sin techo plano) y deja las notas limpias a nivel unidad. Validado
+con test de la curva en Node (la actual daba 0.762 plano para 1.0/1.5/2.0/2.5; la nueva es monótona).
+**Pendiente (no es regresión):** el "parpadeo / no fluido" es otra causa — las notas se disparan en el
+bucle `frame`→`playFullAt`→`noteOn` en `currentTime` (sin adelanto de reloj de audio) y cada nota crea
+varios nodos en el hilo principal; en canciones densas eso da tirones. Mejoraría con un pequeño
+planificador con *lookahead*.
 
 **Bucle A–B compacto (v1.25):** los botones del bucle de la cabecera de Aprender pasan de texto
 ("Inicio aquí/Fin aquí/Quitar bucle") a iconos **A / B / ✕** (`.lnIcon`, con `title=` descriptivo),

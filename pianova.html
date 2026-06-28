@@ -596,7 +596,7 @@
   'use strict';
 
   // ---------- Configuración ----------
-  const VERSION = 'v1.25';             // versión visible (bucle A–B a iconos A/B/✕ al extremo derecho)
+  const VERSION = 'v1.26';             // versión visible (soft-clipper con drive: sin clipping en acordes)
   let LOW = 60, HIGH = 84;              // rango del teclado (se ajusta por canción)
   const LOOKAHEAD = 4.2;                // beats visibles por encima de la línea
   const SOLFEGE = ['Do','Do#','Re','Re#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'];
@@ -754,12 +754,16 @@
 
   // ---------- Bus maestro de efectos (filtro + delay) ----------
   let masterIn = null, fxHP = null, fxLP = null, fxDelay = null, fxFb = null, fxWet = null, masterOut = null;
-  let fxReverb = null, fxRevWet = null, masterFinal = null, masterLimiter = null, masterClip = null;
+  let fxReverb = null, fxRevWet = null, masterFinal = null, masterLimiter = null, masterClip = null, masterClipPre = null;
   // Curva tanh para el soft-clipper (pared final): satura suave en vez de recortar.
-  // Señal baja ≈ unidad; picos calientes se acotan a ~0.76 (techo, nunca >1 → sin clipping).
-  function makeSoftClipCurve(n) {
+  // El WaveShaper solo mapea entradas en [-1,1]; lo de fuera lo CLAMPA (techo plano = clipping).
+  // Para que acordes calientes (suma de varias notas > 1) saturen suave en vez de chocar contra
+  // ese techo plano, aplicamos 'drive': con una pre-ganancia 1/drive antes del shaper, la
+  // transferencia neta es tanh(señal) para señales hasta ±drive (no solo ±1). Señal baja ≈ unidad.
+  const SOFTCLIP_DRIVE = 2.5;
+  function makeSoftClipCurve(n, drive) {
     const c = new Float32Array(n);
-    for (let i = 0; i < n; i++) { const x = (i / (n - 1)) * 2 - 1; c[i] = Math.tanh(x); }
+    for (let i = 0; i < n; i++) { const x = (i / (n - 1)) * 2 - 1; c[i] = Math.tanh(drive * x); }
     return c;
   }
   const fxParams = { filter: 0.5, delayTime: 0.3, delayAmount: 0, reverb: 0 };   // 0.5 filtro = sin efecto
@@ -800,13 +804,17 @@
     fxReverb = actx.createConvolver(); fxReverb.buffer = makeImpulse(2.2, 2.5);
     fxRevWet = actx.createGain(); fxRevWet.gain.value = 0;
     masterOut.connect(fxReverb); fxReverb.connect(fxRevWet); fxRevWet.connect(masterLimiter);
-    // Pared final: soft-clipper (WaveShaper tanh). El compresor nivela el grueso; este
-    // satura los transitorios que se le escapan (ataques coincidentes de varios canales),
-    // garantizando que la señal NUNCA pase de ~0.76 → cero clipping en la salida y en el export.
+    // Pared final: soft-clipper (WaveShaper tanh con 'drive'). El compresor nivela el grueso; este
+    // satura SUAVE los transitorios que se le escapan (ataques coincidentes de varios canales) hasta
+    // ±SOFTCLIP_DRIVE, sin techo plano. La señal de salida nunca pasa de ~tanh(drive)≈0.99 (<1, sin
+    // clipping en la salida ni en el export); las notas limpias quedan a nivel unidad (sin teñir).
+    masterClipPre = actx.createGain();
+    masterClipPre.gain.value = 1 / SOFTCLIP_DRIVE;   // baja la señal antes del shaper (drive)
     masterClip = actx.createWaveShaper();
-    masterClip.curve = makeSoftClipCurve(2048);
+    masterClip.curve = makeSoftClipCurve(2048, SOFTCLIP_DRIVE);
     masterClip.oversample = '4x';        // reduce el aliasing de la saturación
-    masterLimiter.connect(masterClip);
+    masterLimiter.connect(masterClipPre);
+    masterClipPre.connect(masterClip);
     masterClip.connect(masterFinal);
     masterFinal.connect(actx.destination);
     applyFx();
