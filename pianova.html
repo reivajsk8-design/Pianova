@@ -621,7 +621,7 @@
   'use strict';
 
   // ---------- Configuración ----------
-  const VERSION = 'v1.32';             // ganancia ajustable de los sonidos (0-300%) por canal y por instrumento
+  const VERSION = 'v1.33';             // makeup de salida: la app suena con potencia (sube el techo del bus)
   let LOW = 60, HIGH = 84;              // rango del teclado (se ajusta por canción)
   const LOOKAHEAD = 4.2;                // beats visibles por encima de la línea
   const SOLFEGE = ['Do','Do#','Re','Re#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'];
@@ -788,6 +788,10 @@
   // ese techo plano, aplicamos 'drive': con una pre-ganancia 1/drive antes del shaper, la
   // transferencia neta es tanh(señal) para señales hasta ±drive (no solo ±1). Señal baja ≈ unidad.
   const SOFTCLIP_DRIVE = 2.5;
+  // Makeup de salida: el limitador + tanh dejaban el techo en ~0.46 (-6.7 dB) → todo sonaba flojo.
+  // Subimos el nivel ANTES del shaper para que la app suene con potencia; el tanh sigue garantizando
+  // que la salida nunca pase de ~0.99 (sin clipping duro). Transferencia neta = tanh(MASTER_MAKEUP·señal).
+  const MASTER_MAKEUP = 2.5;
   function makeSoftClipCurve(n, drive) {
     const c = new Float32Array(n);
     for (let i = 0; i < n; i++) { const x = (i / (n - 1)) * 2 - 1; c[i] = Math.tanh(drive * x); }
@@ -884,10 +888,10 @@
     masterOut.connect(fxReverb); fxReverb.connect(fxRevWet); fxRevWet.connect(masterLimiter);
     // Pared final: soft-clipper (WaveShaper tanh con 'drive'). El compresor nivela el grueso; este
     // satura SUAVE los transitorios que se le escapan (ataques coincidentes de varios canales) hasta
-    // ±SOFTCLIP_DRIVE, sin techo plano. La señal de salida nunca pasa de ~tanh(drive)≈0.99 (<1, sin
-    // clipping en la salida ni en el export); las notas limpias quedan a nivel unidad (sin teñir).
+    // ±SOFTCLIP_DRIVE, sin techo plano. Con el makeup (MASTER_MAKEUP) la app suena con potencia y la
+    // salida nunca pasa de ~tanh(drive)≈0.99 (<1, sin clipping duro en la salida ni en el export).
     masterClipPre = actx.createGain();
-    masterClipPre.gain.value = 1 / SOFTCLIP_DRIVE;   // baja la señal antes del shaper (drive)
+    masterClipPre.gain.value = MASTER_MAKEUP / SOFTCLIP_DRIVE;   // makeup + drive antes del shaper
     masterClip = actx.createWaveShaper();
     masterClip.curve = makeSoftClipCurve(2048, SOFTCLIP_DRIVE);
     masterClip.oversample = '4x';        // reduce el aliasing de la saturación

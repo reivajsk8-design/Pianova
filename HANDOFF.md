@@ -2,6 +2,17 @@
 
 Snapshot para retomar el proyecto en otra sesión (humana o con Claude Code).
 
+**Versión:** v1.33 (makeup de salida: la app suena con potencia)
+
+**Makeup de salida (v1.33):** la cadena del bus maestro (limitador a −6 dB + soft-clipper tanh con
+`SOFTCLIP_DRIVE`) daba una transferencia neta `tanh(señal)` y, con el limitador reteniendo la señal
+fuerte en ~0.5, el **techo de salida era ~0.46 (≈ −6.7 dB)** → todo sonaba flojo aunque subieras la
+ganancia al 300%. Causa raíz confirmada con un modelo en Node. Arreglo: `MASTER_MAKEUP = 2.5` sube el
+nivel antes del shaper (`masterClipPre.gain = MASTER_MAKEUP / SOFTCLIP_DRIVE`), de modo que la
+transferencia neta pasa a `tanh(MASTER_MAKEUP·señal)` → una señal fuerte sube de 0.46 a ~0.85 y las
+notas normales casi se duplican. El **tanh sigue garantizando** que la salida nunca pasa de ~0.99 →
+**sin clipping duro** (ni en la salida ni en el export). Ajustable con la constante `MASTER_MAKEUP`.
+
 **Versión:** v1.32 (ganancia ajustable de los sonidos por canal e instrumento)
 
 **Ganancia de los sonidos (v1.32):** control de volumen avanzado con rango 0–300% (sin distorsión, limitador
