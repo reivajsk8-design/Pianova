@@ -2,6 +2,16 @@
 
 Snapshot para retomar el proyecto en otra sesión (humana o con Claude Code).
 
+**Versión:** v1.34 (ecualizador maestro: presets + importar perfil Equalizer APO)
+
+**Ecualizador maestro (v1.34):** nueva etapa de ecualización en el bus maestro. `buildEq()` configura
+una cadena `masterIn → eqInput (preamp) → bandas biquad → fxHP`, insertándose **antes** del limitador/
+soft-clipper. Spec común `{preamp, bands}` (array de `{freq, gain, Q}`). **5 presets** en `EQ_PRESETS`
+(plano, cuerpo, cálido, brillante, loudness). Parser `parseApoEq()` lee perfiles Equalizer APO
+(decimales con coma, ignora OFF y tipos no soportados). UI en "Mezcla maestra": desplegable `#eqPreset`
++ botón `#eqImport` + input `#eqFile` para cargar perfil. `refreshEqUI()` actualiza visualización.
+Persistido en `store.eq`. El realce lo contiene el limitador/soft-clipper/makeup (v1.33) sin clipping duro.
+
 **Versión:** v1.33 (makeup de salida: la app suena con potencia)
 
 **Makeup de salida (v1.33):** la cadena del bus maestro (limitador a −6 dB + soft-clipper tanh con
