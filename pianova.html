@@ -44,6 +44,13 @@
   .grow{flex:1}
   .device{font-family:ui-monospace,monospace; font-size:12px; color:var(--muted);
     border:1px solid var(--line); border-radius:999px; padding:5px 12px; white-space:nowrap}
+  /* Chip de estado de conexión: punto rojo (desconectado) / verde (conectado) */
+  .connChip{display:inline-flex; align-items:center; gap:7px; border:1px solid var(--line);
+    border-radius:999px; padding:5px 12px; background:var(--panel)}
+  .connChip .device{border:0; padding:0; border-radius:0; white-space:nowrap}
+  .connChip .dot{width:8px; height:8px; border-radius:50%; background:#e0564f;
+    box-shadow:0 0 0 3px rgba(224,86,79,.18); flex:0 0 auto}
+  .connChip.on .dot{background:#54c08a; box-shadow:0 0 0 3px rgba(84,192,138,.18)}
   button{font-family:var(--disp); font-weight:600; font-size:14px; cursor:pointer;
     border-radius:10px; padding:9px 16px; border:1px solid var(--line);
     background:var(--panel2); color:var(--ink);
@@ -372,7 +379,7 @@
       </select>
     </div>
     <span class="device" id="instInfo"></span>
-    <div class="device" id="device">Sin conectar</div>
+    <div class="connChip" id="connChip"><span class="dot"></span><span class="device" id="device">Sin conectar</span></div>
     <button id="help" class="hdrIcon" title="Ver el tutorial">?</button>
     <button class="primary" id="connect">Conectar teclado</button>
   </header>
@@ -1744,6 +1751,7 @@
     const names = [];
     access.inputs.forEach(inp => { inp.onmidimessage = ev => onMidi(ev, inp.name); names.push(inp.name); });
     midiConnected = names.length > 0;
+    { const cc = document.getElementById('connChip'); if (cc) cc.classList.toggle('on', names.length > 0); }
     if (names.length) {
       deviceEl.textContent = names.join(' · ');
       requestWakeLock();   // teclado conectado -> la pantalla no se apaga
