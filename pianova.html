@@ -817,6 +817,21 @@
   // Ganancia de sonidos: 1 = 100% (normal); hasta GAIN_MAX = 3 (300%) para subir flojos.
   const GAIN_MAX = 3;
   function clampGain(v) { return Math.max(0, Math.min(GAIN_MAX, v)); }
+  // Parser de perfiles Equalizer APO (.txt del repo Tal0na/Equalizer-Profiles):
+  // 'Preamp: X dB' + 'Filter N: ON PK|LS|HS Fc f Hz Gain g dB Q q'. Decimales con coma. Ignora OFF y
+  // tipos no soportados. Devuelve el spec común del EQ.
+  function parseApoEq(text) {
+    const out = { preamp: 0, bands: [] };
+    const num = s => parseFloat(String(s).replace(',', '.'));
+    const TYPE = { PK: 'peaking', LS: 'lowshelf', HS: 'highshelf' };
+    String(text).split(/\r?\n/).forEach(line => {
+      const pre = line.match(/^\s*Preamp:\s*(-?[\d.,]+)\s*dB/i);
+      if (pre) { out.preamp = num(pre[1]); return; }
+      const f = line.match(/^\s*Filter\s+\d+:\s*ON\s+(PK|LS|HS)\s+Fc\s+([\d.,]+)\s*Hz\s+Gain\s+(-?[\d.,]+)\s*dB\s+Q\s+([\d.,]+)/i);
+      if (f) out.bands.push({ type: TYPE[f[1].toUpperCase()], freq: num(f[2]), gain: num(f[3]), q: num(f[4]) });
+    });
+    return out;
+  }
   // Reloj de transporte: la posición (en beats) se deriva de actx.currentTime contra un ancla,
   // así un tirón de imagen no mueve el ritmo. nowFn es inyectable para poder testear.
   function makeTransport(nowFn) {
