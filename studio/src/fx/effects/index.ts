@@ -12,3 +12,5 @@ import './fractal-doubler';
 import './limiter';
 import './dynamics';
 import './deesser';
+import './tubewarmth';
+import './sigmoid';
