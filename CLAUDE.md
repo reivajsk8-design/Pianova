@@ -48,7 +48,9 @@ App web (un solo archivo HTML) para aprender piano con notas que caen estilo Syn
    proyecto; 18 nativos + 1 AudioWorklet (Pitch Shifter granular). Ver el detalle por tanda en `HANDOFF.md`
    y los specs/plans)* · **F3** DAW/groovebox (canales, step-grid,
    patrones/song mode, solo/pan, swing, MIDI) · **F4** módulo Aprender · **F5** conmutar el sitio a la
-   app nueva. Ver `studio/` y los specs/plans en `docs/superpowers/`.
+   app nueva. **F3 en curso:** sub-tanda 3A hecha (transporte play/stop/BPM + secuenciador de pasos de 1
+   fila); pendientes 3B canales+mezcla, 3C batería sintetizada, 3D patrones+song, 3E swing+MIDI. Ver
+   `studio/` y los specs/plans en `docs/superpowers/`.
 
 ## Cómo ejecutar y probar
 
