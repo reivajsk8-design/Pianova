@@ -43,13 +43,10 @@ App web (un solo archivo HTML) para aprender piano con notas que caen estilo Syn
    **F0** cimientos *(hecha)* · **F1** motor de instrumentos *(hecha, v0.2.0: synth de 5 presets +
    cadena maestra anti-clipping + entrada MIDI + teclado, todo cableado en la vista Estudio; ya se
    toca y se oye)* · **F2** suite de efectos
-   **TAP completa** (~19, el usuario los quiere todos) *(en curso: Tanda 1 hecha — marco de efectos +
-   rack reutilizable en instrumento y maestro + guardar/abrir proyecto a archivo; **Tanda 2 Delays/Espacio
-   hecha** — Echo, Stereo Echo, Reflector, Reverberator (todos nativos); **Tanda 3 Modulación hecha** —
-   Tremolo, AutoPanner, Chorus/Flanger, Rotary Speaker, Fractal Doubler (el marco ya para los LFO en
-   dispose); **Tanda 4 Dinámica hecha** — Scaling Limiter, Dynamics estéreo/mono, DeEsser (todos nativos
-   con DynamicsCompressorNode); **Tanda 5 Color/EQ hecha** — TubeWarmth y Sigmoid (WaveShaper), Equalizer
-   y Equalizer/BW (BiquadFilter); queda solo la Tanda 6 Tono)* · **F3** DAW/groovebox (canales, step-grid,
+   **TAP completa** *(HECHA, v0.8.0: los **19 efectos** en 6 tandas —Delays/Espacio, Modulación, Dinámica,
+   Color/EQ, Tono— montables en racks de inserción reutilizables (instrumento y maestro) + guardar/abrir
+   proyecto; 18 nativos + 1 AudioWorklet (Pitch Shifter granular). Ver el detalle por tanda en `HANDOFF.md`
+   y los specs/plans)* · **F3** DAW/groovebox (canales, step-grid,
    patrones/song mode, solo/pan, swing, MIDI) · **F4** módulo Aprender · **F5** conmutar el sitio a la
    app nueva. Ver `studio/` y los specs/plans en `docs/superpowers/`.
 
