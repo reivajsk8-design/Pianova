@@ -193,6 +193,19 @@
   @media (hover:hover) and (pointer:fine){ .lpHead:not(.sel):hover{background:rgba(255,255,255,0.025)} }
   .lpfx{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:12px}
   .eqCtl{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px}
+  #eqEditor{position:fixed; inset:0; z-index:1200; background:rgba(8,10,14,.92); display:none}
+  #eqEditor:not([hidden]){display:flex}
+  .eqEdPanel{margin:auto; width:min(960px,96vw); height:min(620px,92vh); background:var(--panel);
+    border:1px solid var(--line); border-radius:16px; display:flex; flex-direction:column; padding:14px; gap:10px}
+  .eqEdHead{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+  .eqEdLab{font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted)}
+  .eqEdCanvasWrap{flex:1; min-height:200px; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#0c0e13}
+  #eqCanvas{display:block; width:100%; height:100%; touch-action:none}
+  .eqEdBands{display:flex; gap:8px; flex-wrap:wrap}
+  .eqEdBand{display:flex; flex-direction:column; align-items:center; gap:3px}
+  .eqEdBand .eqBtn{width:30px; height:30px; padding:0; border-radius:8px; font-weight:700}
+  .eqEdBand .eqBtn.on{background:var(--amber); color:#1a1306; border-color:var(--amber)}
+  .eqEdBand select{font-size:11px; padding:2px 4px}
   .fxLearn{padding:2px 6px; font-size:12px; line-height:1}
   .fxLearn.assigned{border-color:var(--green); color:var(--green)}
   .fxLearn.learning{background:var(--amber); color:#1a1306; border-color:var(--amber)}
@@ -449,6 +462,24 @@
     </div>
   </div>
 
+  <div id="eqEditor" hidden>
+    <div class="eqEdPanel">
+      <div class="eqEdHead">
+        <b>Ecualizador</b>
+        <span class="eqEdLab">Preamp</span>
+        <input type="range" id="eqPreamp" min="-12" max="12" step="0.5" value="0">
+        <span id="eqPreampVal">0 dB</span>
+        <span class="eqEdLab">Banda</span><span id="eqSelLab">—</span>
+        <span class="eqEdLab">Q</span>
+        <input type="range" id="eqQ" min="0.3" max="8" step="0.1" value="1" disabled>
+        <div class="grow"></div>
+        <button id="eqEdClose" class="primary">✕ Cerrar</button>
+      </div>
+      <div class="eqEdCanvasWrap"><canvas id="eqCanvas"></canvas></div>
+      <div class="eqEdBands" id="eqEdBands"></div>
+    </div>
+  </div>
+
   <div id="retoEnd">
     <div id="retoEndPanel">
       <div id="retoStars">★★★</div>
@@ -598,6 +629,7 @@
           <span class="lpmidiLabel">EQ:</span>
           <select id="eqPreset" aria-label="Ecualizador maestro"></select>
           <button id="eqImport" title="Importar un perfil Equalizer APO (.txt)">📂 Importar perfil EQ</button>
+          <button id="eqOpen" title="Editor gráfico de EQ">✎ Editar EQ</button>
           <input type="file" id="eqFile" accept=".txt,text/plain" hidden>
         </div>
       </div>
@@ -2072,6 +2104,7 @@
   // Teclado del ordenador (una octava desde Do central) para probar sin el piano
   const KEYMAP = { a:60, w:61, s:62, e:63, d:64, f:65, t:66, g:67, y:68, h:69, u:70, j:71, k:72 };
   window.addEventListener('keydown', ev => {
+    if (ev.key === 'Escape' && !$('eqEditor').hidden) { eqCloseEditor(); return; }
     if (ev.key === 'Escape' && !$('pianoroll').hidden) { prClose(); return; }
     if (!$('pianoroll').hidden) {
       const ctrl = ev.ctrlKey || ev.metaKey, k = ev.key.toLowerCase();
@@ -3722,11 +3755,37 @@
     }
   });
   $('lpQuant').addEventListener('change', e => { quantizeGrid = parseFloat(e.target.value); saveLooper(); });
+  // ---------- Overlay del editor de EQ ----------
+  const eqCanvas = $('eqCanvas');
+  let eqSelBand = -1, eqRAF = 0;
+  function eqFrame() {
+    if ($('eqEditor').hidden) { eqRAF = 0; return; }
+    if (typeof eqDraw === 'function') eqDraw();
+    eqRAF = requestAnimationFrame(eqFrame);
+  }
+  function eqOpenEditor() {
+    ensureAudio();
+    store.eq.preset = 'manual'; saveStore();
+    refreshEqUI();
+    eqApply(eqSpecFromStore());            // construye las 8 bandas
+    eqSelBand = -1;
+    $('eqPreamp').value = eqManual().preamp || 0; $('eqPreampVal').textContent = ($('eqPreamp').value | 0) + ' dB';
+    if (typeof eqBuildBands === 'function') eqBuildBands();
+    $('eqEditor').hidden = false;
+    if (!eqRAF) eqRAF = requestAnimationFrame(eqFrame);
+  }
+  function eqCloseEditor() {
+    $('eqEditor').hidden = true;
+    if (eqRAF) { cancelAnimationFrame(eqRAF); eqRAF = 0; }
+  }
+  $('eqOpen').addEventListener('click', eqOpenEditor);
+  $('eqEdClose').addEventListener('click', eqCloseEditor);
   // Rellena el desplegable de EQ (presets + perfil importado) y selecciona el activo.
   function refreshEqUI() {
     const sel = $('eqPreset'); if (!sel) return;
     let html = '';
     for (const k in EQ_PRESETS) html += '<option value="' + k + '">' + EQ_PRESETS[k].label + '</option>';
+    html += '<option value="manual">Manual (editor)</option>';
     const cust = store.eq && store.eq.custom;
     if (cust) html += '<option value="custom">Perfil: ' + (cust.name || 'importado') + '</option>';
     sel.innerHTML = html;
