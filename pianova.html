@@ -784,6 +784,24 @@
     return buf;
   }
   function masterDest() { return masterIn || (actx && actx.destination); }
+  // ---------- Transporte: reloj de audio + conversión de duración (reproducción fluida) ----------
+  // Adelanto del agendador (segundos): se programan las notas ~100 ms antes de que suenen.
+  const LOOKAHEAD_SEC = 0.1;
+  // Duración en beats -> segundos al bpm dado (mínimo 0.02s para no crear notas de longitud nula).
+  function durBeatsToSec(durBeats, bpm) { return Math.max(0.02, durBeats * (60 / bpm)); }
+  // Reloj de transporte: la posición (en beats) se deriva de actx.currentTime contra un ancla,
+  // así un tirón de imagen no mueve el ritmo. nowFn es inyectable para poder testear.
+  function makeTransport(nowFn) {
+    let t0 = 0, b0 = 0, _bpm = 120;
+    const now = nowFn || (() => actx.currentTime);
+    return {
+      anchor(beat, bpm) { t0 = now(); b0 = beat; _bpm = bpm; },
+      beatNow() { return b0 + (now() - t0) * (_bpm / 60); },
+      timeForBeat(beat) { return t0 + (beat - b0) * (60 / _bpm); },
+      setBpm(bpm) { const b = this.beatNow(); t0 = now(); b0 = b; _bpm = bpm; },
+      get bpm() { return _bpm; }
+    };
+  }
   function setupMasterBus() {
     masterIn = actx.createGain();
     fxHP = actx.createBiquadFilter(); fxHP.type = 'highpass'; fxHP.frequency.value = 20;
