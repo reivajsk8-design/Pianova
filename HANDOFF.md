@@ -2,7 +2,14 @@
 
 Snapshot para retomar el proyecto en otra sesión (humana o con Claude Code).
 
-**Versión:** v1.24 (cabecera de Aprender más compacta: botones a icono)
+**Versión:** v1.25 (bucle A–B a iconos A/B/✕ al extremo derecho)
+
+**Bucle A–B compacto (v1.25):** los botones del bucle de la cabecera de Aprender pasan de texto
+("Inicio aquí/Fin aquí/Quitar bucle") a iconos **A / B / ✕** (`.lnIcon`, con `title=` descriptivo),
+dentro de un grupo `.tpCol .lnLoop` con etiqueta "Bucle A–B". El separador previo lleva
+`margin-left:auto` (`.lnLoopSep`) para empujar separador + grupo al **extremo derecho** de la barra.
+`#loopInfo` se mantiene (más pequeño, `max-width:150px`). IDs intactos (`loopStart`/`loopEnd`/
+`loopClear`/`loopInfo`); el JS solo togglea `.disabled` y el texto de info, no el de los botones.
 
 **Cabecera compacta (v1.24):** pulido de la v1.23. **Empezar** pasa a icono redondo **▶**
 (`.lnStart`, 46×42, amber, `border-radius:50%`) y **Reiniciar** a icono cuadrado **↻**

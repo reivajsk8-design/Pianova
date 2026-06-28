@@ -82,6 +82,10 @@
     align-items:center; justify-content:center; line-height:1}
   .lnStart + .lnIcon{margin-left:7px}
   .lnSongRow{display:flex; align-items:center; gap:8px}
+  .lnLoopSep{margin-left:auto}              /* empuja el separador + el bucle A–B al extremo derecho */
+  .lnLoop .loopbar{gap:6px}
+  .lnLoop .loopinfo{font-size:11px; max-width:150px; line-height:1.15}
+  #loopStart{font-weight:700}               /* la "A" del inicio resalta */
   .tabs{display:flex; gap:6px}
   .tab{border:1px solid var(--line); background:var(--panel); color:var(--muted)}
   .tab:hover{border-color:#3a4153; color:var(--ink)}
@@ -478,12 +482,14 @@
         <option value="full" selected>Completo</option>
       </select>
     </div>
-    <span class="tpSep"></span>
-    <div class="loopbar" id="loopbar">
-      <button id="loopStart">Inicio aquí</button>
-      <button id="loopEnd" disabled>Fin aquí</button>
-      <button id="loopClear" disabled>Quitar bucle</button>
-      <span class="loopinfo" id="loopInfo"></span>
+    <span class="tpSep lnLoopSep"></span>
+    <div class="tpCol lnLoop"><span class="tpLab">Bucle A–B</span>
+      <div class="loopbar" id="loopbar">
+        <button id="loopStart" class="lnIcon" title="Marcar el inicio del bucle aquí">A</button>
+        <button id="loopEnd" class="lnIcon" disabled title="Marcar el fin del bucle aquí">B</button>
+        <button id="loopClear" class="lnIcon" disabled title="Quitar el bucle">✕</button>
+        <span class="loopinfo" id="loopInfo"></span>
+      </div>
     </div>
     <input type="file" id="midiFile" accept=".mid,.midi" hidden>
   </div>
@@ -590,7 +596,7 @@
   'use strict';
 
   // ---------- Configuración ----------
-  const VERSION = 'v1.24';             // versión visible (cabecera de Aprender más compacta, botones a icono)
+  const VERSION = 'v1.25';             // versión visible (bucle A–B a iconos A/B/✕ al extremo derecho)
   let LOW = 60, HIGH = 84;              // rango del teclado (se ajusta por canción)
   const LOOKAHEAD = 4.2;                // beats visibles por encima de la línea
   const SOLFEGE = ['Do','Do#','Re','Re#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'];

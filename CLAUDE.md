@@ -216,6 +216,8 @@ App web (un solo archivo HTML) para aprender piano con notas que caen estilo Syn
   **Acordes** · barra de bucle A–B. El tutorial (`TOUR`) apunta a `#mode`. **Compacta (v1.24):**
   Empezar/Reiniciar/.mid son **iconos** (`.lnStart` ▶ redondo amber; `.lnIcon` ↻ y 📂 cuadrados;
   `title=` conserva el texto); nombres de modo cortos; márgenes ajustados para no solapar.
+  **Bucle A–B (v1.25):** sus botones también son iconos **A / B / ✕** en un grupo `.lnLoop` con
+  etiqueta, empujado al **extremo derecho** (`.lnLoopSep{margin-left:auto}`).
 - **Modo Reto (juego):** la melodía cae **a tempo del nivel** (no espera); aciertas si tocas a
   tiempo (ventana ±`RETO_WINDOW`). `levelTempo(L)` = `base*(0.5+0.1*L)` (L1≈60%…L8≈130%). Superar
   ≥85% sube de nivel (más tempo). Puntuación + combo + estrellas; `retoFinish` muestra `#retoEnd`.
