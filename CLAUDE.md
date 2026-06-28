@@ -48,7 +48,8 @@ App web (un solo archivo HTML) para aprender piano con notas que caen estilo Syn
    hecha** — Echo, Stereo Echo, Reflector, Reverberator (todos nativos); **Tanda 3 Modulación hecha** —
    Tremolo, AutoPanner, Chorus/Flanger, Rotary Speaker, Fractal Doubler (el marco ya para los LFO en
    dispose); **Tanda 4 Dinámica hecha** — Scaling Limiter, Dynamics estéreo/mono, DeEsser (todos nativos
-   con DynamicsCompressorNode); pendientes: Color/EQ, Tono)* · **F3** DAW/groovebox (canales, step-grid,
+   con DynamicsCompressorNode); **Tanda 5 Color/EQ hecha** — TubeWarmth y Sigmoid (WaveShaper), Equalizer
+   y Equalizer/BW (BiquadFilter); queda solo la Tanda 6 Tono)* · **F3** DAW/groovebox (canales, step-grid,
    patrones/song mode, solo/pan, swing, MIDI) · **F4** módulo Aprender · **F5** conmutar el sitio a la
    app nueva. Ver `studio/` y los specs/plans en `docs/superpowers/`.
 
