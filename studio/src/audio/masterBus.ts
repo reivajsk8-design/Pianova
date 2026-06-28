@@ -1,10 +1,33 @@
-// Bus maestro mínimo: masterIn (entrada) -> destino. Aquí se colgarán EQ/efectos/limitador en fases
-// siguientes (misma forma que en pianova.html: masterIn / masterDest).
+// Bus maestro: masterIn -> limitador -> makeup/pre -> soft-clipper (tanh) -> final -> destino.
+// Portado de pianova.html (misma pared anti-clipping con potencia). Aquí se colgarán EQ/efectos luego.
 let masterIn: GainNode | null = null;
+
+const SOFTCLIP_DRIVE = 2.5;
+const MASTER_MAKEUP = 2.5;
+
+// Curva tanh(drive·x) sobre [-1,1]: satura suave y la salida nunca pasa de ~tanh(drive) (<1).
+export function makeSoftClipCurve(n: number, drive: number): Float32Array {
+  const c = new Float32Array(n);
+  for (let i = 0; i < n; i++) { const x = (i / (n - 1)) * 2 - 1; c[i] = Math.tanh(drive * x); }
+  return c;
+}
 
 export function setupMasterBus(actx: AudioContext): void {
   masterIn = actx.createGain();
-  masterIn.connect(actx.destination);
+  const limiter = actx.createDynamicsCompressor();
+  limiter.threshold.value = -6; limiter.knee.value = 0; limiter.ratio.value = 20;
+  limiter.attack.value = 0.003; limiter.release.value = 0.25;
+  const clipPre = actx.createGain();
+  clipPre.gain.value = MASTER_MAKEUP / SOFTCLIP_DRIVE;   // makeup + drive antes del shaper
+  const clip = actx.createWaveShaper();
+  clip.curve = makeSoftClipCurve(2048, SOFTCLIP_DRIVE) as Float32Array<ArrayBuffer>;
+  clip.oversample = '4x';
+  const final = actx.createGain();
+  masterIn.connect(limiter);
+  limiter.connect(clipPre);
+  clipPre.connect(clip);
+  clip.connect(final);
+  final.connect(actx.destination);
 }
 
 export function masterDest(): AudioNode {
