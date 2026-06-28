@@ -72,12 +72,16 @@
   #lpMetroSlot .fader{width:auto} #lpMetroSlot .fTrack{height:34px} #lpMetroSlot .fVal,#lpMetroSlot .fLab{display:none}
   .tpTools{display:flex; gap:8px; margin-left:auto}
   /* Cabecera "pro" de Aprender (reutiliza .tpCol/.tpLab/.tpSep/.tpBpm del transporte) */
-  .lnBar{display:flex; align-items:center; gap:0; flex-wrap:wrap}
-  .lnBar .tpSep{width:1px; height:40px; background:var(--line); margin:0 12px}
+  .lnBar{display:flex; align-items:center; gap:0; flex-wrap:wrap; row-gap:8px}
+  .lnBar .tpSep{width:1px; height:38px; background:var(--line); margin:0 9px}
   .lnMode{font-size:13px; font-weight:600}
-  .lnStart{background:var(--amber); color:#1a1206; border-color:var(--amber); font-weight:700; padding:8px 14px}
-  .lnBtn{padding:7px 11px}
-  .lnSongRow{display:flex; align-items:center; gap:6px}
+  .lnStart{background:var(--amber); color:#1a1206; border-color:var(--amber); font-weight:700;
+    width:46px; height:42px; padding:0; border-radius:50%; font-size:17px; display:inline-flex;
+    align-items:center; justify-content:center; line-height:1}
+  .lnIcon{width:40px; height:40px; padding:0; border-radius:10px; font-size:16px; display:inline-flex;
+    align-items:center; justify-content:center; line-height:1}
+  .lnStart + .lnIcon{margin-left:7px}
+  .lnSongRow{display:flex; align-items:center; gap:8px}
   .tabs{display:flex; gap:6px}
   .tab{border:1px solid var(--line); background:var(--panel); color:var(--muted)}
   .tab:hover{border-color:#3a4153; color:var(--ink)}
@@ -432,16 +436,16 @@
   <div class="controls lnBar">
     <div class="tpCol"><span class="tpLab">Modo</span>
       <select id="mode" class="lnMode" aria-label="Modo de aprendizaje">
-        <option value="practice">Practicar · espera a que toques</option>
-        <option value="playalong">Acompañar · espera a que toques</option>
-        <option value="listen">Escuchar · canción completa</option>
-        <option value="reto">Reto · supérate</option>
+        <option value="practice">Practicar</option>
+        <option value="playalong">Acompañar</option>
+        <option value="listen">Escuchar</option>
+        <option value="reto">Reto</option>
         <option value="free">Tocar libre</option>
       </select>
     </div>
     <span class="tpSep"></span>
-    <button id="start" class="lnStart" title="Empezar">▶ Empezar</button>
-    <button id="reset" class="lnBtn" title="Reiniciar">↻ Reiniciar</button>
+    <button id="start" class="lnStart" title="Empezar">▶</button>
+    <button id="reset" class="lnIcon" title="Reiniciar">↻</button>
     <span class="tpSep"></span>
     <div class="tpCol"><span class="tpLab">Tempo</span>
       <span class="tpBpm" id="lnBpmWrap" title="Doble-clic para escribir · arrastrar ↕ para cambiar"><b id="lnBpmNum">80</b> BPM</span>
@@ -456,7 +460,7 @@
           <option value="twinkle">Estrellita</option>
           <option value="ode">Himno de la Alegría</option>
         </select>
-        <button id="openMidi" class="lnBtn" title="Abrir un .mid">📂 .mid</button>
+        <button id="openMidi" class="lnIcon" title="Abrir un archivo .mid">📂</button>
       </div>
     </div>
     <span class="tpSep"></span>
@@ -586,7 +590,7 @@
   'use strict';
 
   // ---------- Configuración ----------
-  const VERSION = 'v1.23';             // versión visible (cabecera pro de Aprender)
+  const VERSION = 'v1.24';             // versión visible (cabecera de Aprender más compacta, botones a icono)
   let LOW = 60, HIGH = 84;              // rango del teclado (se ajusta por canción)
   const LOOKAHEAD = 4.2;                // beats visibles por encima de la línea
   const SOLFEGE = ['Do','Do#','Re','Re#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'];

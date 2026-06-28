@@ -213,7 +213,9 @@ App web (un solo archivo HTML) para aprender piano con notas que caen estilo Syn
   del Looper (reutiliza `.tpCol/.tpLab/.tpSep/.tpBpm`): **Modo** (desplegable) · **▶ Empezar** /
   **↻ Reiniciar** · **Tempo = BPM grande editable** (`#lnBpmNum`/`setLnBpm`, doble-clic=prompt,
   arrastrar ↕; `#tempo` queda oculto como fuente de verdad) · **Canción** + **📂 .mid** · **Manos** ·
-  **Acordes** · barra de bucle A–B. El tutorial (`TOUR`) apunta a `#mode`.
+  **Acordes** · barra de bucle A–B. El tutorial (`TOUR`) apunta a `#mode`. **Compacta (v1.24):**
+  Empezar/Reiniciar/.mid son **iconos** (`.lnStart` ▶ redondo amber; `.lnIcon` ↻ y 📂 cuadrados;
+  `title=` conserva el texto); nombres de modo cortos; márgenes ajustados para no solapar.
 - **Modo Reto (juego):** la melodía cae **a tempo del nivel** (no espera); aciertas si tocas a
   tiempo (ventana ±`RETO_WINDOW`). `levelTempo(L)` = `base*(0.5+0.1*L)` (L1≈60%…L8≈130%). Superar
   ≥85% sube de nivel (más tempo). Puntuación + combo + estrellas; `retoFinish` muestra `#retoEnd`.

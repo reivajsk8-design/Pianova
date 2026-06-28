@@ -2,7 +2,15 @@
 
 Snapshot para retomar el proyecto en otra sesión (humana o con Claude Code).
 
-**Versión:** v1.23 (cabecera pro de Aprender: modos en desplegable + barra estilo Looper)
+**Versión:** v1.24 (cabecera de Aprender más compacta: botones a icono)
+
+**Cabecera compacta (v1.24):** pulido de la v1.23. **Empezar** pasa a icono redondo **▶**
+(`.lnStart`, 46×42, amber, `border-radius:50%`) y **Reiniciar** a icono cuadrado **↻**
+(`.lnIcon`, 40×40); **📂 .mid** también queda como icono **📂** (`.lnIcon`). Los nombres de los
+modos en `#mode` se acortan (Practicar/Acompañar/Escuchar/Reto/Tocar libre, sin coletillas). Se
+ajustan márgenes para que no se solape: separadores `.lnBar .tpSep{margin:0 9px}`, `row-gap:8px`
+al envolver y `.lnStart + .lnIcon{margin-left:7px}` entre ▶ y ↻. Solo HTML/CSS; `title=` conserva
+el texto largo como tooltip. Sin cambios de lógica.
 
 **Cabecera pro de Aprender (v1.23):** la fila de controles de la pantalla Aprender se rediseñó al
 estilo del transporte del Looper (`.lnBar`, reutilizando `.tpCol/.tpLab/.tpSep/.tpBpm`). Los **modos**
