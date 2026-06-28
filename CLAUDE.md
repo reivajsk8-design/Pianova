@@ -135,9 +135,13 @@ App web (un solo archivo HTML) para aprender piano con notas que caen estilo Syn
   `{midi,startBeat,dur}`. Botón `#openMidi` + input `#midiFile`.
 - **Looper / caja de ritmos:** pestaña aparte (`tab='looper'`). Estado en `lp` (**8 canales**,
   reloj `lp.beat`, grabación con cuenta de entrada). Cada canal tiene **sonido** (spec
-  `'synth:<preset>'` | `'sf:<nombre>'` | `'drum:<grupo>'`) y **volumen** (`vol`). `playChannelSound()`
-  enruta: synth (`synthNoteOn` con `gainMul`), real (`sfCache`/`ensureSoundfont`, varios a la vez:
-  violín + piano…), batería (one-shot del `drumKit`); el volumen escala velocity/pico. `lpTick`,
+  `'synth:<preset>'` | `'sf:<nombre>'` | `'drum:<grupo>'` | `'synthx'` sinte editable) y **volumen** (`vol`).
+  **Sinte editable por canal (v1.36):** sonido `'synthx'` permite editar osciladores (blend seno/cuadrada/sierra),
+  ADSR, filtro LP/BP y resonancia; motor `synthVoiceAdj` reutiliza `voices`/`synthStopAt` agendado; editor
+  overlay `#synthEd` con ✏️ por canal; persistido en `store.looper`. Los 5 presets synth fijos siguen
+  disponibles. `playChannelSound()` enruta: synth/synthx (`synthNoteOn`/`synthVoiceAdj` con `gainMul`), real
+  (`sfCache`/`ensureSoundfont`, varios a la vez: violín + piano…), batería (one-shot del `drumKit`); el
+  volumen escala velocity/pico. `lpTick`,
   `lpCapture`, `lpPlayback`, `lpDraw`. **Batería real TR-808** vía `smplr` `DrumMachine`
   (`loadDrumKit`, `getGroupNames()`). Los **pads** (canal 10) pasan al looper. Sonido de canal
   especial **`'drumkit'`** (drum rack): cada nota/pad dispara un tambor distinto vía mapa General

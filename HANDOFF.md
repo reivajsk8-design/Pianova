@@ -2,7 +2,17 @@
 
 Snapshot para retomar el proyecto en otra sesión (humana o con Claude Code).
 
-**Versión:** v1.35 (EQ gráfico editable estilo EQ Eight)
+**Versión:** v1.36 (Sinte editable por canal en el Looper)
+
+**Sinte editable por canal (v1.36):** cada canal del Looper puede asignar sonido `'synthx'` (sinte
+editable) en lugar de los 5 presets fijos. El objeto `channel.synth` almacena parámetros: **osc blend**
+(mix seno/cuadrada/sierra %), **ADSR** (attack, decay, sustain nivel/duración, release), **filtro LP/BP**
+(tipo, corte, resonancia Q). Motor `synthVoiceAdj` reutiliza el contrato de `synthNoteOn` (3 osciladores →
+ADSR → biquad → `masterDest`), agendado con `synthStopAt`/`voices` sin cambios. Rama `synthx` en
+`playChannelSound`. Editor overlay `#synthEd` (prefijo `sy*`, abierto con ✏️ en canales synthx, botón
+"▶ Probar" para test) permite editar todos los parámetros en vivo. Persistencia en `store.looper`
+(`saveLooper`/`restoreLooper`). Inspirado en `RFullum/GrooveBox`. Los 5 presets synth fijos siguen
+disponibles.
 
 **EQ gráfico editable (v1.35):** editor visual de 8 bandas sobre el motor v1.34. `store.eq.manual` guarda
 los ajustes del preset `'manual'` (mapeo estable de 8 biquads; cuando una banda está apagada, ganancia = 0).
