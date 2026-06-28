@@ -3,3 +3,4 @@ import './gain';
 import './echo';
 import './stereo-echo';
 import './reflector';
+import './reverb';
