@@ -206,6 +206,15 @@
   .eqEdBand .eqBtn{width:30px; height:30px; padding:0; border-radius:8px; font-weight:700}
   .eqEdBand .eqBtn.on{background:var(--amber); color:#1a1306; border-color:var(--amber)}
   .eqEdBand select{font-size:11px; padding:2px 4px}
+  #synthEd{position:fixed; inset:0; z-index:1200; background:rgba(8,10,14,.92); display:none}
+  #synthEd:not([hidden]){display:flex}
+  .synthEdPanel{margin:auto; width:min(720px,96vw); max-height:92vh; overflow:auto; background:var(--panel);
+    border:1px solid var(--line); border-radius:16px; display:flex; flex-direction:column; padding:14px; gap:12px}
+  .synthEdHead{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+  .synthEdBody{display:flex; flex-direction:column; gap:14px}
+  .seGroup{display:flex; flex-direction:column; gap:6px; border:1px solid var(--line); border-radius:12px; padding:10px}
+  .seRow{display:flex; align-items:center; gap:10px; font-size:13px; color:var(--ink)}
+  .seRow input[type=range]{flex:1}
   .fxLearn{padding:2px 6px; font-size:12px; line-height:1}
   .fxLearn.assigned{border-color:var(--green); color:var(--green)}
   .fxLearn.learning{background:var(--amber); color:#1a1306; border-color:var(--amber)}
@@ -477,6 +486,35 @@
       </div>
       <div class="eqEdCanvasWrap"><canvas id="eqCanvas"></canvas></div>
       <div class="eqEdBands" id="eqEdBands"></div>
+    </div>
+  </div>
+
+  <div id="synthEd" hidden>
+    <div class="synthEdPanel">
+      <div class="synthEdHead">
+        <b>Sinte · Canal <span id="synthEdChNum">1</span></b>
+        <div class="grow"></div>
+        <button id="synthEdTest">▶ Probar</button>
+        <button id="synthEdClose" class="primary">✕ Cerrar</button>
+      </div>
+      <div class="synthEdBody">
+        <div class="seGroup"><span class="eqEdLab">Osciladores</span>
+          <label class="seRow">Seno <input type="range" id="sySine" min="0" max="1" step="0.01"></label>
+          <label class="seRow">Cuadrada <input type="range" id="sySquare" min="0" max="1" step="0.01"></label>
+          <label class="seRow">Sierra <input type="range" id="sySaw" min="0" max="1" step="0.01"></label>
+        </div>
+        <div class="seGroup"><span class="eqEdLab">Envolvente (ADSR)</span>
+          <label class="seRow">Ataque <input type="range" id="syA" min="0" max="3" step="0.01"></label>
+          <label class="seRow">Decay <input type="range" id="syD" min="0" max="3" step="0.01"></label>
+          <label class="seRow">Sustain <input type="range" id="syS" min="0" max="1" step="0.01"></label>
+          <label class="seRow">Release <input type="range" id="syR" min="0" max="3" step="0.01"></label>
+        </div>
+        <div class="seGroup"><span class="eqEdLab">Filtro</span>
+          <label class="seRow">Tipo <select id="syFilter"><option value="lowpass">Paso bajo</option><option value="bandpass">Paso banda</option></select></label>
+          <label class="seRow">Corte <input type="range" id="syCut" min="20" max="20000" step="1"></label>
+          <label class="seRow">Resonancia <input type="range" id="syQ" min="0.3" max="20" step="0.1"></label>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -817,6 +855,45 @@
     }
     store.samples = out; saveStore();
   }
+
+  // ---------- Editor del sinte por canal ----------
+  let synthEdCh = -1;
+  function synthEdFill() {
+    const p = lp.channels[synthEdCh] && lp.channels[synthEdCh].synth; if (!p) return;
+    $('synthEdChNum').textContent = synthEdCh + 1;
+    $('sySine').value = p.sine; $('sySquare').value = p.square; $('sySaw').value = p.saw;
+    $('syA').value = p.attack; $('syD').value = p.decay; $('syS').value = p.sustain; $('syR').value = p.release;
+    $('syFilter').value = p.filterType; $('syCut').value = p.cutoff; $('syQ').value = p.resonance;
+  }
+  function openSynthEd(ch) {
+    if (!lp.channels[ch]) return;
+    if (!lp.channels[ch].synth) lp.channels[ch].synth = synthDefault();
+    synthEdCh = ch; synthEdFill(); $('synthEd').hidden = false;
+  }
+  function closeSynthEd() { $('synthEd').hidden = true; synthEdCh = -1; saveLooper(); }
+  // Conectar cada slider/selector a channel.synth (en vivo, persistido debounced)
+  (function () {
+    const map = { sySine: ['sine', clamp01], sySquare: ['square', clamp01], sySaw: ['saw', clamp01],
+      syA: ['attack', clampTime], syD: ['decay', clampTime], syS: ['sustain', clamp01], syR: ['release', clampTime],
+      syCut: ['cutoff', clampHz], syQ: ['resonance', clampQ] };
+    for (const id in map) {
+      const el = $(id); if (!el) continue;
+      el.addEventListener('input', () => {
+        const p = lp.channels[synthEdCh] && lp.channels[synthEdCh].synth; if (!p) return;
+        p[map[id][0]] = map[id][1](parseFloat(el.value)); saveLooperDebounced();
+      });
+    }
+    const ft = $('syFilter'); if (ft) ft.addEventListener('change', () => {
+      const p = lp.channels[synthEdCh] && lp.channels[synthEdCh].synth; if (!p) return;
+      p.filterType = (ft.value === 'bandpass') ? 'bandpass' : 'lowpass'; saveLooperDebounced();
+    });
+    const tb = $('synthEdTest'); if (tb) tb.addEventListener('click', () => {
+      ensureAudio(); const p = lp.channels[synthEdCh] && lp.channels[synthEdCh].synth; if (!p) return;
+      synthVoiceAdj(60, 0.9, p, (lp.channels[synthEdCh].vol != null ? lp.channels[synthEdCh].vol : 1), null);
+      setTimeout(() => silence(60), 600);
+    });
+    const cb = $('synthEdClose'); if (cb) cb.addEventListener('click', closeSynthEd);
+  })();
 
   // ---------- Bus maestro de efectos (filtro + delay) ----------
   let masterIn = null, fxHP = null, fxLP = null, fxDelay = null, fxFb = null, fxWet = null, masterOut = null;
@@ -2151,6 +2228,7 @@
   // Teclado del ordenador (una octava desde Do central) para probar sin el piano
   const KEYMAP = { a:60, w:61, s:62, e:63, d:64, f:65, t:66, g:67, y:68, h:69, u:70, j:71, k:72 };
   window.addEventListener('keydown', ev => {
+    if (ev.key === 'Escape' && !$('synthEd').hidden) { closeSynthEd(); return; }
     if (ev.key === 'Escape' && !$('eqEditor').hidden) { eqCloseEditor(); return; }
     if (ev.key === 'Escape' && !$('pianoroll').hidden) { prClose(); return; }
     if (!$('pianoroll').hidden) {
@@ -4081,7 +4159,9 @@
       volLearn = (volLearn === i) ? null : i;          // clic de nuevo = cancelar
       refreshVolLearnUI();
     } else if (ev.target.dataset.edit != null) {
-      openSampleEditor(+ev.target.dataset.edit);
+      const i = +ev.target.dataset.edit;
+      if (lp.channels[i] && lp.channels[i].sound === 'synthx') openSynthEd(i);
+      else openSampleEditor(i);
     } else {
       // Clic en la cabecera (nombre, fondo, selector…) = seleccionar ese canal para auditarlo
       const head = ev.target.closest('.lpHead');
