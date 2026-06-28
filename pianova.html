@@ -802,6 +802,32 @@
       get bpm() { return _bpm; }
     };
   }
+  // Notas a agendar en (fromBeat, toBeat] para una secuencia lineal (Escuchar). startIdx evita
+  // recorrer desde el principio cada vez. Devuelve las entradas y el índice de la primera no agendada.
+  function dueLinear(notes, fromBeat, toBeat, startIdx) {
+    const entries = []; let i = startIdx;
+    while (i < notes.length && notes[i].startBeat <= toBeat) {
+      if (notes[i].startBeat > fromBeat) entries.push({ note: notes[i], beat: notes[i].startBeat });
+      i++;
+    }
+    return { entries, nextIdx: i };
+  }
+  // Notas a agendar en (fromAbs, toAbs] para un bucle de 'total' beats (Looper). Las posiciones de
+  // nota están en [0,total); se convierten a beats ABSOLUTOS sumando vuelta*total, así nunca se
+  // re-disparan y se ordenan por instante.
+  function dueLoop(notes, fromAbs, toAbs, total) {
+    const out = [];
+    if (total <= 0 || toAbs <= fromAbs) return out;
+    const vFrom = Math.floor(fromAbs / total), vTo = Math.floor(toAbs / total);
+    for (let v = vFrom; v <= vTo; v++) {
+      for (const n of notes) {
+        const abs = v * total + n.startBeat;
+        if (abs > fromAbs && abs <= toAbs) out.push({ note: n, beat: abs });
+      }
+    }
+    out.sort((a, b) => a.beat - b.beat);
+    return out;
+  }
   function setupMasterBus() {
     masterIn = actx.createGain();
     fxHP = actx.createBiquadFilter(); fxHP.type = 'highpass'; fxHP.frequency.value = 20;
