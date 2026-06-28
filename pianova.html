@@ -918,6 +918,16 @@
   // Ganancia de sonidos: 1 = 100% (normal); hasta GAIN_MAX = 3 (300%) para subir flojos.
   const GAIN_MAX = 3;
   function clampGain(v) { return Math.max(0, Math.min(GAIN_MAX, v)); }
+
+  // ---------- Sinte editable por canal (osc blend + ADSR + filtro) ----------
+  function clamp01(v) { return Math.max(0, Math.min(1, v)); }
+  function clampHz(v) { return Math.max(20, Math.min(20000, v)); }
+  function clampQ(v) { return Math.max(0.3, Math.min(20, v)); }
+  function clampTime(v) { return Math.max(0, Math.min(3, v)); }
+  // Parámetros por defecto de un canal "Sinte editable" (un pluck brillante).
+  function synthDefault() { return { sine: 0.6, square: 0.0, saw: 0.4, attack: 0.01, decay: 0.3,
+    sustain: 0.0, release: 0.2, filterType: 'lowpass', cutoff: 6000, resonance: 1 }; }
+
   // Parser de perfiles Equalizer APO (.txt del repo Tal0na/Equalizer-Profiles):
   // 'Preamp: X dB' + 'Filter N: ON PK|LS|HS Fc f Hz Gain g dB Q q'. Decimales con coma. Ignora OFF y
   // tipos no soportados. Devuelve el spec común del EQ.
@@ -1613,6 +1623,7 @@
       const cur = (lp.channels[i] && lp.channels[i].sound) || 'synth:piano';
       let html = '<optgroup label="Sintetizados (offline)">';
       LP_SYNTHS.forEach(o => { html += '<option value="' + o[0] + '">' + o[1] + '</option>'; });
+      html += '<option value="synthx">🎛️ Sinte editable</option>';
       html += '</optgroup><optgroup label="Reales (internet)">';
       LP_REALS.forEach(o => { html += '<option value="' + o[0] + '">' + o[1] + '</option>'; });
       html += '</optgroup>';
@@ -3199,7 +3210,7 @@
     store.looper = {
       bars: lp.bars, tempo: lpTempoEl.value, quant: quantizeGrid,
       channels: lp.channels.map(c => ({ notes: c.notes, sound: c.sound || 'synth:piano',
-                                        muted: !!c.muted, vol: c.vol != null ? c.vol : 0.85 }))
+                                        muted: !!c.muted, vol: c.vol != null ? c.vol : 0.85, synth: c.synth || null }))
     };
     saveStore();
   }
@@ -3215,6 +3226,7 @@
       lp.channels[i].sound = (c.sound === 'piano' || !c.sound) ? 'synth:piano' : c.sound;
       lp.channels[i].muted = !!c.muted;
       lp.channels[i].vol = (c.vol != null) ? c.vol : 0.85;
+      lp.channels[i].synth = c.synth || null;
     });
     rebuildChannelSoundOptions();
     lp.channels.forEach((c, i) => {
@@ -4056,6 +4068,7 @@
         return;
       }
       lp.channels[+s].sound = val;
+      if (val === 'synthx' && !lp.channels[+s].synth) lp.channels[+s].synth = synthDefault();
       if (val.indexOf('drum') === 0 && !drumKit) loadDrumKit();   // 'drum:x' o 'drumkit'
       else if (val.indexOf('sf:') === 0) ensureSoundfont(val.slice(3)).catch(() => {});
       saveLooper();
