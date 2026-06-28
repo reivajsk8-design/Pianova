@@ -34,6 +34,16 @@ App web (un solo archivo HTML) para aprender piano con notas que caen estilo Syn
    Mantener todo en un archivo mientras sea razonable.
 4. **El modo "Practicar / espera a que toques" es la función estrella.** Cualquier mejora de
    aprendizaje gira en torno a él.
+5. **Giro a "pro" (decidido 2026-06-28):** la app evoluciona hacia un **DAW/groovebox** completo, con
+   el **aprendizaje de instrumentos como un módulo más**. Como `pianova.html` (un archivo, ya >4.000
+   líneas) se queda corto, se **reconstruye en un proyecto modular pro** en la carpeta **`studio/`**
+   (**Vite + TypeScript + Vitest**), **portando** los motores ya probados (audio/transporte, synth,
+   EQ, looper, MIDI) **por fases, sin reescribir a ciegas**. Esto **matiza la decisión 3**: el "un solo
+   archivo" aplica a `pianova.html` (que sigue vivo y publicado hasta la conmutación). **Hoja de ruta:**
+   **F0** cimientos *(hecha)* · **F1** motor de instrumentos *(en curso)* · **F2** suite de efectos
+   **TAP completa** (~19, el usuario los quiere todos) · **F3** DAW/groovebox (canales, step-grid,
+   patrones/song mode, solo/pan, swing, MIDI) · **F4** módulo Aprender · **F5** conmutar el sitio a la
+   app nueva. Ver `studio/` y los specs/plans en `docs/superpowers/`.
 
 ## Cómo ejecutar y probar
 
