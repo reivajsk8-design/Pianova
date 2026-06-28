@@ -848,8 +848,12 @@
     out.sort((a, b) => a.beat - b.beat);
     return out;
   }
+  // Aplica la ganancia activa del instrumento global a su nodo (afecta a sf; synth/sample multiplican).
+  function applyInstGain() { if (instGain) instGain.gain.value = currentInstGain; }
+
   function setupMasterBus() {
     masterIn = actx.createGain();
+    instGain = actx.createGain(); instGain.connect(masterIn);   // instrumento global -> bus maestro
     fxHP = actx.createBiquadFilter(); fxHP.type = 'highpass'; fxHP.frequency.value = 20;
     fxLP = actx.createBiquadFilter(); fxLP.type = 'lowpass'; fxLP.frequency.value = 20000;
     masterOut = actx.createGain();
@@ -939,6 +943,9 @@
   let currentInstrument = { type: 'synth', preset: 'piano' };
   let sfPlayer = null;          // reproductor smplr cargado (instrumento real)
   const sfStops = {};           // midi -> función de parada del reproductor real
+  let instGain = null;          // nodo de ganancia del instrumento global (Aprender/Escuchar)
+  let currentInstGain = 1;      // ganancia activa del instrumento global (1 = 100%)
+  const globalSf = {};          // reproductores sf PROPIOS del global (destino instGain), por nombre
 
   function synthNoteOn(midi, vel, preset, gainMul, when) {
     const freq = 440 * Math.pow(2, (midi - 69) / 12);
@@ -1023,7 +1030,7 @@
     const ts = (sm.trimStart || 0) * dur, te = (sm.trimEnd != null ? sm.trimEnd : 1) * dur;
     const src = actx.createBufferSource(); src.buffer = sm.buffer;
     src.playbackRate.value = pitchRate(midi, sm.base);   // melódico por tecla
-    const g = actx.createGain(); g.gain.value = Math.max(0.0002, 0.9 * (vel == null ? 0.8 : vel));
+    const g = actx.createGain(); g.gain.value = Math.max(0.0002, 0.9 * (vel == null ? 0.8 : vel) * currentInstGain);
     src.connect(g); g.connect(masterDest());
     src.start(0, Math.max(0, ts), Math.max(0.02, te - ts));
     sampleVoices[midi] = { src, g };
@@ -1041,7 +1048,7 @@
     } else if (currentInstrument.type === 'sf' && sfPlayer) {
       try { sfStops[midi] = sfPlayer.start({ note: midi, velocity: Math.round(vel * 127) }); } catch (e) {}
     } else {
-      synthNoteOn(midi, vel, SYNTH[currentInstrument.preset] || SYNTH.piano);
+      synthNoteOn(midi, vel, SYNTH[currentInstrument.preset] || SYNTH.piano, currentInstGain);
     }
   }
   function silence(midi) {
@@ -1060,13 +1067,13 @@
       if (sm && sm.buffer) {
         const src = actx.createBufferSource(); src.buffer = sm.buffer;
         src.playbackRate.value = Math.pow(2, (midi - (sm.base || 60)) / 12);
-        const g = actx.createGain(); g.gain.value = Math.max(0.0002, 0.9 * (vel == null ? 0.8 : vel));
+        const g = actx.createGain(); g.gain.value = Math.max(0.0002, 0.9 * (vel == null ? 0.8 : vel) * currentInstGain);
         src.connect(g); g.connect(masterDest());
         src.start(when); try { src.stop(when + Math.max(0.05, durSec)); } catch (e) {}
       }
     } else {
       const voice = synthNoteOn(midi, (vel == null ? 0.8 : vel),
-                                SYNTH[currentInstrument.preset] || SYNTH.piano, null, when);
+                                SYNTH[currentInstrument.preset] || SYNTH.piano, currentInstGain, when);
       synthStopAt(voice, when + Math.max(0.05, durSec));
     }
   }
@@ -1093,7 +1100,14 @@
     const myReq = ++sfReqId;
     instInfo.textContent = 'Cargando ' + label + '… (necesita internet)';
     try {
-      const player = await ensureSoundfont(name);
+      ensureAudio();                        // asegura actx + bus (instGain creado en setupMasterBus)
+      let player = globalSf[name];
+      if (!player) {
+        const { Soundfont } = await import('https://esm.sh/smplr@0.26.0');
+        player = Soundfont(actx, { instrument: name, destination: instGain || masterDest() });
+        await player.load;
+        globalSf[name] = player;
+      }
       if (myReq !== sfReqId) return;        // el usuario cambió de instrumento mientras cargaba
       sfPlayer = player;
       currentInstrument = { type: 'sf', name };
@@ -2975,13 +2989,14 @@
 
   // ---------- Persistencia (localStorage) ----------
   const STORE_KEY = 'pianova-v1';
-  let store = { songs: {}, prefs: {}, progress: {} };
+  let store = { songs: {}, prefs: {}, progress: {}, instGain: {} };
   function loadStore() {
     try {
       const raw = localStorage.getItem(STORE_KEY);
       if (raw) {
         const o = JSON.parse(raw);
         store.songs = o.songs || {}; store.prefs = o.prefs || {}; store.progress = o.progress || {};
+        store.instGain = o.instGain || {};
         store.lib = o.lib || null;
         midiMap = o.midi || {};
         volMap = o.volmap || {};
@@ -3084,6 +3099,8 @@
   function applyInstrument(value) {
     if (actx) silenceAll();
     sfReqId++;
+    currentInstGain = (store.instGain && store.instGain[value] != null) ? store.instGain[value] : 1;
+    applyInstGain();
     const parts = value.split(':');
     if (parts[0] === 'sample') {
       const sm = samples[parts[1]];
