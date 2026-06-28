@@ -831,6 +831,7 @@
       { type: 'lowshelf', freq: 100, gain: 5, q: 0.7 }, { type: 'highshelf', freq: 9000, gain: 3, q: 0.7 } ] }
   };
   let eqInput = null, eqNodes = [], currentEq = EQ_PRESETS.plano;
+  let eqAnalyser = null;
 
   // (Re)construye la cadena de EQ: masterIn -> eqInput(preamp) -> bandas -> fxHP. Antes del limitador.
   function buildEq(spec) {
@@ -851,6 +852,24 @@
     last.connect(fxHP);
   }
   function eqApply(spec) { currentEq = spec || EQ_PRESETS.plano; buildEq(currentEq); }
+  // Aplica el slot i del EQ manual al biquad vivo eqNodes[i+1] (sin reconstruir la cadena).
+  function eqUpdateSlot(i) {
+    const node = eqNodes[i + 1]; if (!node || !actx) return;
+    const s = eqManual().slots[i], t = actx.currentTime;
+    if (s.on) {
+      node.type = s.type;
+      node.frequency.setTargetAtTime(s.freq, t, 0.01);
+      node.gain.setTargetAtTime(s.gain, t, 0.01);
+      node.Q.setTargetAtTime(s.q, t, 0.01);
+    } else {
+      node.type = 'peaking'; node.gain.setTargetAtTime(0, t, 0.01);
+    }
+  }
+  // Aplica el preamp del EQ manual al nodo de entrada (eqNodes[0] = eqInput).
+  function eqUpdatePreamp() {
+    if (!eqNodes[0] || !actx) return;
+    eqNodes[0].gain.setTargetAtTime(Math.pow(10, (eqManual().preamp || 0) / 20), actx.currentTime, 0.01);
+  }
   // Resuelve el spec activo a partir de store.eq (preset o perfil importado).
   function eqSpecFromStore() {
     const e = (store && store.eq) || {};
@@ -991,6 +1010,8 @@
     masterClipPre.connect(masterClip);
     masterClip.connect(masterFinal);
     masterFinal.connect(actx.destination);
+    eqAnalyser = actx.createAnalyser(); eqAnalyser.fftSize = 2048; eqAnalyser.smoothingTimeConstant = 0.8;
+    masterFinal.connect(eqAnalyser);     // toma para el espectro del editor (no altera la salida)
     applyFx();
   }
   function applyFx() {
