@@ -40,6 +40,7 @@ export function mountKeyboard(root: HTMLElement, opts: KeyboardOpts): () => void
   kb.addEventListener('pointerdown', e => { const t = e.target as HTMLElement; if (t.dataset.midi) { down(t); t.setPointerCapture?.(e.pointerId); } });
   kb.addEventListener('pointerup', e => { const t = e.target as HTMLElement; if (t.dataset.midi) up(t); });
   kb.addEventListener('pointerleave', e => { const t = e.target as HTMLElement; if (t.dataset.midi) up(t); });
+  kb.addEventListener('pointercancel', e => { const t = e.target as HTMLElement; if (t.dataset.midi) up(t); }); // móvil: el navegador toma el control del gesto
 
   // teclas del ordenador (sin auto-repetición)
   const pressed = new Set<string>();
