@@ -6,7 +6,7 @@ Snapshot para retomar el proyecto en otra sesión (humana o con Claude Code).
 
 **Ecualizador maestro (v1.34):** nueva etapa de ecualización en el bus maestro. `buildEq()` configura
 una cadena `masterIn → eqInput (preamp) → bandas biquad → fxHP`, insertándose **antes** del limitador/
-soft-clipper. Spec común `{preamp, bands}` (array de `{freq, gain, Q}`). **5 presets** en `EQ_PRESETS`
+soft-clipper. Spec común `{preamp, bands}` (array de `{type, freq, gain, q}`). **5 presets** en `EQ_PRESETS`
 (plano, cuerpo, cálido, brillante, loudness). Parser `parseApoEq()` lee perfiles Equalizer APO
 (decimales con coma, ignora OFF y tipos no soportados). UI en "Mezcla maestra": desplegable `#eqPreset`
 + botón `#eqImport` + input `#eqFile` para cargar perfil. `refreshEqUI()` actualiza visualización.
