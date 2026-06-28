@@ -140,18 +140,23 @@ da un compresor de calidad de DAW; AudioWorklet se reserva para el Pitch Shifter
 - **DeEsser** — de-esser por bandas: separa grave (`lowpass`) y agudo (`highpass`), comprime **solo** la
   banda aguda (`DynamicsCompressorNode`) y vuelve a sumar; al subir las sibilancias, esa banda se atenúa.
 
-**Tanda 5 — Color / EQ** (`family: 'color'`)
-- **TubeWarmth (W)** — saturación de válvula (algoritmo TAP de calidez/drive con componente dinámico).
+**Tanda 5 — Color / EQ** (`family: 'color'`) — **(decisión 2026-06-28: toda nativa.)**
+- **TubeWarmth** — **(nativo, no AudioWorklet)** la saturación de válvula es una transferencia estática
+  (memoryless) → `WaveShaper` con curva `tubeSample(x, drive, warmth)` (asimétrica = armónicos pares),
+  regenerada con debounce al cambiar drive/warmth, `oversample='4x'` + dry/wet. La curva es **pura y
+  testeable**.
 - **Sigmoid Booster** — `WaveShaper` con curva **sigmoide** (curva estática → nativo y exacto).
-- **Equalizer** — cadena de `BiquadFilter` (reaprovecha el motor EQ de pianova: bandas peaking/shelf).
-- **Equalizer/BW** — EQ con control de **ancho de banda** (bandwidth → Q) por banda.
+- **Equalizer** — cadena de `BiquadFilter` (3 bandas: low shelf / peaking medios con frecuencia /
+  high shelf).
+- **Equalizer/BW** — banda peaking paramétrica con control de **ancho de banda** (octavas → Q vía
+  `bandwidthToQ`, pura y testeable).
 
 **Tanda 6 — Tono / Generadores** (`family: 'tone'`)
 - **Pitch Shifter (W)** — desplazamiento de tono granular/PSOLA; semitonos + mezcla.
 - **Pink/Fractal Noise (W)** — generador de ruido rosa/fractal (fuente); nivel.
 
-Resumen: **16 nativos** + **3 AudioWorklet** (decisiones 2026-06-28: Reverberator y toda la Dinámica
-pasaron a nativos; AudioWorklet queda para TubeWarmth, Pitch Shifter y Pink/Fractal Noise). Total **19**.
+Resumen: **17 nativos** + **2 AudioWorklet** (decisiones 2026-06-28: Reverberator, toda la Dinámica y
+TubeWarmth pasaron a nativos; AudioWorklet queda para Pitch Shifter y Pink/Fractal Noise). Total **19**.
 
 ## Flujo de datos (resumen)
 ```
