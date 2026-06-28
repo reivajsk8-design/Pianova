@@ -130,12 +130,15 @@ funcional (paso seco), dos puntos de inserción, persistencia + guardar/abrir pr
 - **Rotary Speaker** — simulación Leslie: rotor grave + agudo con LFO de velocidad (lenta/rápida),
   combinando modulación de amplitud, paneo y filtro; nativo.
 
-**Tanda 4 — Dinámica** (`family: 'dyn'`)
+**Tanda 4 — Dinámica** (`family: 'dyn'`) — **(decisión 2026-06-28: toda nativa; el `DynamicsCompressorNode`
+da un compresor de calidad de DAW; AudioWorklet se reserva para el Pitch Shifter de la Tanda 6.)**
 - **Scaling Limiter** — `DynamicsCompressorNode` con ratio alto + makeup (como el bus maestro).
-- **Dynamics (mono) (W)** — compresor/expansor con **curva de transferencia multipunto** (lo propio de
-  TAP); detector RMS + ganancia por la curva.
-- **Dynamics (estéreo) (W)** — igual, enlazando ambos canales.
-- **DeEsser (W)** — detección en banda (sibilancias) y compresión lateral sobre esa banda.
+- **Dynamics (estéreo)** — `DynamicsCompressorNode` con controles completos (umbral/ratio/ataque/release/
+  knee) + makeup; detección estéreo enlazada (la nativa).
+- **Dynamics (mono)** — igual, pero sumando a mono primero (`GainNode` con `channelCount=1`,
+  `channelCountMode='explicit'`) → compresión/salida mono.
+- **DeEsser** — de-esser por bandas: separa grave (`lowpass`) y agudo (`highpass`), comprime **solo** la
+  banda aguda (`DynamicsCompressorNode`) y vuelve a sumar; al subir las sibilancias, esa banda se atenúa.
 
 **Tanda 5 — Color / EQ** (`family: 'color'`)
 - **TubeWarmth (W)** — saturación de válvula (algoritmo TAP de calidez/drive con componente dinámico).
@@ -147,7 +150,8 @@ funcional (paso seco), dos puntos de inserción, persistencia + guardar/abrir pr
 - **Pitch Shifter (W)** — desplazamiento de tono granular/PSOLA; semitonos + mezcla.
 - **Pink/Fractal Noise (W)** — generador de ruido rosa/fractal (fuente); nivel.
 
-Resumen: **13 nativos** + **6 AudioWorklet** (Reverberator pasó a nativo, decisión 2026-06-28). Total **19**.
+Resumen: **16 nativos** + **3 AudioWorklet** (decisiones 2026-06-28: Reverberator y toda la Dinámica
+pasaron a nativos; AudioWorklet queda para TubeWarmth, Pitch Shifter y Pink/Fractal Noise). Total **19**.
 
 ## Flujo de datos (resumen)
 ```
