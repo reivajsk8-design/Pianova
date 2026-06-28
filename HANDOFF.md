@@ -2,7 +2,16 @@
 
 Snapshot para retomar el proyecto en otra sesión (humana o con Claude Code).
 
-**Versión:** v1.30 (reproducción fluida: reloj de audio + adelanto en Escuchar y Looper)
+**Versión:** v1.31 (cabecera superior pro: segmentado, chip de conexión, responsive móvil)
+
+**Cabecera superior pro (v1.31):** el header ahora usa **segmentado de pestañas** (clase `.tabs`/`.tab` en
+Aprender/Looper, solo CSS, sin `<button class="seg">`), **grupo Instrumento** con etiqueta (`.hdrCol` +
+`.hdrLab` = "Instrumento" en gris; `#instrument` limitado a `max-width:46vw` en móvil), **chip de
+conexión** (`.connChip` + `.dot` rojo/verde) que es **un estado visual puro** — toma la clase `.on`
+cuando hay teclado conectado (`bindInputs` y `leave()`), y el DOM interno es fijo (solo 1 render). El
+botón **Ayuda** pasa a icono cuadrado (`.hdrIcon`). En móvil <620px, el chip deja visible solo el punto
+(`.device` dentro de `.connChip` oculto), y `#instInfo` (texto antiguo) también desaparece; el nombre
+del instrumento se ve en el selector mismo.
 
 **Reproducción fluida (v1.30):** el tiempo de reproducción de **Escuchar** y **Looper** ahora va por
 **reloj de audio** (`makeTransport`, posición desde `actx.currentTime`) con **adelanto** (lookahead):
