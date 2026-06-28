@@ -11,3 +11,9 @@ button { font:inherit; cursor:pointer; border:1px solid var(--line); background:
 button:hover { border-color:#3a4153; }
 main { padding:24px 18px; }
 .view { color:var(--muted); font-size:15px; }
+.kb { position:relative; display:flex; height:160px; max-width:720px; margin:18px 0; user-select:none; touch-action:none; }
+.kb-key { box-sizing:border-box; cursor:pointer; }
+.kb-white { flex:1; background:#f3f4f7; border:1px solid #b9bdc7; border-radius:0 0 6px 6px; }
+.kb-white.on { background:var(--amber); }
+.kb-black { position:absolute; top:0; width:calc((100% / var(--whites)) * 0.6); height:62%; background:#1b1f29; border:1px solid #000; border-radius:0 0 5px 5px; z-index:2; }
+.kb-black.on { background:var(--amber); }
