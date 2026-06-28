@@ -104,3 +104,50 @@ export function noteOff(midi: number): void {
 }
 
 export function allNotesOff(): void { Object.keys(voices).forEach(m => noteOff(+m)); }
+
+// Dispara una nota agendada en el tiempo de audio `when` con gate `dur` (para el secuenciador).
+// De usar y tirar: no toca el mapa `voices`, así no interfiere con el teclado en vivo.
+export function triggerAt(midi: number, vel: number, when: number, dur: number, dest?: AudioNode): void {
+  const actx = ensureAudio();
+  const out = dest ?? synthOut ?? masterDest();
+  const preset = SYNTH[currentPreset] ?? SYNTH.piano;
+  const freq = 440 * Math.pow(2, (midi - 69) / 12);
+  const g = actx.createGain();
+  let node: AudioNode = g;
+  if (preset.filter) {
+    const f = actx.createBiquadFilter(); f.type = 'lowpass';
+    f.frequency.setValueAtTime(Math.min(freq * preset.filter.start, preset.filter.startMax), when);
+    f.frequency.exponentialRampToValueAtTime(Math.max(freq * preset.filter.end, preset.filter.endMin), when + preset.filter.time);
+    g.connect(f); node = f;
+  }
+  node.connect(out);
+  const oscs: OscillatorNode[] = [];
+  for (const part of preset.partials) {
+    const o = actx.createOscillator(); o.type = part.type; o.frequency.value = freq * part.ratio;
+    if (part.detune) o.detune.value = part.detune;
+    const pg = actx.createGain(); pg.gain.value = part.gain;
+    o.connect(pg); pg.connect(g); oscs.push(o);
+  }
+  if (preset.vibrato) {
+    const lfo = actx.createOscillator(); lfo.frequency.value = preset.vibrato.rate;
+    const lg = actx.createGain(); lg.gain.value = preset.vibrato.depth;
+    lfo.connect(lg); oscs.forEach(o => lg.connect(o.detune)); oscs.push(lfo);
+  }
+  const peak = Math.max(0.0002, preset.peak[0] + preset.peak[1] * vel);
+  const rel = preset.release ?? 0.18;
+  g.gain.setValueAtTime(0.0001, when);
+  g.gain.exponentialRampToValueAtTime(peak, when + preset.attack);
+  let stopAt: number;
+  if (preset.sustain) {
+    const gateEnd = when + Math.max(dur, preset.attack);
+    g.gain.setValueAtTime(peak, gateEnd);
+    g.gain.exponentialRampToValueAtTime(0.0001, gateEnd + rel);
+    stopAt = gateEnd + rel + 0.03;
+  } else {
+    const decay = preset.decay ?? 1;
+    g.gain.exponentialRampToValueAtTime(0.0001, when + decay);
+    stopAt = when + decay + 0.03;
+  }
+  oscs.forEach(o => o.start(when));
+  oscs.forEach(o => o.stop(stopAt));
+}
