@@ -4,3 +4,8 @@ import './echo';
 import './stereo-echo';
 import './reflector';
 import './reverb';
+import './tremolo';
+import './autopanner';
+import './chorus';
+import './rotary';
+import './fractal-doubler';
