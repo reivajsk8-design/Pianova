@@ -9,3 +9,6 @@ import './autopanner';
 import './chorus';
 import './rotary';
 import './fractal-doubler';
+import './limiter';
+import './dynamics';
+import './deesser';
