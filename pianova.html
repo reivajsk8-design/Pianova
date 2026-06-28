@@ -854,6 +854,7 @@
   // Resuelve el spec activo a partir de store.eq (preset o perfil importado).
   function eqSpecFromStore() {
     const e = (store && store.eq) || {};
+    if (e.preset === 'manual') { const m = eqManual(); return { preamp: m.preamp || 0, bands: manualToBands(m.slots) }; }
     if (e.preset === 'custom' && e.custom) return e.custom;
     return EQ_PRESETS[e.preset] || EQ_PRESETS.plano;
   }
@@ -880,6 +881,31 @@
       if (f) out.bands.push({ type: TYPE[f[1].toUpperCase()], freq: num(f[2]), gain: num(f[3]), q: num(f[4]) });
     });
     return out;
+  }
+  // ---------- EQ gráfico editable (8 bandas) ----------
+  const EQ_FMIN = 20, EQ_FMAX = 20000, EQ_GAIN_RANGE = 15;
+  function freqToX(f, w) { return Math.log(f / EQ_FMIN) / Math.log(EQ_FMAX / EQ_FMIN) * w; }
+  function xToFreq(x, w) { return EQ_FMIN * Math.pow(EQ_FMAX / EQ_FMIN, x / w); }
+  function gainToY(g, h) { return h / 2 * (1 - g / EQ_GAIN_RANGE); }
+  function yToGain(y, h) { return EQ_GAIN_RANGE * (1 - 2 * y / h); }
+  // Una banda apagada se mapea a peaking gain 0 (transparente): la cadena tiene SIEMPRE 8 biquads.
+  function manualToBands(slots) {
+    return slots.map(s => s.on ? { type: s.type, freq: s.freq, gain: s.gain, q: s.q }
+                               : { type: 'peaking', freq: s.freq, gain: 0, q: 1 });
+  }
+  // 8 bandas por defecto (todas apagadas = plano), repartidas como un EQ Eight.
+  function eqDefaultSlots() { return [
+    { on: false, type: 'highpass',  freq: 60,    gain: 0, q: 0.7 },
+    { on: false, type: 'lowshelf',  freq: 120,   gain: 0, q: 0.7 },
+    { on: false, type: 'peaking',   freq: 300,   gain: 0, q: 1 },
+    { on: false, type: 'peaking',   freq: 800,   gain: 0, q: 1 },
+    { on: false, type: 'peaking',   freq: 2000,  gain: 0, q: 1 },
+    { on: false, type: 'peaking',   freq: 5000,  gain: 0, q: 1 },
+    { on: false, type: 'highshelf', freq: 9000,  gain: 0, q: 0.7 },
+    { on: false, type: 'lowpass',   freq: 14000, gain: 0, q: 0.7 } ]; }
+  function eqManual() {
+    if (!store.eq.manual) store.eq.manual = { preamp: 0, slots: eqDefaultSlots() };
+    return store.eq.manual;
   }
   // Reloj de transporte: la posición (en beats) se deriva de actx.currentTime contra un ancla,
   // así un tirón de imagen no mueve el ritmo. nowFn es inyectable para poder testear.
@@ -3063,7 +3089,7 @@
 
   // ---------- Persistencia (localStorage) ----------
   const STORE_KEY = 'pianova-v1';
-  let store = { songs: {}, prefs: {}, progress: {}, instGain: {}, eq: { preset: 'plano', custom: null } };
+  let store = { songs: {}, prefs: {}, progress: {}, instGain: {}, eq: { preset: 'plano', custom: null, manual: { preamp: 0, slots: eqDefaultSlots() } } };
   function loadStore() {
     try {
       const raw = localStorage.getItem(STORE_KEY);
@@ -3072,6 +3098,7 @@
         store.songs = o.songs || {}; store.prefs = o.prefs || {}; store.progress = o.progress || {};
         store.instGain = o.instGain || {};
         store.eq = o.eq || { preset: 'plano', custom: null };
+        if (!store.eq.manual) store.eq.manual = { preamp: 0, slots: eqDefaultSlots() };
         store.lib = o.lib || null;
         midiMap = o.midi || {};
         volMap = o.volmap || {};
