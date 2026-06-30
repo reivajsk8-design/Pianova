@@ -46,15 +46,13 @@ App web (un solo archivo HTML) para aprender piano con notas que caen estilo Syn
    **TAP completa** *(HECHA, v0.8.0: los **19 efectos** en 6 tandas —Delays/Espacio, Modulación, Dinámica,
    Color/EQ, Tono— montables en racks de inserción reutilizables (instrumento y maestro) + guardar/abrir
    proyecto; 18 nativos + 1 AudioWorklet (Pitch Shifter granular). Ver el detalle por tanda en `HANDOFF.md`
-   y los specs/plans)* · **F3** DAW/groovebox (canales, step-grid,
-   patrones/song mode, solo/pan, swing, MIDI) · **F4** módulo Aprender · **F5** conmutar el sitio a la
-   app nueva. **F3 en curso:** sub-tanda 3A hecha (transporte play/stop/BPM + secuenciador de pasos de 1
-   fila) y **3B hecha** (el Estudio es un groovebox: varios canales con instrumento/volumen/pan/mute/solo
-   + rack por canal, secuenciador multi-canal, teclado al canal seleccionado, proyecto v2 + migración
-   v1→v2) y **3C hecha** (batería sintetizada 808 como tipo de canal: bombo/caja/charles/clap/tom);
-   y **3D hecha** (patrones + modo canción: varios patrones que comparten canales, song mode que los
-   encadena, proyecto v3 + migración v2→v3); pendiente solo 3E swing+MIDI. Ver
-   `studio/` y los specs/plans en `docs/superpowers/`.
+   y los specs/plans)* · **F3** DAW/groovebox
+   *(HECHA, v0.13.0: el Estudio es un groovebox — transporte (play/stop/BPM/swing/grabar), canales con
+   instrumento synth o **batería 808** + volumen/pan/mute/solo + **rack de efectos por canal**, secuenciador
+   de pasos multi-canal, **patrones + song mode**, **grabación de pasos en vivo**; proyecto v3 con migración
+   desde F1/F2. Sub-tandas 3A–3E. El MIDI-learn de knobs/transporte quedó como mejora opcional. Detalle por
+   sub-tanda en `HANDOFF.md`)* · **F4** módulo Aprender · **F5** conmutar el sitio a la
+   app nueva. Ver `studio/` y los specs/plans en `docs/superpowers/`.
 
 ## Cómo ejecutar y probar
 
