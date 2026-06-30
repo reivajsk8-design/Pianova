@@ -8,7 +8,7 @@ import { mountRack } from '../ui/rack';
 import '../fx/effects';
 import { ensureWorklets } from '../fx/worklets';
 import { makeTransport } from '../audio/transport';
-import { makeSequencer } from '../daw/sequencer';
+import { makeSequencer, swingOffset } from '../daw/sequencer';
 import { mountTransport } from '../ui/transport';
 import { mountStepGrid } from '../ui/stepgrid';
 import { channelStripHTML } from '../ui/channelstrip';
@@ -16,7 +16,7 @@ import { patternBarHTML } from '../ui/patternbar';
 import { makeChannel, Channel } from '../daw/channel';
 import {
   DawState, ChannelState, InstrumentSpec, defaultChannel, addChannel, removeChannel,
-  updateChannel, toggleStep, findChannel, audibleIds, channelSteps,
+  updateChannel, toggleStep, setStep, findChannel, audibleIds, channelSteps,
   addPattern, removePattern, setCurrentPattern, setSong
 } from '../daw/model';
 import { loadStore, saveStore, downloadProject, readProjectFile, ProjectState } from './store';
@@ -34,6 +34,7 @@ export function mountStudioView(root: HTMLElement): void {
   let playPattern = daw.current;
   let songPos = -1;
   let barStarted = false;
+  let recording = false;
 
   root.innerHTML = `
     <div class="studioBar">
@@ -84,6 +85,14 @@ export function mountStudioView(root: HTMLElement): void {
       const actx = getAudioContext();
       if (audio && actx) audio.trigger(m, v, actx.currentTime);
     } else { routeKeyboardToSelected(); synth.noteOn(m, v); }
+    if (recording && seq.isPlaying()) recordStep(m, v);
+  }
+
+  // Escribe un paso ON (con la nota) en la posición del cabezal del canal seleccionado.
+  function recordStep(m: number, v: number): void {
+    const step = ((Math.round(transport.beatNow() * STEPS_PER_BEAT) % daw.steps) + daw.steps) % daw.steps;
+    daw = setStep(daw, selectedId, step, { on: true, note: m, vel: v });
+    persist(); renderChannels();
   }
   function stopLive(m: number): void {
     const ch = findChannel(daw, selectedId);
@@ -120,7 +129,11 @@ export function mountStudioView(root: HTMLElement): void {
       for (const c of daw.channels) {
         if (!audibles.has(c.id)) continue;
         const st = pat.steps[c.id]?.[i];
-        if (st && st.on) { const audio = channels.find(a => a.id === c.id); if (audio) audio.trigger(st.note ?? 60, st.vel ?? SEQ_VEL, when); }
+        if (st && st.on) {
+          const audio = channels.find(a => a.id === c.id);
+          const secPerStep = (60 / transport.bpm) / STEPS_PER_BEAT;
+          if (audio) audio.trigger(st.note ?? 60, st.vel ?? SEQ_VEL, when + swingOffset(i, daw.swing, secPerStep));
+        }
       }
     }
   });
@@ -226,6 +239,7 @@ export function mountStudioView(root: HTMLElement): void {
   seq.setBpm(daw.bpm);
   const tUI = mountTransport(root.querySelector('#transport') as HTMLElement, {
     getBpm: () => transport.bpm,
+    getSwing: () => daw.swing,
     onPlay: () => {
       audioOn();
       barStarted = false;
@@ -233,7 +247,9 @@ export function mountStudioView(root: HTMLElement): void {
       seq.play(); tUI.setPlaying(true); renderPatternBar(); phRaf = requestAnimationFrame(playhead);
     },
     onStop: () => { seq.stop(); tUI.setPlaying(false); cancelAnimationFrame(phRaf); grids.forEach(g => g.setPlayhead(-1)); songPos = -1; playPattern = daw.current; renderPatternBar(); },
-    onBpm: (bpm) => { daw = { ...daw, bpm }; seq.setBpm(bpm); persist(); }
+    onBpm: (bpm) => { daw = { ...daw, bpm }; seq.setBpm(bpm); persist(); },
+    onSwing: (swing) => { daw = { ...daw, swing }; persist(); },
+    onRecord: () => { recording = !recording; tUI.setRecording(recording); }
   });
 
   // --- teclado ---

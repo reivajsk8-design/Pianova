@@ -75,3 +75,5 @@ main { padding:24px 18px; }
 .songSeq { display:inline-flex; gap:4px; align-items:center; flex-wrap:wrap; }
 .songChip { min-width:22px; text-align:center; padding:2px 6px; border-radius:6px; background:var(--bg); border:1px solid var(--line); color:var(--muted); font-size:12px; }
 .songChip.play { background:var(--amber); color:#1a1306; border-color:var(--amber); }
+.tbRec { width:44px; height:44px; border-radius:50%; font-size:16px; background:var(--panel); color:#e0533a; border:1px solid var(--line); }
+.tbRec.on { background:#e0533a; color:#fff; border-color:#e0533a; }
