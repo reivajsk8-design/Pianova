@@ -50,8 +50,10 @@ App web (un solo archivo HTML) para aprender piano con notas que caen estilo Syn
    *(HECHA, v0.13.0: el Estudio es un groovebox — transporte (play/stop/BPM/swing/grabar), canales con
    instrumento synth o **batería 808** + volumen/pan/mute/solo + **rack de efectos por canal**, secuenciador
    de pasos multi-canal, **patrones + song mode**, **grabación de pasos en vivo**; proyecto v3 con migración
-   desde F1/F2. Sub-tandas 3A–3E. El MIDI-learn de knobs/transporte quedó como mejora opcional. Detalle por
-   sub-tanda en `HANDOFF.md`)* · **F4** módulo Aprender · **F5** conmutar el sitio a la
+   desde F1/F2. Sub-tandas 3A–3E. El MIDI-learn de knobs/transporte quedó como mejora opcional. **Acabado
+   pro de la UI** (post-F3): knobs giratorios (`ui/knob.ts`) en Vol/Pan/Swing y parámetros de efectos,
+   tira de canal compacta y **panel de efectos desplegable** abajo; `MASTER_MAKEUP` bajado a 1.8 (headroom).
+   Detalle por sub-tanda en `HANDOFF.md`)* · **F4** módulo Aprender · **F5** conmutar el sitio a la
    app nueva. Ver `studio/` y los specs/plans en `docs/superpowers/`.
 
 ## Cómo ejecutar y probar
