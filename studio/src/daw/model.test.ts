@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   emptySteps, defaultChannel, defaultDaw, addChannel, removeChannel, updateChannel,
-  toggleStep, audibleIds, findChannel, channelSteps, addPattern, removePattern, setCurrentPattern, setSong
+  toggleStep, audibleIds, findChannel, channelSteps, addPattern, removePattern, setCurrentPattern, setSong, setStep
 } from './model';
 
 describe('modelo daw con patrones', () => {
@@ -65,4 +65,11 @@ describe('modelo daw con patrones', () => {
   it('emptySteps crea n pasos apagados', () => {
     expect(emptySteps(8).every(s => s.on === false)).toBe(true);
   });
+  it('setStep fija un paso (on + nota) en el patrón actual, inmutable', () => {
+    const d = defaultDaw(); const id = d.channels[0].id;
+    const d2 = setStep(d, id, 2, { on: true, note: 64 });
+    expect(channelSteps(d2, id)[2]).toEqual({ on: true, note: 64 });
+    expect(channelSteps(d, id)[2].on).toBe(false);
+  });
+  it('defaultDaw tiene swing 0', () => { expect(defaultDaw().swing).toBe(0); });
 });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { dueSteps } from './sequencer';
+import { dueSteps, swingOffset } from './sequencer';
 
 describe('dueSteps', () => {
   it('un compás de 16 a semicorcheas en [0,1) da los pasos 0..3', () => {
@@ -18,5 +18,19 @@ describe('dueSteps', () => {
   });
   it('ventana sin cruces devuelve vacío', () => {
     expect(dueSteps(0.1, 0.2, 16, 4)).toEqual([]);
+  });
+});
+
+describe('swingOffset', () => {
+  it('los pasos pares no se retrasan', () => {
+    expect(swingOffset(0, 0.5, 0.1)).toBe(0);
+    expect(swingOffset(2, 0.5, 0.1)).toBe(0);
+  });
+  it('los pasos impares se retrasan swing·secPerStep', () => {
+    expect(swingOffset(1, 0.5, 0.1)).toBeCloseTo(0.05, 6);
+    expect(swingOffset(3, 0.6, 0.2)).toBeCloseTo(0.12, 6);
+  });
+  it('swing 0 no retrasa nada', () => {
+    expect(swingOffset(1, 0, 0.1)).toBe(0);
   });
 });

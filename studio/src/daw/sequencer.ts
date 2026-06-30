@@ -53,3 +53,8 @@ export function makeSequencer(
     setBpm(bpm) { transport.setBpm(bpm); }
   };
 }
+
+// Retardo de swing (segundos) para un paso: los pasos impares (la "contra") se retrasan swing·secPerStep.
+export function swingOffset(step: number, swing: number, secPerStep: number): number {
+  return step % 2 === 1 ? swing * secPerStep : 0;
+}

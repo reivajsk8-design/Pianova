@@ -10,7 +10,7 @@ export interface ChannelState {
 }
 export interface PatternState { steps: Record<string, Step[]> }
 export interface DawState {
-  channels: ChannelState[]; patterns: PatternState[]; current: number; song: number[]; bpm: number; steps: number;
+  channels: ChannelState[]; patterns: PatternState[]; current: number; song: number[]; bpm: number; steps: number; swing: number;
 }
 
 export const DEFAULT_STEPS = 16;
@@ -37,7 +37,7 @@ export function emptyPattern(channels: ChannelState[], steps: number): PatternSt
 
 export function defaultDaw(): DawState {
   const ch = defaultChannel('piano');
-  return { channels: [ch], patterns: [emptyPattern([ch], DEFAULT_STEPS)], current: 0, song: [], bpm: 120, steps: DEFAULT_STEPS };
+  return { channels: [ch], patterns: [emptyPattern([ch], DEFAULT_STEPS)], current: 0, song: [], bpm: 120, steps: DEFAULT_STEPS, swing: 0 };
 }
 
 export function findChannel(daw: DawState, id: string): ChannelState | undefined {
@@ -77,6 +77,20 @@ export function toggleStep(daw: DawState, chId: string, i: number): DawState {
       const cur = p.steps[chId] ?? emptySteps(daw.steps);
       const steps = cur.slice();
       steps[i] = { ...steps[i], on: !steps[i].on };
+      return { steps: { ...p.steps, [chId]: steps } };
+    })
+  };
+}
+
+// Fija el paso `i` (objeto Step completo) del canal en el patrón actual (para grabar en vivo). Inmutable.
+export function setStep(daw: DawState, chId: string, i: number, step: Step): DawState {
+  return {
+    ...daw,
+    patterns: daw.patterns.map((p, idx) => {
+      if (idx !== daw.current) return p;
+      const cur = p.steps[chId] ?? emptySteps(daw.steps);
+      const steps = cur.slice();
+      steps[i] = step;
       return { steps: { ...p.steps, [chId]: steps } };
     })
   };
