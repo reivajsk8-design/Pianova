@@ -1,27 +1,34 @@
 import { ensureAudio, getAudioContext } from '../audio/context';
 import * as synth from '../audio/synth';
-import { makeTransport } from '../audio/transport';
-import { makeSequencer } from '../daw/sequencer';
-import { mountTransport } from '../ui/transport';
-import { mountStepGrid } from '../ui/stepgrid';
 import { masterDest, masterFxIn, masterFxOut } from '../audio/masterBus';
 import { connectMidi } from '../midi/input';
 import { mountKeyboard } from '../ui/keyboard';
 import { createRack, Rack } from '../fx/rack';
 import { mountRack } from '../ui/rack';
-import '../fx/effects';   // registra los efectos disponibles
-import { loadStore, saveStore, downloadProject, readProjectFile, ProjectState } from './store';
+import '../fx/effects';
 import { ensureWorklets } from '../fx/worklets';
+import { makeTransport } from '../audio/transport';
+import { makeSequencer } from '../daw/sequencer';
+import { mountTransport } from '../ui/transport';
+import { mountStepGrid } from '../ui/stepgrid';
+import { channelStripHTML } from '../ui/channelstrip';
+import { makeChannel, Channel } from '../daw/channel';
+import {
+  DawState, ChannelState, defaultChannel, addChannel, removeChannel,
+  updateChannel, toggleStep, findChannel, audibleIds
+} from '../daw/model';
+import { loadStore, saveStore, downloadProject, readProjectFile, ProjectState } from './store';
 
-// Vista Estudio: instrumento + MIDI + teclado + racks de efectos (instrumento y maestro) + guardar/abrir proyecto.
+const STEPS_PER_BEAT = 4;
+const SEQ_VEL = 0.95;
+
 export function mountStudioView(root: HTMLElement): void {
-  const store: ProjectState = loadStore();
-  const opts = synth.getPresetNames()
-    .map(([k, label]) => `<option value="${k}"${k === store.instrument ? ' selected' : ''}>${label}</option>`).join('');
+  const project: ProjectState = loadStore();
+  let daw: DawState = project.daw;
+  let selectedId = daw.channels[0]?.id ?? '';
 
   root.innerHTML = `
     <div class="studioBar">
-      <label class="fld">Instrumento <select id="stInstrument">${opts}</select></label>
       <button id="stConnect">Conectar teclado</button>
       <span id="stMidi" class="muted">Sin conectar</span>
       <span class="grow"></span>
@@ -31,57 +38,173 @@ export function mountStudioView(root: HTMLElement): void {
         <input id="stFile" type="file" accept="application/json,.json" hidden>
       </span>
     </div>
-    <div id="stKeyboard"></div>
-    <p class="muted">Toca con el ratón, las teclas <b>A S D F G H J K</b> / <b>W E T Y U</b>, o tu teclado MIDI. Pulsa una tecla para activar los efectos.</p>
     <div id="transport"></div>
     <section class="seqWrap">
-      <h3>Secuenciador (toca el instrumento seleccionado)</h3>
-      <div id="stepGrid"></div>
+      <h3>Canales · secuenciador (el canal seleccionado lo toca el teclado)</h3>
+      <div id="channels" class="channels"></div>
+      <button id="addCh" class="addCh">＋ Añadir canal</button>
     </section>
+    <div id="stKeyboard"></div>
+    <p class="muted">Toca con el ratón, las teclas <b>A S D F G H J K</b> / <b>W E T Y U</b>, o tu teclado MIDI.</p>
     <div class="racks">
-      <div id="instRack"></div>
+      <div id="chRack"></div>
       <div id="masterRack"></div>
     </div>`;
 
-  synth.setPreset(store.instrument);
-
-  let instRack: Rack | null = null;
+  // --- audio (lazy, tras gesto) ---
+  let channels: Channel[] = [];
   let masterRack: Rack | null = null;
+  let audioReady: Promise<void> | null = null;
 
   function persist(): void {
-    store.instrument = (root.querySelector('#stInstrument') as HTMLSelectElement).value;
-    if (instRack) store.instrumentRack = instRack.serialize();
-    if (masterRack) store.masterRack = masterRack.serialize();
-    saveStore(store);
+    // vuelca el estado de los racks vivos al modelo y guarda
+    daw = { ...daw, channels: daw.channels.map(c => {
+      const audio = channels.find(a => a.id === c.id);
+      return audio ? { ...c, rack: audio.serializeRack() } : c;
+    }) };
+    saveStore({ version: 2, daw, masterRack: masterRack ? masterRack.serialize() : project.masterRack });
   }
 
-  let racksPromise: Promise<void> | null = null;
-  function initRacks(): Promise<void> {
-    if (!racksPromise) racksPromise = (async () => {
+  function routeKeyboardToSelected(): void {
+    const audio = channels.find(a => a.id === selectedId);
+    const ch = findChannel(daw, selectedId);
+    if (audio && ch) { synth.setSynthOut(audio.instrumentBus); synth.setPreset(ch.instrument.preset); }
+  }
+
+  function initAudio(): Promise<void> {
+    if (!audioReady) audioReady = (async () => {
       const actx = ensureAudio();
-      try { await ensureWorklets(actx); } catch { /* sin worklets: los efectos que los usan no se podrán añadir */ }
-      const instrumentBus = actx.createGain();
-      synth.setSynthOut(instrumentBus);
-      instRack = createRack(actx, instrumentBus, masterDest());
+      try { await ensureWorklets(actx); } catch { /* sin worklets, esos efectos no se podrán añadir */ }
       masterRack = createRack(actx, masterFxIn(), masterFxOut());
-      instRack.restore(store.instrumentRack);
-      masterRack.restore(store.masterRack);
-      mountRack(root.querySelector('#instRack') as HTMLElement, instRack, 'Instrumento', persist);
+      masterRack.restore(project.masterRack);
+      channels = daw.channels.map(c => makeChannel(actx, c, masterDest()));
+      routeKeyboardToSelected();
       mountRack(root.querySelector('#masterRack') as HTMLElement, masterRack, 'Maestro', persist);
+      renderChannels();   // re-monta racks/grids con audio vivo
     })();
-    return racksPromise;
+    return audioReady;
   }
-  function audioOn(): void { ensureAudio(); void initRacks(); }
+  function audioOn(): void { ensureAudio(); void initAudio(); }
 
-  (root.querySelector('#stInstrument') as HTMLSelectElement).addEventListener('change', e => {
-    synth.setPreset((e.target as HTMLSelectElement).value); persist();
+  // --- secuenciador (multi-canal) ---
+  const transport = makeTransport(() => getAudioContext()?.currentTime ?? 0);
+  const seq = makeSequencer(transport, {
+    stepsPerBeat: STEPS_PER_BEAT,
+    getTotalSteps: () => daw.steps,
+    onStep: (i, when) => {
+      const audibles = audibleIds(daw.channels);
+      for (const c of daw.channels) {
+        if (!audibles.has(c.id)) continue;
+        const st = c.steps[i];
+        if (st && st.on) {
+          const audio = channels.find(a => a.id === c.id);
+          if (audio) audio.trigger(st.note ?? 60, st.vel ?? SEQ_VEL, when);
+        }
+      }
+    }
   });
 
+  // --- render de canales ---
+  let grids: { id: string; setPlayhead: (s: number) => void }[] = [];
+  function renderChannels(): void {
+    const host = root.querySelector('#channels') as HTMLElement;
+    host.innerHTML = daw.channels.map((c, idx) =>
+      `<div class="chRow">${channelStripHTML(c, idx, c.id === selectedId)}<div class="chSteps" id="steps-${c.id}"></div></div>`
+    ).join('');
+    grids = daw.channels.map(c => {
+      const g = mountStepGrid(root.querySelector(`#steps-${c.id}`) as HTMLElement, {
+        total: daw.steps,
+        isOn: (i) => findChannel(daw, c.id)?.steps[i].on ?? false,
+        onToggle: (i) => { daw = toggleStep(daw, c.id, i); persist(); }
+      });
+      return { id: c.id, setPlayhead: g.setPlayhead };
+    });
+    renderSelectedRack();
+  }
+
+  function renderSelectedRack(): void {
+    const host = root.querySelector('#chRack') as HTMLElement;
+    const audio = channels.find(a => a.id === selectedId);
+    const ch = findChannel(daw, selectedId);
+    if (audio && ch) mountRack(host, audio.rack, 'Canal ' + (daw.channels.findIndex(c => c.id === selectedId) + 1), persist);
+    else host.innerHTML = '<div class="rack"><div class="rackHead"><b>Canal</b></div><p class="muted">Inicia el audio (pulsa una tecla o ▶) para sus efectos.</p></div>';
+  }
+
+  function selectChannel(id: string): void {
+    selectedId = id; routeKeyboardToSelected(); renderChannels();
+  }
+
+  // --- delegación de eventos de canales ---
+  (root.querySelector('#channels') as HTMLElement).addEventListener('click', e => {
+    const t = e.target as HTMLElement;
+    const sel = t.getAttribute('data-sel'); if (sel) { selectChannel(sel); return; }
+    const fx = t.getAttribute('data-fx'); if (fx) { selectChannel(fx); return; }
+    const mute = t.getAttribute('data-mute');
+    if (mute) { const c = findChannel(daw, mute); daw = updateChannel(daw, mute, { muted: !c?.muted }); applyAudible(); persist(); renderChannels(); return; }
+    const solo = t.getAttribute('data-solo');
+    if (solo) { const c = findChannel(daw, solo); daw = updateChannel(daw, solo, { soloed: !c?.soloed }); applyAudible(); persist(); renderChannels(); return; }
+    const del = t.getAttribute('data-del');
+    if (del) {
+      if (daw.channels.length <= 1) return;     // siempre al menos un canal
+      const audio = channels.find(a => a.id === del); if (audio) { audio.dispose(); channels = channels.filter(a => a.id !== del); }
+      daw = removeChannel(daw, del);
+      if (selectedId === del) selectedId = daw.channels[0].id;
+      routeKeyboardToSelected(); applyAudible(); persist(); renderChannels(); return;
+    }
+  });
+  (root.querySelector('#channels') as HTMLElement).addEventListener('input', e => {
+    const t = e.target as HTMLInputElement;
+    const vol = t.getAttribute('data-vol');
+    if (vol) { const v = +t.value; daw = updateChannel(daw, vol, { volume: v }); channels.find(a => a.id === vol)?.setVolume(v); persist(); return; }
+    const pan = t.getAttribute('data-pan');
+    if (pan) { const v = +t.value; daw = updateChannel(daw, pan, { pan: v }); channels.find(a => a.id === pan)?.setPan(v); persist(); return; }
+  });
+  (root.querySelector('#channels') as HTMLElement).addEventListener('change', e => {
+    const t = e.target as HTMLSelectElement;
+    const inst = t.getAttribute('data-inst');
+    if (inst) { daw = updateChannel(daw, inst, { instrument: { kind: 'synth', preset: t.value } }); channels.find(a => a.id === inst)?.setPreset(t.value); if (inst === selectedId) routeKeyboardToSelected(); persist(); }
+  });
+
+  function applyAudible(): void {
+    const aud = audibleIds(daw.channels);
+    for (const a of channels) a.setAudible(aud.has(a.id));
+  }
+
+  (root.querySelector('#addCh') as HTMLButtonElement).addEventListener('click', () => {
+    const ch: ChannelState = defaultChannel('piano', daw.steps);
+    daw = addChannel(daw, ch);
+    const actx = getAudioContext();
+    if (actx) channels.push(makeChannel(actx, ch, masterDest()));
+    selectedId = ch.id; applyAudible(); persist(); renderChannels(); routeKeyboardToSelected();
+  });
+
+  // --- transporte + cabezal ---
+  let phRaf = 0;
+  function playhead(): void {
+    const s = ((Math.floor(transport.beatNow() * STEPS_PER_BEAT) % daw.steps) + daw.steps) % daw.steps;
+    grids.forEach(g => g.setPlayhead(s));
+    phRaf = requestAnimationFrame(playhead);
+  }
+  const tUI = mountTransport(root.querySelector('#transport') as HTMLElement, {
+    getBpm: () => transport.bpm,
+    onPlay: () => { audioOn(); seq.play(); tUI.setPlaying(true); phRaf = requestAnimationFrame(playhead); },
+    onStop: () => { seq.stop(); tUI.setPlaying(false); cancelAnimationFrame(phRaf); grids.forEach(g => g.setPlayhead(-1)); },
+    onBpm: (bpm) => { daw = { ...daw, bpm }; seq.setBpm(bpm); persist(); }
+  });
+
+  // --- teclado (toca el canal seleccionado) ---
+  mountKeyboard(root.querySelector('#stKeyboard') as HTMLElement, {
+    onNoteOn: (m, v) => { audioOn(); routeKeyboardToSelected(); synth.noteOn(m, v); },
+    onNoteOff: (m) => synth.noteOff(m),
+    lowMidi: 60, highMidi: 84, baseMidi: 60
+  });
+
+  // --- conectar MIDI ---
   (root.querySelector('#stConnect') as HTMLButtonElement).addEventListener('click', () => {
     audioOn();
     const st = root.querySelector('#stMidi') as HTMLElement;
     connectMidi({
-      onNoteOn: (m, v) => synth.noteOn(m, v),
+      onNoteOn: (m, v) => { routeKeyboardToSelected(); synth.noteOn(m, v); },
       onNoteOff: (m) => synth.noteOff(m),
       onState: (names) => { st.textContent = names.length ? '🟢 ' + names.join(' · ') : 'Ningún teclado'; }
     }).catch(err => {
@@ -90,60 +213,28 @@ export function mountStudioView(root: HTMLElement): void {
     });
   });
 
-  (root.querySelector('#stSave') as HTMLButtonElement).addEventListener('click', () => { persist(); downloadProject(store); });
+  // --- guardar / abrir proyecto ---
+  (root.querySelector('#stSave') as HTMLButtonElement).addEventListener('click', () => { persist(); downloadProject({ version: 2, daw, masterRack: masterRack ? masterRack.serialize() : project.masterRack }); });
   (root.querySelector('#stOpen') as HTMLButtonElement).addEventListener('click', () => (root.querySelector('#stFile') as HTMLInputElement).click());
   (root.querySelector('#stFile') as HTMLInputElement).addEventListener('change', async ev => {
     const file = (ev.target as HTMLInputElement).files?.[0]; if (!file) return;
     try {
       const p = await readProjectFile(file);
-      store.instrument = p.instrument; store.instrumentRack = p.instrumentRack; store.masterRack = p.masterRack;
-      (root.querySelector('#stInstrument') as HTMLSelectElement).value = p.instrument;
-      synth.setPreset(p.instrument);
-      await initRacks();
-      if (instRack) instRack.restore(store.instrumentRack);
-      if (masterRack) masterRack.restore(store.masterRack);
-      saveStore(store);
+      await initAudio();
+      // rehacer canales de audio
+      channels.forEach(a => a.dispose()); channels = [];
+      daw = p.daw; project.masterRack = p.masterRack;
+      const actx = ensureAudio();
+      channels = daw.channels.map(c => makeChannel(actx, c, masterDest()));
+      if (masterRack) masterRack.restore(p.masterRack);
+      selectedId = daw.channels[0]?.id ?? '';
+      applyAudible(); routeKeyboardToSelected();
+      (root.querySelector('#tbBpm') as HTMLInputElement | null)?.setAttribute('value', String(daw.bpm));
+      renderChannels(); saveStore({ version: 2, daw, masterRack: p.masterRack });
     } catch {
       (root.querySelector('#stMidi') as HTMLElement).textContent = '🔴 No se pudo abrir el proyecto.';
     }
   });
 
-  mountKeyboard(root.querySelector('#stKeyboard') as HTMLElement, {
-    onNoteOn: (m, v) => { audioOn(); synth.noteOn(m, v); },
-    onNoteOff: (m) => synth.noteOff(m),
-    lowMidi: 60, highMidi: 84, baseMidi: 60
-  });
-
-  // --- Secuenciador de pasos (3A) ---
-  const STEPS = 16;
-  const STEPS_PER_BEAT = 4;          // semicorcheas
-  const SEQ_NOTE = 60;               // Do central (nota fija por ahora; pitch por paso llega después)
-  const seqSteps: boolean[] = new Array(STEPS).fill(false);
-
-  const transport = makeTransport(() => getAudioContext()?.currentTime ?? 0);
-  const seq = makeSequencer(transport, {
-    stepsPerBeat: STEPS_PER_BEAT,
-    getTotalSteps: () => STEPS,
-    onStep: (i, when) => { if (seqSteps[i]) synth.triggerAt(SEQ_NOTE, 0.95, when, 0.12); }
-  });
-
-  const grid = mountStepGrid(root.querySelector('#stepGrid') as HTMLElement, {
-    total: STEPS,
-    isOn: (i) => seqSteps[i],
-    onToggle: (i) => { seqSteps[i] = !seqSteps[i]; }
-  });
-
-  let phRaf = 0;
-  function playhead(): void {
-    const s = Math.floor(transport.beatNow() * STEPS_PER_BEAT);
-    grid.setPlayhead(((s % STEPS) + STEPS) % STEPS);
-    phRaf = requestAnimationFrame(playhead);
-  }
-
-  const tUI = mountTransport(root.querySelector('#transport') as HTMLElement, {
-    getBpm: () => transport.bpm,
-    onPlay: () => { audioOn(); seq.play(); tUI.setPlaying(true); phRaf = requestAnimationFrame(playhead); },
-    onStop: () => { seq.stop(); tUI.setPlaying(false); cancelAnimationFrame(phRaf); grid.setPlayhead(-1); },
-    onBpm: (bpm) => seq.setBpm(bpm)
-  });
+  renderChannels();
 }
