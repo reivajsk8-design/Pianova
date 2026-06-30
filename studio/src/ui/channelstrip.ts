@@ -16,6 +16,8 @@ export function channelStripHTML(ch: ChannelState, index: number, selected: bool
         <optgroup label="Sintetizados">${synthOpts}</optgroup>
         <optgroup label="Batería">${drumOpts}</optgroup>
       </select>
+    </div>
+    <div class="chBtns">
       <button class="chBtn${ch.muted ? ' on' : ''}" data-mute="${ch.id}" title="Silenciar">M</button>
       <button class="chBtn${ch.soloed ? ' onS' : ''}" data-solo="${ch.id}" title="Solo">S</button>
       <button class="chBtn" data-fx="${ch.id}" title="Efectos del canal">🎛</button>
