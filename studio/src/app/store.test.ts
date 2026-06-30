@@ -24,7 +24,7 @@ describe('proyecto v3', () => {
     const p = parseProject(v2);
     expect(p.version).toBe(3);
     expect(p.daw.channels[0].id).toBe('c1');
-    expect((p.daw.channels[0] as Record<string, unknown>).steps).toBeUndefined();   // ya no en el canal
+    expect((p.daw.channels[0] as unknown as Record<string, unknown>).steps).toBeUndefined();   // ya no en el canal
     expect(p.daw.patterns[0].steps['c1'][0].on).toBe(true);
     expect(p.daw.bpm).toBe(90);
   });
