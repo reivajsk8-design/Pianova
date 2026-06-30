@@ -64,3 +64,14 @@ main { padding:24px 18px; }
 .chSteps { flex:1; align-self:center; }
 .addCh { margin:8px 0; }
 .racks .rack { min-width:260px; }
+.patBar { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:10px 0; }
+.patLab { color:var(--muted); font-size:12px; margin-right:4px; }
+.patBtn { width:30px; height:30px; border-radius:7px; background:var(--panel); color:var(--ink); border:1px solid var(--line); }
+.patBtn.on { background:var(--amber); color:#1a1306; border-color:var(--amber); }
+.patIcon { height:30px; padding:0 8px; border-radius:7px; background:var(--panel); color:var(--muted); border:1px solid var(--line); }
+.patSep { width:1px; height:22px; background:var(--line); margin:0 6px; }
+.songToggle { height:30px; padding:0 10px; border-radius:7px; background:var(--panel); color:var(--ink); border:1px solid var(--line); }
+.songToggle.on { background:var(--amber); color:#1a1306; border-color:var(--amber); }
+.songSeq { display:inline-flex; gap:4px; align-items:center; flex-wrap:wrap; }
+.songChip { min-width:22px; text-align:center; padding:2px 6px; border-radius:6px; background:var(--bg); border:1px solid var(--line); color:var(--muted); font-size:12px; }
+.songChip.play { background:var(--amber); color:#1a1306; border-color:var(--amber); }
