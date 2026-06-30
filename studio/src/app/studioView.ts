@@ -12,6 +12,7 @@ import { makeSequencer, swingOffset } from '../daw/sequencer';
 import { mountTransport } from '../ui/transport';
 import { mountStepGrid } from '../ui/stepgrid';
 import { channelStripHTML } from '../ui/channelstrip';
+import { mountKnob } from '../ui/knob';
 import { patternBarHTML } from '../ui/patternbar';
 import { makeChannel, Channel } from '../daw/channel';
 import {
@@ -157,6 +158,18 @@ export function mountStudioView(root: HTMLElement): void {
       });
       return { id: c.id, setPlayhead: g.setPlayhead };
     });
+    // knobs de volumen y paneo por canal
+    for (const c of daw.channels) {
+      const row = (root.querySelector(`#steps-${c.id}`) as HTMLElement).parentElement as HTMLElement;
+      const volEl = row.querySelector(`[data-vol="${c.id}"]`) as HTMLElement;
+      const panEl = row.querySelector(`[data-pan="${c.id}"]`) as HTMLElement;
+      mountKnob(volEl, { min: 0, max: 1.2, value: c.volume, default: 0.8, onChange: v => {
+        daw = updateChannel(daw, c.id, { volume: v }); channels.find(a => a.id === c.id)?.setVolume(v); persist();
+      } });
+      mountKnob(panEl, { min: -1, max: 1, value: c.pan, default: 0, onChange: v => {
+        daw = updateChannel(daw, c.id, { pan: v }); channels.find(a => a.id === c.id)?.setPan(v); persist();
+      } });
+    }
     renderPatternBar();
     renderSelectedRack();
   }
@@ -189,13 +202,7 @@ export function mountStudioView(root: HTMLElement): void {
       routeKeyboardToSelected(); applyAudible(); persist(); renderChannels(); return;
     }
   });
-  channelsEl.addEventListener('input', e => {
-    const t = e.target as HTMLInputElement;
-    const vol = t.getAttribute('data-vol');
-    if (vol) { const v = +t.value; daw = updateChannel(daw, vol, { volume: v }); channels.find(a => a.id === vol)?.setVolume(v); persist(); return; }
-    const pan = t.getAttribute('data-pan');
-    if (pan) { const v = +t.value; daw = updateChannel(daw, pan, { pan: v }); channels.find(a => a.id === pan)?.setPan(v); persist(); return; }
-  });
+  // (Vol/Pan ahora son knobs: los monta renderChannels con sus propios handlers.)
   channelsEl.addEventListener('change', e => {
     const t = e.target as HTMLSelectElement;
     const inst = t.getAttribute('data-inst');

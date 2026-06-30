@@ -24,8 +24,8 @@ export function channelStripHTML(ch: ChannelState, index: number, selected: bool
       <button class="chBtn" data-del="${ch.id}" title="Quitar canal">✕</button>
     </div>
     <div class="chMix">
-      <label title="Volumen">Vol <input type="range" data-vol="${ch.id}" min="0" max="1.2" step="0.01" value="${ch.volume}"></label>
-      <label title="Paneo">Pan <input type="range" data-pan="${ch.id}" min="-1" max="1" step="0.05" value="${ch.pan}"></label>
+      <div class="knobCell" title="Volumen (arrastra ↕ · doble-clic resetea)"><div class="knob" data-vol="${ch.id}"></div><span>Vol</span></div>
+      <div class="knobCell" title="Paneo (arrastra ↕ · doble-clic centra)"><div class="knob" data-pan="${ch.id}"></div><span>Pan</span></div>
     </div>
   </div>`;
 }

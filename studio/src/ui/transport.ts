@@ -1,4 +1,6 @@
-// Barra de transporte: Play/Stop, BPM, Swing y Grabar (armar grabación de pasos en vivo).
+// Barra de transporte: Play/Stop, BPM, Swing (knob) y Grabar (armar grabación de pasos en vivo).
+import { mountKnob } from './knob';
+
 export interface TransportUI { setPlaying(on: boolean): void; setRecording(on: boolean): void }
 
 export function mountTransport(
@@ -13,7 +15,7 @@ export function mountTransport(
     <button id="tbPlay" class="tbPlay" title="Reproducir / Parar">▶</button>
     <button id="tbRec" class="tbRec" title="Grabar pasos en vivo">●</button>
     <label class="fld">BPM <input id="tbBpm" type="number" min="40" max="240" step="1" value="${opts.getBpm()}"></label>
-    <label class="fld">Swing <input id="tbSwing" type="range" min="0" max="0.7" step="0.01" value="${opts.getSwing()}"></label>
+    <label class="fld">Swing <div id="tbSwing"></div></label>
   </div>`;
   const play = root.querySelector('#tbPlay') as HTMLButtonElement;
   const rec = root.querySelector('#tbRec') as HTMLButtonElement;
@@ -25,8 +27,8 @@ export function mountTransport(
   (root.querySelector('#tbBpm') as HTMLInputElement).addEventListener('change', e => {
     opts.onBpm(Math.max(40, Math.min(240, +(e.target as HTMLInputElement).value || 120)));
   });
-  (root.querySelector('#tbSwing') as HTMLInputElement).addEventListener('input', e => {
-    opts.onSwing(+(e.target as HTMLInputElement).value);
+  mountKnob(root.querySelector('#tbSwing') as HTMLElement, {
+    min: 0, max: 0.7, value: opts.getSwing(), default: 0, size: 34, onChange: opts.onSwing
   });
   return { setPlaying, setRecording };
 }
