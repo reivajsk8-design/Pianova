@@ -105,12 +105,8 @@ export function noteOff(midi: number): void {
 
 export function allNotesOff(): void { Object.keys(voices).forEach(m => noteOff(+m)); }
 
-// Dispara una nota agendada en el tiempo de audio `when` con gate `dur` (para el secuenciador).
-// De usar y tirar: no toca el mapa `voices`, así no interfiere con el teclado en vivo.
-export function triggerAt(midi: number, vel: number, when: number, dur: number, dest?: AudioNode): void {
-  const actx = ensureAudio();
-  const out = dest ?? synthOut ?? masterDest();
-  const preset = SYNTH[currentPreset] ?? SYNTH.piano;
+// Construye y agenda una voz de `preset` en `when` con gate `dur`, hacia `out`. De usar y tirar.
+function triggerVoice(actx: AudioContext, preset: Preset, midi: number, vel: number, when: number, dur: number, out: AudioNode): void {
   const freq = 440 * Math.pow(2, (midi - 69) / 12);
   const g = actx.createGain();
   let node: AudioNode = g;
@@ -150,4 +146,16 @@ export function triggerAt(midi: number, vel: number, when: number, dur: number, 
   }
   oscs.forEach(o => o.start(when));
   oscs.forEach(o => o.stop(stopAt));
+}
+
+// Dispara el preset ACTUAL (modo en vivo / secuenciador de 1 canal). Ruta por defecto: synthOut ?? masterDest.
+export function triggerAt(midi: number, vel: number, when: number, dur: number, dest?: AudioNode): void {
+  const actx = ensureAudio();
+  triggerVoice(actx, SYNTH[currentPreset] ?? SYNTH.piano, midi, vel, when, dur, dest ?? synthOut ?? masterDest());
+}
+
+// Dispara un preset CONCRETO a un destino CONCRETO (para los canales del groovebox).
+export function triggerPreset(presetName: string, midi: number, vel: number, when: number, dur: number, dest: AudioNode): void {
+  const actx = ensureAudio();
+  triggerVoice(actx, SYNTH[presetName] ?? SYNTH.piano, midi, vel, when, dur, dest);
 }
