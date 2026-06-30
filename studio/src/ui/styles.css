@@ -47,3 +47,20 @@ main { padding:24px 18px; }
 .stepCell.beat { border-color:#3a4153; }
 .stepCell.on { background:var(--amber); border-color:var(--amber); }
 .stepCell.play { outline:2px solid #fff; outline-offset:1px; }
+.channels { display:flex; flex-direction:column; gap:8px; margin:6px 0; }
+.chRow { display:flex; gap:10px; align-items:flex-start; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:8px; }
+.chStrip { width:230px; flex:0 0 auto; }
+.chStrip.sel { outline:2px solid var(--amber); outline-offset:2px; border-radius:8px; }
+.chHead { display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+.chSel { width:28px; height:28px; border-radius:7px; background:var(--bg); color:var(--ink); border:1px solid var(--line); }
+.chStrip.sel .chSel { background:var(--amber); color:#1a1306; border-color:var(--amber); }
+.chInst { flex:1; min-width:0; font:inherit; background:var(--bg); color:var(--ink); border:1px solid var(--line); border-radius:7px; padding:4px 6px; }
+.chBtn { width:28px; height:28px; padding:0; border-radius:7px; background:var(--bg); color:var(--muted); border:1px solid var(--line); }
+.chBtn.on { background:#e0533a; color:#fff; border-color:#e0533a; }
+.chBtn.onS { background:var(--amber); color:#1a1306; border-color:var(--amber); }
+.chMix { display:flex; gap:10px; }
+.chMix label { display:flex; align-items:center; gap:6px; color:var(--muted); font-size:11px; flex:1; }
+.chMix input[type="range"] { flex:1; min-width:0; }
+.chSteps { flex:1; align-self:center; }
+.addCh { margin:8px 0; }
+.racks .rack { min-width:260px; }
