@@ -185,6 +185,7 @@ export function mountStudioView(root: HTMLElement): void {
     grids.forEach(g => g.setPlayhead(s));
     phRaf = requestAnimationFrame(playhead);
   }
+  seq.setBpm(daw.bpm);   // aplica el BPM guardado (autocarga) antes de pintar el transporte
   const tUI = mountTransport(root.querySelector('#transport') as HTMLElement, {
     getBpm: () => transport.bpm,
     onPlay: () => { audioOn(); seq.play(); tUI.setPlaying(true); phRaf = requestAnimationFrame(playhead); },
