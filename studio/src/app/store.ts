@@ -1,35 +1,48 @@
-// Persistencia del Estudio: autoguardado en localStorage + guardar/abrir proyecto a archivo .json.
+// Persistencia del Estudio (proyecto v2: groovebox). Autoguardado en localStorage + guardar/abrir .json.
+// Migra proyectos v1 (un instrumento + instrumentRack) a v2 (canal 0).
 import type { RackState } from '../fx/rack-core';
+import { DawState, defaultDaw, defaultChannel } from '../daw/model';
 
-export const PROJECT_VERSION = 1;
+export const PROJECT_VERSION = 2;
 const KEY = 'estudio-v1';
-
-export interface ProjectState {
-  version: number;
-  instrument: string;
-  instrumentRack: RackState;
-  masterRack: RackState;
-}
-
 const emptyRack = (): RackState => ({ effects: [] });
 
+export interface ProjectState { version: number; daw: DawState; masterRack: RackState }
+
 export function defaultProject(): ProjectState {
-  return { version: PROJECT_VERSION, instrument: 'piano', instrumentRack: emptyRack(), masterRack: emptyRack() };
+  return { version: PROJECT_VERSION, daw: defaultDaw(), masterRack: emptyRack() };
 }
 
 export function serializeProject(p: ProjectState): string { return JSON.stringify(p); }
 
-// Parseo tolerante: si faltan campos o vienen mal, usa valores por defecto. Lanza solo con JSON inválido.
-export function parseProject(json: string): ProjectState {
-  const o = JSON.parse(json) as Record<string, unknown>;
-  const rack = (v: unknown): RackState =>
-    (v && typeof v === 'object' && Array.isArray((v as RackState).effects)) ? (v as RackState) : emptyRack();
+function rackOf(v: unknown): RackState {
+  return (v && typeof v === 'object' && Array.isArray((v as RackState).effects)) ? (v as RackState) : emptyRack();
+}
+
+function dawOf(v: unknown): DawState {
+  const o = v as Partial<DawState> | undefined;
+  if (!o || !Array.isArray(o.channels) || o.channels.length === 0) return defaultDaw();
   return {
-    version: typeof o.version === 'number' ? o.version : PROJECT_VERSION,
-    instrument: typeof o.instrument === 'string' ? o.instrument : 'piano',
-    instrumentRack: rack(o.instrumentRack),
-    masterRack: rack(o.masterRack)
+    channels: o.channels,
+    bpm: typeof o.bpm === 'number' ? o.bpm : 120,
+    steps: typeof o.steps === 'number' ? o.steps : 16
   };
+}
+
+// Devuelve siempre un ProjectState v2. v1 (instrument/instrumentRack) → canal 0; desconocido → por defecto.
+function migrate(o: Record<string, unknown>): ProjectState {
+  const masterRack = rackOf(o.masterRack);
+  if (o.version === 2 && o.daw && typeof o.daw === 'object') {
+    return { version: 2, daw: dawOf(o.daw), masterRack };
+  }
+  const preset = typeof o.instrument === 'string' ? o.instrument : 'piano';
+  const ch = defaultChannel(preset);
+  ch.rack = rackOf(o.instrumentRack);
+  return { version: 2, daw: { channels: [ch], bpm: 120, steps: ch.steps.length }, masterRack };
+}
+
+export function parseProject(json: string): ProjectState {
+  return migrate(JSON.parse(json) as Record<string, unknown>);
 }
 
 export function loadStore(): ProjectState {
