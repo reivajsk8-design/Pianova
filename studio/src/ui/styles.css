@@ -48,9 +48,10 @@ main { padding:24px 18px; }
 .stepCell:hover { border-color:#4a5163; }
 .stepCell.on { background:var(--amber); border-color:var(--amber); box-shadow:0 0 6px rgba(242,163,60,.35); }
 .stepCell.play { outline:2px solid #fff; outline-offset:1px; }
-.channels { display:flex; flex-direction:column; gap:8px; margin:6px 0; }
-.chRow { display:flex; gap:14px; align-items:center; background:linear-gradient(#161a23,#11141b); border:1px solid var(--line); border-radius:11px; padding:10px 12px; box-shadow:0 1px 2px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.03); }
-.chStrip { width:240px; flex:0 0 auto; display:flex; flex-direction:column; gap:6px; }
+.channels { display:flex; flex-direction:column; gap:6px; margin:6px 0; }
+.chRow { display:flex; gap:14px; align-items:center; background:linear-gradient(#161a23,#11141b); border:1px solid var(--line); border-radius:11px; padding:7px 12px; box-shadow:0 1px 2px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.03); }
+.chStrip { width:268px; flex:0 0 auto; display:flex; align-items:center; gap:12px; }
+.chMain { flex:1; min-width:0; display:flex; flex-direction:column; gap:6px; }
 .chStrip.sel { outline:2px solid var(--amber); outline-offset:3px; border-radius:8px; }
 .chHead { display:flex; align-items:center; gap:8px; }
 .chSel { width:30px; height:30px; flex:0 0 auto; border-radius:7px; background:var(--bg); color:var(--ink); border:1px solid var(--line); font-weight:600; }
@@ -61,7 +62,7 @@ main { padding:24px 18px; }
 .chBtn:hover { border-color:#4a5163; color:var(--ink); }
 .chBtn.on { background:#e0533a; color:#fff; border-color:#e0533a; }
 .chBtn.onS { background:var(--amber); color:#1a1306; border-color:var(--amber); }
-.chMix { display:flex; gap:12px; }
+.chMix { display:flex; gap:10px; flex:0 0 auto; }
 .chMix label { display:flex; align-items:center; gap:6px; color:var(--muted); font-size:11px; flex:1; }
 .chMix input[type="range"] { flex:1; min-width:0; }
 .chSteps { flex:1; align-self:center; overflow-x:auto; }

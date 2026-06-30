@@ -163,10 +163,10 @@ export function mountStudioView(root: HTMLElement): void {
       const row = (root.querySelector(`#steps-${c.id}`) as HTMLElement).parentElement as HTMLElement;
       const volEl = row.querySelector(`[data-vol="${c.id}"]`) as HTMLElement;
       const panEl = row.querySelector(`[data-pan="${c.id}"]`) as HTMLElement;
-      mountKnob(volEl, { min: 0, max: 1.2, value: c.volume, default: 0.8, onChange: v => {
+      mountKnob(volEl, { min: 0, max: 1.2, value: c.volume, default: 0.8, size: 34, onChange: v => {
         daw = updateChannel(daw, c.id, { volume: v }); channels.find(a => a.id === c.id)?.setVolume(v); persist();
       } });
-      mountKnob(panEl, { min: -1, max: 1, value: c.pan, default: 0, onChange: v => {
+      mountKnob(panEl, { min: -1, max: 1, value: c.pan, default: 0, size: 34, onChange: v => {
         daw = updateChannel(daw, c.id, { pan: v }); channels.find(a => a.id === c.id)?.setPan(v); persist();
       } });
     }

@@ -10,18 +10,20 @@ export function channelStripHTML(ch: ChannelState, index: number, selected: bool
   const drumOpts = DRUM_VOICES
     .map(vc => `<option value="drum:${vc}"${cur === `drum:${vc}` ? ' selected' : ''}>${DRUM_LABELS[vc]}</option>`).join('');
   return `<div class="chStrip${selected ? ' sel' : ''}">
-    <div class="chHead">
-      <button class="chSel" data-sel="${ch.id}" title="Seleccionar (lo toca el teclado)">${index + 1}</button>
-      <select class="chInst" data-inst="${ch.id}">
-        <optgroup label="Sintetizados">${synthOpts}</optgroup>
-        <optgroup label="Batería">${drumOpts}</optgroup>
-      </select>
-    </div>
-    <div class="chBtns">
-      <button class="chBtn${ch.muted ? ' on' : ''}" data-mute="${ch.id}" title="Silenciar">M</button>
-      <button class="chBtn${ch.soloed ? ' onS' : ''}" data-solo="${ch.id}" title="Solo">S</button>
-      <button class="chBtn" data-fx="${ch.id}" title="Efectos del canal">🎛</button>
-      <button class="chBtn" data-del="${ch.id}" title="Quitar canal">✕</button>
+    <div class="chMain">
+      <div class="chHead">
+        <button class="chSel" data-sel="${ch.id}" title="Seleccionar (lo toca el teclado)">${index + 1}</button>
+        <select class="chInst" data-inst="${ch.id}">
+          <optgroup label="Sintetizados">${synthOpts}</optgroup>
+          <optgroup label="Batería">${drumOpts}</optgroup>
+        </select>
+      </div>
+      <div class="chBtns">
+        <button class="chBtn${ch.muted ? ' on' : ''}" data-mute="${ch.id}" title="Silenciar">M</button>
+        <button class="chBtn${ch.soloed ? ' onS' : ''}" data-solo="${ch.id}" title="Solo">S</button>
+        <button class="chBtn" data-fx="${ch.id}" title="Efectos del canal">🎛</button>
+        <button class="chBtn" data-del="${ch.id}" title="Quitar canal">✕</button>
+      </div>
     </div>
     <div class="chMix">
       <div class="knobCell" title="Volumen (arrastra ↕ · doble-clic resetea)"><div class="knob" data-vol="${ch.id}"></div><span>Vol</span></div>
