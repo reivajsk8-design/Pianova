@@ -95,3 +95,23 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .knobInd { position:absolute; left:50%; top:13%; width:3px; height:37%; margin-left:-1.5px; background:var(--amber); border-radius:2px; transform-origin:50% 100%; box-shadow:0 0 5px rgba(242,163,60,.55); }
 .knobCell { display:flex; flex-direction:column; align-items:center; gap:3px; }
 .knobCell span { color:var(--muted); font-size:10px; letter-spacing:.04em; text-transform:uppercase; }
+
+/* ---------- Panel inferior de efectos (cajón deslizante) ---------- */
+.fxDrawer { position:fixed; left:0; right:0; bottom:0; z-index:50; background:linear-gradient(#12151c,#0c0e13); border-top:1px solid var(--line); box-shadow:0 -10px 28px rgba(0,0,0,.55); transform:translateY(101%); transition:transform .22s cubic-bezier(.32,.72,0,1); max-height:48vh; overflow:auto; padding:10px 18px 18px; }
+.fxDrawer.open { transform:translateY(0); }
+.fxDrawerHead { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.fxDrawerHead b { font-size:14px; }
+#fxClose { width:auto; padding:0 10px; height:28px; }
+.fxDrawer .racks { margin-top:0; }
+
+/* ---------- Efectos compactos (parámetros como knobs) ---------- */
+.fxCard { padding:9px 11px; }
+.fxCard.byp { opacity:.5; }
+.fxHead { gap:6px; margin-bottom:8px; }
+.fxHead b { flex:0 0 auto; }
+.fxHead .chBtn { width:28px; height:26px; }
+.fxByp { white-space:nowrap; }
+.fxParams { display:flex; flex-wrap:wrap; gap:8px 14px; }
+.fxKnob { display:flex; flex-direction:column; align-items:center; gap:2px; width:54px; }
+.fxKnobLab { color:var(--muted); font-size:10px; text-align:center; line-height:1.1; }
+.fxKnobVal { color:var(--ink); font-size:10px; }
