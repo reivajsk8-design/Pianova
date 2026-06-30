@@ -229,7 +229,9 @@ export function mountStudioView(root: HTMLElement): void {
       if (masterRack) masterRack.restore(p.masterRack);
       selectedId = daw.channels[0]?.id ?? '';
       applyAudible(); routeKeyboardToSelected();
-      (root.querySelector('#tbBpm') as HTMLInputElement | null)?.setAttribute('value', String(daw.bpm));
+      seq.setBpm(daw.bpm);   // aplica el BPM del proyecto al transporte/secuenciador
+      const bpmEl = root.querySelector('#tbBpm') as HTMLInputElement | null;
+      if (bpmEl) bpmEl.value = String(daw.bpm);
       renderChannels(); saveStore({ version: 2, daw, masterRack: p.masterRack });
     } catch {
       (root.querySelector('#stMidi') as HTMLElement).textContent = '🔴 No se pudo abrir el proyecto.';
