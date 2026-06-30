@@ -43,13 +43,13 @@ main { padding:24px 18px; }
 .seqWrap { margin:8px 0 4px; }
 .seqWrap h3 { font-size:13px; color:var(--muted); font-weight:600; margin:0 0 8px; }
 .stepRow { display:flex; gap:5px; flex-wrap:wrap; }
-.stepCell { width:28px; height:30px; border-radius:6px; background:var(--bg); border:1px solid var(--line); cursor:pointer; padding:0; transition:background .08s ease; }
+.stepCell { width:28px; height:30px; border-radius:6px; background:linear-gradient(#1b1f29,#13161d); border:1px solid var(--line); cursor:pointer; padding:0; transition:background .08s ease, box-shadow .08s ease; box-shadow:inset 0 1px 0 rgba(255,255,255,.04); }
 .stepCell.beat:not(:first-child) { margin-left:11px; }   /* agrupa los tiempos de 4 en 4 */
 .stepCell:hover { border-color:#4a5163; }
 .stepCell.on { background:var(--amber); border-color:var(--amber); box-shadow:0 0 6px rgba(242,163,60,.35); }
 .stepCell.play { outline:2px solid #fff; outline-offset:1px; }
 .channels { display:flex; flex-direction:column; gap:8px; margin:6px 0; }
-.chRow { display:flex; gap:14px; align-items:center; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
+.chRow { display:flex; gap:14px; align-items:center; background:linear-gradient(#161a23,#11141b); border:1px solid var(--line); border-radius:11px; padding:10px 12px; box-shadow:0 1px 2px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.03); }
 .chStrip { width:240px; flex:0 0 auto; display:flex; flex-direction:column; gap:6px; }
 .chStrip.sel { outline:2px solid var(--amber); outline-offset:3px; border-radius:8px; }
 .chHead { display:flex; align-items:center; gap:8px; }
@@ -80,3 +80,10 @@ main { padding:24px 18px; }
 .songChip.play { background:var(--amber); color:#1a1306; border-color:var(--amber); }
 .tbRec { width:44px; height:44px; border-radius:50%; font-size:16px; background:var(--panel); color:#e0533a; border:1px solid var(--line); }
 .tbRec.on { background:#e0533a; color:#fff; border-color:#e0533a; }
+
+/* ---------- Deslizadores a medida (look pro, tema oscuro) ---------- */
+input[type="range"] { -webkit-appearance:none; appearance:none; height:6px; border-radius:4px; background:#0d1016; border:1px solid var(--line); outline:none; cursor:pointer; box-shadow:inset 0 1px 2px rgba(0,0,0,.5); }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:15px; height:15px; border-radius:50%; background:linear-gradient(#f6b454,#e2912f); border:1px solid #7a521a; box-shadow:0 1px 3px rgba(0,0,0,.5); cursor:pointer; }
+input[type="range"]::-webkit-slider-thumb:hover { background:linear-gradient(#ffc066,#ec9a34); }
+input[type="range"]::-moz-range-thumb { width:14px; height:14px; border-radius:50%; background:linear-gradient(#f6b454,#e2912f); border:1px solid #7a521a; box-shadow:0 1px 3px rgba(0,0,0,.5); cursor:pointer; }
+input[type="range"]::-moz-range-track { height:6px; border-radius:4px; background:#0d1016; border:1px solid var(--line); }
