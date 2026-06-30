@@ -2,15 +2,15 @@
 // Es el espejo vivo del ChannelState; el modelo (daw/model) sigue siendo la fuente de verdad de los datos.
 import { createRack, Rack } from '../fx/rack';
 import * as synth from '../audio/synth';
-import type { ChannelState } from './model';
+import { triggerDrum, DrumVoice } from '../audio/drums';
+import type { ChannelState, InstrumentSpec } from './model';
 import type { RackState } from '../fx/rack-core';
 
 export interface Channel {
   id: string;
   instrumentBus: GainNode;
   rack: Rack;
-  preset(): string;
-  setPreset(p: string): void;
+  setInstrument(spec: InstrumentSpec): void;
   setVolume(v: number): void;
   setPan(p: number): void;
   setAudible(a: boolean): void;
@@ -29,18 +29,20 @@ export function makeChannel(actx: AudioContext, state: ChannelState, masterIn: A
 
   let volume = state.volume;
   let audible = true;
-  let preset = state.instrument.preset;
+  let instrument: InstrumentSpec = state.instrument;
   const applyGain = (): void => { gain.gain.value = audible ? volume : 0; };
   applyGain();
 
   return {
     id: state.id, instrumentBus, rack,
-    preset: () => preset,
-    setPreset(p) { preset = p; },
+    setInstrument(spec) { instrument = spec; },
     setVolume(v) { volume = v; applyGain(); },
     setPan(p) { panner.pan.value = p; },
     setAudible(a) { audible = a; applyGain(); },
-    trigger(note, vel, when) { synth.triggerPreset(preset, note, vel, when, 0.12, instrumentBus); },
+    trigger(note, vel, when) {
+      if (instrument.kind === 'drum') triggerDrum(actx, instrumentBus, instrument.voice as DrumVoice, when, vel);
+      else synth.triggerPreset(instrument.preset, note, vel, when, 0.12, instrumentBus);
+    },
     serializeRack: () => rack.serialize(),
     dispose() {
       rack.dispose();

@@ -2,7 +2,7 @@
 import type { RackState } from '../fx/rack-core';
 
 export interface Step { on: boolean; note?: number; vel?: number }
-export type InstrumentSpec = { kind: 'synth'; preset: string };
+export type InstrumentSpec = { kind: 'synth'; preset: string } | { kind: 'drum'; voice: string };
 export interface ChannelState {
   id: string; name: string; instrument: InstrumentSpec; steps: Step[];
   volume: number; pan: number; muted: boolean; soloed: boolean; rack: RackState;
