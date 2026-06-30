@@ -52,7 +52,8 @@ App web (un solo archivo HTML) para aprender piano con notas que caen estilo Syn
    fila) y **3B hecha** (el Estudio es un groovebox: varios canales con instrumento/volumen/pan/mute/solo
    + rack por canal, secuenciador multi-canal, teclado al canal seleccionado, proyecto v2 + migración
    v1→v2) y **3C hecha** (batería sintetizada 808 como tipo de canal: bombo/caja/charles/clap/tom);
-   pendientes 3D patrones+song, 3E swing+MIDI. Ver
+   y **3D hecha** (patrones + modo canción: varios patrones que comparten canales, song mode que los
+   encadena, proyecto v3 + migración v2→v3); pendiente solo 3E swing+MIDI. Ver
    `studio/` y los specs/plans en `docs/superpowers/`.
 
 ## Cómo ejecutar y probar
