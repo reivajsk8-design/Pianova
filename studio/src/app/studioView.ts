@@ -14,7 +14,7 @@ import { mountStepGrid } from '../ui/stepgrid';
 import { channelStripHTML } from '../ui/channelstrip';
 import { makeChannel, Channel } from '../daw/channel';
 import {
-  DawState, ChannelState, defaultChannel, addChannel, removeChannel,
+  DawState, ChannelState, InstrumentSpec, defaultChannel, addChannel, removeChannel,
   updateChannel, toggleStep, findChannel, audibleIds
 } from '../daw/model';
 import { loadStore, saveStore, downloadProject, readProjectFile, ProjectState } from './store';
@@ -68,7 +68,21 @@ export function mountStudioView(root: HTMLElement): void {
   function routeKeyboardToSelected(): void {
     const audio = channels.find(a => a.id === selectedId);
     const ch = findChannel(daw, selectedId);
-    if (audio && ch) { synth.setSynthOut(audio.instrumentBus); synth.setPreset(ch.instrument.preset); }
+    if (audio && ch && ch.instrument.kind === 'synth') { synth.setSynthOut(audio.instrumentBus); synth.setPreset(ch.instrument.preset); }
+  }
+
+  // Toca en vivo el canal seleccionado: batería = golpe one-shot; synth = nota sostenida.
+  function playLive(m: number, v: number): void {
+    const ch = findChannel(daw, selectedId);
+    if (ch?.instrument.kind === 'drum') {
+      const audio = channels.find(a => a.id === selectedId);
+      const actx = getAudioContext();
+      if (audio && actx) audio.trigger(m, v, actx.currentTime);
+    } else { routeKeyboardToSelected(); synth.noteOn(m, v); }
+  }
+  function stopLive(m: number): void {
+    const ch = findChannel(daw, selectedId);
+    if (ch?.instrument.kind !== 'drum') synth.noteOff(m);
   }
 
   function initAudio(): Promise<void> {
@@ -162,7 +176,14 @@ export function mountStudioView(root: HTMLElement): void {
   (root.querySelector('#channels') as HTMLElement).addEventListener('change', e => {
     const t = e.target as HTMLSelectElement;
     const inst = t.getAttribute('data-inst');
-    if (inst) { daw = updateChannel(daw, inst, { instrument: { kind: 'synth', preset: t.value } }); channels.find(a => a.id === inst)?.setPreset(t.value); if (inst === selectedId) routeKeyboardToSelected(); persist(); }
+    if (inst) {
+      const [kind, name] = t.value.split(':');
+      const spec: InstrumentSpec = kind === 'drum' ? { kind: 'drum', voice: name } : { kind: 'synth', preset: name };
+      daw = updateChannel(daw, inst, { instrument: spec });
+      channels.find(a => a.id === inst)?.setInstrument(spec);
+      if (inst === selectedId) routeKeyboardToSelected();
+      persist();
+    }
   });
 
   function applyAudible(): void {
@@ -195,8 +216,8 @@ export function mountStudioView(root: HTMLElement): void {
 
   // --- teclado (toca el canal seleccionado) ---
   mountKeyboard(root.querySelector('#stKeyboard') as HTMLElement, {
-    onNoteOn: (m, v) => { audioOn(); routeKeyboardToSelected(); synth.noteOn(m, v); },
-    onNoteOff: (m) => synth.noteOff(m),
+    onNoteOn: (m, v) => { audioOn(); playLive(m, v); },
+    onNoteOff: (m) => stopLive(m),
     lowMidi: 60, highMidi: 84, baseMidi: 60
   });
 
@@ -205,8 +226,8 @@ export function mountStudioView(root: HTMLElement): void {
     audioOn();
     const st = root.querySelector('#stMidi') as HTMLElement;
     connectMidi({
-      onNoteOn: (m, v) => { routeKeyboardToSelected(); synth.noteOn(m, v); },
-      onNoteOff: (m) => synth.noteOff(m),
+      onNoteOn: (m, v) => playLive(m, v),
+      onNoteOff: (m) => stopLive(m),
       onState: (names) => { st.textContent = names.length ? '🟢 ' + names.join(' · ') : 'Ningún teclado'; }
     }).catch(err => {
       st.textContent = '🔴 ' + ((err instanceof Error && err.message) ? err.message
