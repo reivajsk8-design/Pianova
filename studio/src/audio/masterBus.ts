@@ -4,7 +4,11 @@ let masterIn: GainNode | null = null;
 let masterFx: GainNode | null = null;   // retorno del rack maestro -> limitador
 
 const SOFTCLIP_DRIVE = 2.5;
-const MASTER_MAKEUP = 2.5;
+// Realce de volumen antes del soft-clipper. La saturación efectiva es ~tanh(MASTER_MAKEUP·x): a 2.5
+// satura ya con material moderado (acordes/notas graves/velocidad alta del teclado físico). 1.8 da más
+// margen (headroom) y suena más limpio, manteniendo buen volumen. Ajustable por oído (subir=más fuerte
+// y saturado; bajar=más limpio y suave).
+const MASTER_MAKEUP = 1.8;
 
 // Curva tanh(drive·x) sobre [-1,1]: satura suave y la salida nunca pasa de ~tanh(drive) (<1).
 export function makeSoftClipCurve(n: number, drive: number): Float32Array {
