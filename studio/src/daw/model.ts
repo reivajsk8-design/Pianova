@@ -1,9 +1,14 @@
 // Modelo del groovebox. Los canales (instrumento/mezcla/rack) son compartidos; cada PATRÓN guarda los
 // pasos por id de canal. Operaciones inmutables (devuelven un DawState nuevo). El audio es espejo aparte.
 import type { RackState } from '../fx/rack-core';
+import type { SynthxParams } from '../audio/synthx-dsp';
+import { SYNTHX_DEFAULT } from '../audio/synthx-dsp';
 
 export interface Step { on: boolean; note?: number; vel?: number }
-export type InstrumentSpec = { kind: 'synth'; preset: string } | { kind: 'drum'; voice: string };
+export type InstrumentSpec =
+  | { kind: 'synth'; preset: string }
+  | { kind: 'drum'; voice: string }
+  | { kind: 'synthx'; params: SynthxParams };
 export interface ChannelState {
   id: string; name: string; instrument: InstrumentSpec;
   volume: number; pan: number; muted: boolean; soloed: boolean; rack: RackState;
@@ -27,6 +32,10 @@ export function defaultChannel(preset = 'piano', id?: string): ChannelState {
     id: id ?? newChannelId(), name: 'Canal', instrument: { kind: 'synth', preset },
     volume: 0.8, pan: 0, muted: false, soloed: false, rack: { effects: [] }
   };
+}
+
+export function defaultSynthxInstrument(): InstrumentSpec {
+  return { kind: 'synthx', params: { ...SYNTHX_DEFAULT } };
 }
 
 export function emptyPattern(channels: ChannelState[], steps: number): PatternState {

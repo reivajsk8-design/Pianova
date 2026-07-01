@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import {
   emptySteps, defaultChannel, defaultDaw, addChannel, removeChannel, updateChannel,
-  toggleStep, audibleIds, findChannel, channelSteps, addPattern, removePattern, setCurrentPattern, setSong, setStep
+  toggleStep, audibleIds, findChannel, channelSteps, addPattern, removePattern, setCurrentPattern, setSong, setStep,
+  defaultSynthxInstrument
 } from './model';
+import { SYNTHX_DEFAULT } from '../audio/synthx-dsp';
 
 describe('modelo daw con patrones', () => {
   it('defaultDaw: 1 canal, 1 patrón, 16 pasos, sin canción', () => {
@@ -72,4 +74,15 @@ describe('modelo daw con patrones', () => {
     expect(channelSteps(d, id)[2].on).toBe(false);
   });
   it('defaultDaw tiene swing 0', () => { expect(defaultDaw().swing).toBe(0); });
+});
+
+describe('instrumento synthx', () => {
+  it('defaultSynthxInstrument crea un synthx con los params por defecto (copia)', () => {
+    const inst = defaultSynthxInstrument();
+    expect(inst.kind).toBe('synthx');
+    if (inst.kind === 'synthx') {
+      expect(inst.params).toEqual(SYNTHX_DEFAULT);
+      expect(inst.params).not.toBe(SYNTHX_DEFAULT);   // es copia, no la referencia compartida
+    }
+  });
 });

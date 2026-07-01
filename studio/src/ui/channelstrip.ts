@@ -4,7 +4,7 @@ import { getPresetNames } from '../audio/synth';
 import { DRUM_VOICES, DRUM_LABELS } from '../audio/drums';
 
 export function channelStripHTML(ch: ChannelState, index: number, selected: boolean): string {
-  const cur = ch.instrument.kind === 'drum' ? `drum:${ch.instrument.voice}` : `synth:${ch.instrument.preset}`;
+  const cur = ch.instrument.kind === 'drum' ? `drum:${ch.instrument.voice}` : ch.instrument.kind === 'synthx' ? 'synthx' : `synth:${ch.instrument.preset}`;
   const synthOpts = getPresetNames()
     .map(([k, label]) => `<option value="synth:${k}"${cur === `synth:${k}` ? ' selected' : ''}>${label}</option>`).join('');
   const drumOpts = DRUM_VOICES
