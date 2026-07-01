@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { defaultProject, serializeProject, parseProject, PROJECT_VERSION } from './store';
+import { SYNTHX_DEFAULT } from '../audio/synthx-dsp';
 
 describe('proyecto v3', () => {
   it('defaultProject es v3 con 1 canal y 1 patrón', () => {
@@ -38,5 +39,41 @@ describe('proyecto v3', () => {
   it('tolera basura → v3 por defecto; lanza con JSON inválido', () => {
     expect(parseProject('{"x":1}').version).toBe(3);
     expect(() => parseProject('no-json')).toThrow();
+  });
+});
+
+describe('store · synthx tolerante', () => {
+  it('normaliza los params de un canal synthx incompleto al abrir', () => {
+    const proj = {
+      version: 3,
+      daw: {
+        channels: [{ id: 'c1', name: 'Canal', instrument: { kind: 'synthx', params: { cutoff: 999999 } },
+          volume: 0.8, pan: 0, muted: false, soloed: false, rack: { effects: [] } }],
+        patterns: [{ steps: { c1: [] } }], current: 0, song: [], bpm: 120, steps: 16, swing: 0
+      },
+      masterRack: { effects: [] }
+    };
+    const p = parseProject(JSON.stringify(proj));
+    const inst = p.daw.channels[0].instrument;
+    expect(inst.kind).toBe('synthx');
+    if (inst.kind === 'synthx') {
+      expect(inst.params.cutoff).toBe(20000);              // acotado
+      expect(inst.params.sine).toBe(SYNTHX_DEFAULT.sine);  // relleno por defecto
+      expect(inst.params.lfoDest).toBe('off');
+    }
+  });
+
+  it('no toca los canales synth/drum', () => {
+    const proj = {
+      version: 3,
+      daw: {
+        channels: [{ id: 'c1', name: 'C', instrument: { kind: 'synth', preset: 'organo' },
+          volume: 0.8, pan: 0, muted: false, soloed: false, rack: { effects: [] } }],
+        patterns: [{ steps: { c1: [] } }], current: 0, song: [], bpm: 120, steps: 16, swing: 0
+      },
+      masterRack: { effects: [] }
+    };
+    const p = parseProject(JSON.stringify(proj));
+    expect(p.daw.channels[0].instrument).toEqual({ kind: 'synth', preset: 'organo' });
   });
 });

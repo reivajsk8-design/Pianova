@@ -1,6 +1,7 @@
 // Persistencia del Estudio (proyecto v3: groovebox con patrones). Migra v1/v2 a v3.
 import type { RackState } from '../fx/rack-core';
 import { DawState, ChannelState, Step, defaultDaw, defaultChannel, emptySteps } from '../daw/model';
+import { normalizeParams } from '../audio/synthx-dsp';
 
 export const PROJECT_VERSION = 3;
 const KEY = 'estudio-v1';
@@ -18,12 +19,20 @@ function rackOf(v: unknown): RackState {
   return (v && typeof v === 'object' && Array.isArray((v as RackState).effects)) ? (v as RackState) : emptyRack();
 }
 
+// Normaliza el instrumento de un canal (rellena/acota los params de synthx; deja synth/drum igual).
+function normalizeChannel(c: ChannelState): ChannelState {
+  if (c.instrument && c.instrument.kind === 'synthx') {
+    return { ...c, instrument: { kind: 'synthx', params: normalizeParams(c.instrument.params) } };
+  }
+  return c;
+}
+
 // Acepta un DawState v3 ya formado (con valores por defecto si faltan campos).
 function dawV3(v: unknown): DawState {
   const o = v as Partial<DawState> | undefined;
   if (!o || !Array.isArray(o.channels) || o.channels.length === 0 || !Array.isArray(o.patterns) || o.patterns.length === 0) return defaultDaw();
   return {
-    channels: o.channels,
+    channels: o.channels.map(normalizeChannel),
     patterns: o.patterns,
     current: typeof o.current === 'number' ? o.current : 0,
     song: Array.isArray(o.song) ? o.song : [],
