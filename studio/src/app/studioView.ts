@@ -208,7 +208,8 @@ export function mountStudioView(root: HTMLElement): void {
 
   // --- panel inferior de efectos (cajón) ---
   const fxDrawer = root.querySelector('#fxDrawer') as HTMLElement;
-  function openDrawer(): void { fxDrawer.classList.add('open'); }
+  // Los dos cajones son mutuamente excluyentes: abrir uno cierra el otro.
+  function openDrawer(): void { synthDrawer.classList.remove('open'); fxDrawer.classList.add('open'); }
   (root.querySelector('#fxClose') as HTMLButtonElement).addEventListener('click', () => fxDrawer.classList.remove('open'));
   (root.querySelector('#fxToggle') as HTMLButtonElement).addEventListener('click', () => { audioOn(); fxDrawer.classList.toggle('open'); });
 
@@ -239,6 +240,8 @@ export function mountStudioView(root: HTMLElement): void {
         }
       }
     });
+    // Cierra el cajón de efectos antes de abrir el de sinte (mutuamente excluyentes).
+    fxDrawer.classList.remove('open');
     synthDrawer.classList.add('open');
   }
 

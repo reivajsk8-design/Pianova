@@ -55,6 +55,8 @@ export function mountSynthEditor(
   knobs.forEach(el => {
     const key = el.getAttribute('data-k') as keyof SynthxParams;
     const spec = K[key];
+    // Guarda ante un valor data-k desconocido (evita crash en spec.min).
+    if (!spec) return;
     mountKnob(el, { min: spec.min, max: spec.max, value: p[key] as number, default: spec.def,
       onChange: v => { (p[key] as number) = v; emit(); } });
   });
