@@ -54,7 +54,7 @@ App web (un solo archivo HTML) para aprender piano con notas que caen estilo Syn
    pro de la UI** (post-F3): knobs giratorios (`ui/knob.ts`) en Vol/Pan/Swing y parámetros de efectos,
    tira de canal compacta y **panel de efectos desplegable** abajo; `MASTER_MAKEUP` bajado a 1.8 (headroom);
    **sinte editable por canal** (`synthx`: osc blend + sub + unison + ADSR + filtro + LFO, con editor en cajón).
-   Detalle por sub-tanda en `HANDOFF.md`)* · **F4** módulo Aprender · **F5** conmutar el sitio a la
+   Detalle por sub-tanda en `HANDOFF.md`)* · **Rediseño PIANOVA STUDIO (v0.15.0):** la vista del Estudio se reorganizó al estilo STORM/Tempest (negro + verde neón, **pestañas PADS / SAMPLES / MIXER**, rejilla de pads con pasos y parámetros inline), sin cambios de motor; la pestaña SAMPLES espera al sub-proyecto del Simpler con slicing. · **F4** módulo Aprender · **F5** conmutar el sitio a la
    app nueva. Ver `studio/` y los specs/plans en `docs/superpowers/`.
 
 ## Cómo ejecutar y probar
