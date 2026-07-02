@@ -115,3 +115,13 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .fxKnob { display:flex; flex-direction:column; align-items:center; gap:2px; width:54px; }
 .fxKnobLab { color:var(--muted); font-size:10px; text-align:center; line-height:1.1; }
 .fxKnobVal { color:var(--ink); font-size:10px; }
+
+/* --- Editor del sinte editable --- */
+.synthEd { padding: 6px 4px; }
+.seRow { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.seGrid { display: flex; flex-wrap: wrap; gap: 16px; }
+.seSec { border: 1px solid #2a2f3a; border-radius: 8px; padding: 8px 10px; }
+.seSec h4 { margin: 0 0 6px; font-size: 11px; color: #9aa0ac; letter-spacing: .06em; }
+.seKnobs { display: flex; align-items: flex-end; gap: 12px; }
+.seKnobs .knobCell { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 10px; color: #cdd2db; }
+.seTest { background: #2a2f3a; color: #e8eaed; border: 1px solid #3a4150; border-radius: 6px; padding: 5px 10px; cursor: pointer; }

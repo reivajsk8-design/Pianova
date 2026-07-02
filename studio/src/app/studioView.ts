@@ -18,9 +18,11 @@ import { makeChannel, Channel } from '../daw/channel';
 import {
   DawState, ChannelState, InstrumentSpec, defaultChannel, addChannel, removeChannel,
   updateChannel, toggleStep, setStep, findChannel, audibleIds, channelSteps,
-  addPattern, removePattern, setCurrentPattern, setSong
+  addPattern, removePattern, setCurrentPattern, setSong, defaultSynthxInstrument
 } from '../daw/model';
 import { loadStore, saveStore, downloadProject, readProjectFile, ProjectState } from './store';
+import * as synthx from '../audio/synthx';
+import { mountSynthEditor } from '../ui/synthEditor';
 
 const STEPS_PER_BEAT = 4;
 const SEQ_VEL = 0.95;
@@ -68,6 +70,14 @@ export function mountStudioView(root: HTMLElement): void {
         <div id="chRack"></div>
         <div id="masterRack"></div>
       </div>
+    </div>
+    <div id="synthDrawer" class="fxDrawer">
+      <div class="fxDrawerHead">
+        <b id="synthTitle">Sinte editable</b>
+        <span class="grow"></span>
+        <button id="synthClose" class="chBtn" title="Cerrar el panel">✕ Cerrar</button>
+      </div>
+      <div id="synthEdHost"></div>
     </div>`;
 
   let channels: Channel[] = [];
@@ -89,10 +99,12 @@ export function mountStudioView(root: HTMLElement): void {
   }
   function playLive(m: number, v: number): void {
     const ch = findChannel(daw, selectedId);
+    const audio = channels.find(a => a.id === selectedId);
     if (ch?.instrument.kind === 'drum') {
-      const audio = channels.find(a => a.id === selectedId);
       const actx = getAudioContext();
       if (audio && actx) audio.trigger(m, v, actx.currentTime);
+    } else if (ch?.instrument.kind === 'synthx') {
+      if (audio) synthx.noteOnSynthx(ch.instrument.params, m, v, audio.instrumentBus);
     } else { routeKeyboardToSelected(); synth.noteOn(m, v); }
     if (recording && seq.isPlaying()) recordStep(m, v);
   }
@@ -105,6 +117,7 @@ export function mountStudioView(root: HTMLElement): void {
   }
   function stopLive(m: number): void {
     const ch = findChannel(daw, selectedId);
+    if (ch?.instrument.kind === 'synthx') { synthx.noteOffSynthx(m); return; }
     if (ch && ch.instrument.kind !== 'drum') synth.noteOff(m);
   }
 
@@ -195,9 +208,42 @@ export function mountStudioView(root: HTMLElement): void {
 
   // --- panel inferior de efectos (cajón) ---
   const fxDrawer = root.querySelector('#fxDrawer') as HTMLElement;
-  function openDrawer(): void { fxDrawer.classList.add('open'); }
+  // Los dos cajones son mutuamente excluyentes: abrir uno cierra el otro.
+  function openDrawer(): void { synthDrawer.classList.remove('open'); fxDrawer.classList.add('open'); }
   (root.querySelector('#fxClose') as HTMLButtonElement).addEventListener('click', () => fxDrawer.classList.remove('open'));
   (root.querySelector('#fxToggle') as HTMLButtonElement).addEventListener('click', () => { audioOn(); fxDrawer.classList.toggle('open'); });
+
+  // --- cajón del sinte editable ---
+  const synthDrawer = root.querySelector('#synthDrawer') as HTMLElement;
+  (root.querySelector('#synthClose') as HTMLButtonElement).addEventListener('click', () => synthDrawer.classList.remove('open'));
+
+  function openSynthEditor(id: string): void {
+    audioOn();
+    const ch = findChannel(daw, id);
+    if (!ch || ch.instrument.kind !== 'synthx') return;
+    const n = daw.channels.findIndex(c => c.id === id) + 1;
+    const titleEl = root.querySelector('#synthTitle'); if (titleEl) titleEl.textContent = 'Sinte editable · Canal ' + n;
+    mountSynthEditor(root.querySelector('#synthEdHost') as HTMLElement, {
+      params: ch.instrument.params,
+      onChange: (p) => {
+        const spec: InstrumentSpec = { kind: 'synthx', params: p };
+        daw = updateChannel(daw, id, { instrument: spec });
+        const audio = channels.find(a => a.id === id); if (audio) audio.setInstrument(spec);
+        persist();
+      },
+      onTest: () => {
+        const audio = channels.find(a => a.id === id);
+        const cur = findChannel(daw, id);
+        const actx = getAudioContext();
+        if (audio && actx && cur && cur.instrument.kind === 'synthx') {
+          synthx.triggerSynthx(actx, cur.instrument.params, 60, 0.9, actx.currentTime, 0.4, audio.instrumentBus);
+        }
+      }
+    });
+    // Cierra el cajón de efectos antes de abrir el de sinte (mutuamente excluyentes).
+    fxDrawer.classList.remove('open');
+    synthDrawer.classList.add('open');
+  }
 
   // --- delegación: canales ---
   const channelsEl = root.querySelector('#channels') as HTMLElement;
@@ -205,6 +251,7 @@ export function mountStudioView(root: HTMLElement): void {
     const t = e.target as HTMLElement;
     const sel = t.getAttribute('data-sel'); if (sel) { selectChannel(sel); return; }
     const fx = t.getAttribute('data-fx'); if (fx) { selectChannel(fx); openDrawer(); return; }
+    const syn = t.getAttribute('data-syned'); if (syn) { selectChannel(syn); openSynthEditor(syn); return; }
     const mute = t.getAttribute('data-mute');
     if (mute) { const c = findChannel(daw, mute); daw = updateChannel(daw, mute, { muted: !c?.muted }); applyAudible(); persist(); renderChannels(); return; }
     const solo = t.getAttribute('data-solo');
@@ -223,12 +270,15 @@ export function mountStudioView(root: HTMLElement): void {
     const t = e.target as HTMLSelectElement;
     const inst = t.getAttribute('data-inst');
     if (inst) {
-      const [kind, name] = t.value.split(':');
-      const spec: InstrumentSpec = kind === 'drum' ? { kind: 'drum', voice: name } : { kind: 'synth', preset: name };
+      const val = t.value;
+      let spec: InstrumentSpec;
+      if (val === 'synthx') spec = defaultSynthxInstrument();
+      else if (val.startsWith('drum:')) spec = { kind: 'drum', voice: val.slice(5) };
+      else spec = { kind: 'synth', preset: val.slice(6) };
       daw = updateChannel(daw, inst, { instrument: spec });
-      channels.find(a => a.id === inst)?.setInstrument(spec);
+      const audio = channels.find(a => a.id === inst); if (audio) audio.setInstrument(spec);
       if (inst === selectedId) routeKeyboardToSelected();
-      persist();
+      persist(); renderChannels(); return;
     }
   });
 

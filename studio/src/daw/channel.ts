@@ -3,6 +3,7 @@
 import { createRack, Rack } from '../fx/rack';
 import * as synth from '../audio/synth';
 import { triggerDrum, DrumVoice } from '../audio/drums';
+import { triggerSynthx } from '../audio/synthx';
 import type { ChannelState, InstrumentSpec } from './model';
 import type { RackState } from '../fx/rack-core';
 
@@ -41,6 +42,7 @@ export function makeChannel(actx: AudioContext, state: ChannelState, masterIn: A
     setAudible(a) { audible = a; applyGain(); },
     trigger(note, vel, when) {
       if (instrument.kind === 'drum') triggerDrum(actx, instrumentBus, instrument.voice as DrumVoice, when, vel);
+      else if (instrument.kind === 'synthx') triggerSynthx(actx, instrument.params, note, vel, when, 0.12, instrumentBus);
       else synth.triggerPreset(instrument.preset, note, vel, when, 0.12, instrumentBus);
     },
     serializeRack: () => rack.serialize(),

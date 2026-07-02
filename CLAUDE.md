@@ -52,7 +52,8 @@ App web (un solo archivo HTML) para aprender piano con notas que caen estilo Syn
    de pasos multi-canal, **patrones + song mode**, **grabación de pasos en vivo**; proyecto v3 con migración
    desde F1/F2. Sub-tandas 3A–3E. El MIDI-learn de knobs/transporte quedó como mejora opcional. **Acabado
    pro de la UI** (post-F3): knobs giratorios (`ui/knob.ts`) en Vol/Pan/Swing y parámetros de efectos,
-   tira de canal compacta y **panel de efectos desplegable** abajo; `MASTER_MAKEUP` bajado a 1.8 (headroom).
+   tira de canal compacta y **panel de efectos desplegable** abajo; `MASTER_MAKEUP` bajado a 1.8 (headroom);
+   **sinte editable por canal** (`synthx`: osc blend + sub + unison + ADSR + filtro + LFO, con editor en cajón).
    Detalle por sub-tanda en `HANDOFF.md`)* · **F4** módulo Aprender · **F5** conmutar el sitio a la
    app nueva. Ver `studio/` y los specs/plans en `docs/superpowers/`.
 
