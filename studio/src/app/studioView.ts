@@ -20,11 +20,15 @@ import { makeChannel, Channel } from '../daw/channel';
 import {
   DawState, ChannelState, InstrumentSpec, defaultChannel, addChannel, removeChannel,
   updateChannel, toggleStep, setStep, findChannel, audibleIds, channelSteps,
-  addPattern, removePattern, setCurrentPattern, setSong, defaultSynthxInstrument
+  addPattern, removePattern, setCurrentPattern, setSong, defaultSynthxInstrument, defaultSlicerInstrument
 } from '../daw/model';
-import { loadStore, saveStore, downloadProject, readProjectFile, ProjectState } from './store';
+import { loadStore, saveStore, downloadProject, readProjectFile, ProjectState, hydrateSamples } from './store';
 import * as synthx from '../audio/synthx';
 import { mountSynthEditor } from '../ui/synthEditor';
+import { importSample, getSample, decodePending } from '../audio/sampleStore';
+import { equalSlices, detectOnsets, marksToSlices, sliceIndexForNote } from '../daw/slicing';
+import { playSlice } from '../audio/slicer';
+import { mountSampleEditor } from '../ui/sampleEditor';
 
 const STEPS_PER_BEAT = 4;
 const SEQ_VEL = 0.95;
@@ -73,8 +77,7 @@ export function mountStudioView(root: HTMLElement): void {
         <div id="pvParams" class="pvParams"></div>
       </div>
       <div id="paneSamples" class="pvPanel">
-        <div class="pvSoon">🎹 <b>Próximamente:</b> Simpler con slicing<br>
-          <span style="font-size:12px">Cargar sonidos de la PC · trocear en slices · editar la muestra · secuenciarla</span></div>
+        <div id="sampleEditorHost"></div>
       </div>
       <div id="paneMixer" class="pvPanel">
         <div id="mixer" class="pvMixer"></div>
@@ -115,6 +118,11 @@ export function mountStudioView(root: HTMLElement): void {
       if (audio && actx) audio.trigger(m, v, actx.currentTime);
     } else if (ch?.instrument.kind === 'synthx') {
       if (audio) synthx.noteOnSynthx(ch.instrument.params, m, v, audio.instrumentBus);
+    } else if (ch?.instrument.kind === 'slicer') {
+      const s = getSample(ch.instrument.sampleId);
+      const idx = sliceIndexForNote(ch.instrument.base, ch.instrument.slices.length, m);
+      const actx = getAudioContext();
+      if (audio && actx && s?.buffer && idx >= 0) playSlice(audio.instrumentBus, s.buffer, ch.instrument.slices[idx], actx.currentTime, v);
     } else { routeKeyboardToSelected(); synth.noteOn(m, v); }
     if (recording && seq.isPlaying()) recordStep(m, v);
   }
@@ -126,6 +134,7 @@ export function mountStudioView(root: HTMLElement): void {
   function stopLive(m: number): void {
     const ch = findChannel(daw, selectedId);
     if (ch?.instrument.kind === 'synthx') { synthx.noteOffSynthx(m); return; }
+    if (ch?.instrument.kind === 'slicer') return;   // los slices son one-shot, no hay nota que soltar
     if (ch && ch.instrument.kind !== 'drum') synth.noteOff(m);
   }
 
@@ -138,6 +147,8 @@ export function mountStudioView(root: HTMLElement): void {
       channels = daw.channels.map(c => makeChannel(actx, c, masterDest()));
       routeKeyboardToSelected();
       mountRack(root.querySelector('#masterRack') as HTMLElement, masterRack, 'Maestro', persist);
+      hydrateSamples(project);
+      await decodePending();
       renderAll();
     })();
     return audioReady;
@@ -226,6 +237,60 @@ export function mountStudioView(root: HTMLElement): void {
     if (ch.instrument.kind === 'slicer') return 'slicer · ' + ch.instrument.sampleId;
     return 'preset · ' + ch.instrument.preset;
   }
+  // Pestaña SAMPLES: editor del canal slicer seleccionado (forma de onda + troceado + probar).
+  function renderSamples(): void {
+    const host = root.querySelector('#sampleEditorHost') as HTMLElement;
+    const ch = findChannel(daw, selectedId);
+    if (!ch || ch.instrument.kind !== 'slicer') {
+      host.innerHTML = '<div class="pvSoon">Elige <b>🔪 Slicer</b> en el SONIDO de un canal para cargar y trocear un audio.</div>';
+      return;
+    }
+    const inst = ch.instrument;
+    const s = getSample(inst.sampleId);
+    mountSampleEditor(host, {
+      buffer: s?.buffer ?? null, slices: inst.slices, base: inst.base,
+      onImport: (file) => { void importAudioToChannel(selectedId, file); },
+      onSliceEqual: (n) => applySlices(selectedId, equalSlicesFor(selectedId, n)),
+      onSliceOnsets: () => applySlices(selectedId, onsetsFor(selectedId)),
+      onTest: (i) => testSlice(selectedId, i)
+    });
+  }
+  async function importAudioToChannel(id: string, file: File): Promise<void> {
+    audioOn(); await initAudio();
+    const arr = await file.arrayBuffer();
+    const sampleId = await importSample(file.name, arr);
+    const spec = defaultSlicerInstrument(sampleId, 60);
+    daw = updateChannel(daw, id, { instrument: spec });
+    channels.find(a => a.id === id)?.setInstrument(spec);
+    persist(); renderSamples(); renderPads();
+  }
+  function bufferOf(id: string): AudioBuffer | null {
+    const ch = findChannel(daw, id);
+    if (ch?.instrument.kind !== 'slicer') return null;
+    return getSample(ch.instrument.sampleId)?.buffer ?? null;
+  }
+  function equalSlicesFor(id: string, n: number): number[] {
+    const buf = bufferOf(id); return buf ? equalSlices(buf.duration, n) : [];
+  }
+  function onsetsFor(id: string): number[] {
+    const buf = bufferOf(id); return buf ? detectOnsets(buf.getChannelData(0), buf.sampleRate) : [];
+  }
+  function applySlices(id: string, marks: number[]): void {
+    const buf = bufferOf(id); const ch = findChannel(daw, id);
+    if (!buf || ch?.instrument.kind !== 'slicer') return;
+    const slices = marksToSlices(marks, buf.duration);
+    const spec: InstrumentSpec = { ...ch.instrument, slices };
+    daw = updateChannel(daw, id, { instrument: spec });
+    channels.find(a => a.id === id)?.setInstrument(spec);
+    persist(); renderSamples();
+  }
+  function testSlice(id: string, index: number): void {
+    audioOn();
+    const buf = bufferOf(id); const ch = findChannel(daw, id); const audio = channels.find(a => a.id === id);
+    if (buf && audio && ch?.instrument.kind === 'slicer' && ch.instrument.slices[index]) {
+      playSlice(audio.instrumentBus, buf, ch.instrument.slices[index], (getAudioContext()?.currentTime ?? 0), 0.9);
+    }
+  }
   function renderMixer(): void {
     const host = root.querySelector('#mixer') as HTMLElement;
     host.innerHTML = daw.channels.map((c, idx) => channelStripHTML(c, idx, c.id === selectedId)).join('');
@@ -249,8 +314,8 @@ export function mountStudioView(root: HTMLElement): void {
     if (audio && ch) mountRack(host, audio.rack, 'Canal ' + n, persist);
     else host.innerHTML = '<div class="rack"><div class="rackHead"><b>Canal</b></div><p class="muted">Inicia el audio (pulsa una tecla o ▶) para sus efectos.</p></div>';
   }
-  function renderAll(): void { renderTabs(); showPane(); renderPads(); renderSelected(); renderMixer(); renderPatternBar(); renderSelectedRack(); }
-  function selectChannel(id: string): void { selectedId = id; routeKeyboardToSelected(); renderPads(); renderSelected(); renderMixer(); renderSelectedRack(); }
+  function renderAll(): void { renderTabs(); showPane(); renderPads(); renderSelected(); renderSamples(); renderMixer(); renderPatternBar(); renderSelectedRack(); }
+  function selectChannel(id: string): void { selectedId = id; routeKeyboardToSelected(); renderPads(); renderSelected(); renderSamples(); renderMixer(); renderSelectedRack(); }
   function applyAudible(): void { const aud = audibleIds(daw.channels); for (const a of channels) a.setAudible(aud.has(a.id)); }
 
   // ---------- cajón de efectos ----------
@@ -296,13 +361,14 @@ export function mountStudioView(root: HTMLElement): void {
   // Cambia el sonido de un canal (desde el MIXER o desde el selector SONIDO del panel de PADS).
   function changeInstrument(id: string, val: string): void {
     let spec: InstrumentSpec;
-    if (val === 'synthx') spec = defaultSynthxInstrument();
+    if (val === 'slicer') { spec = defaultSlicerInstrument('', 60); tab = 'samples'; renderTabs(); showPane(); }
+    else if (val === 'synthx') spec = defaultSynthxInstrument();
     else if (val.startsWith('drum:')) spec = { kind: 'drum', voice: val.slice(5) };
     else spec = { kind: 'synth', preset: val.slice(6) };
     daw = updateChannel(daw, id, { instrument: spec });
     const audio = channels.find(a => a.id === id); if (audio) audio.setInstrument(spec);
     if (id === selectedId) { routeKeyboardToSelected(); renderSelected(); }
-    persist(); renderMixer(); renderPads();
+    persist(); renderMixer(); renderPads(); renderSamples();
   }
   mixerEl.addEventListener('change', e => {
     const t = e.target as HTMLSelectElement;
@@ -390,6 +456,7 @@ export function mountStudioView(root: HTMLElement): void {
       await initAudio();
       channels.forEach(a => a.dispose()); channels = [];
       daw = p.daw; project.masterRack = p.masterRack;
+      hydrateSamples(p); await decodePending();
       const actx = ensureAudio();
       channels = daw.channels.map(c => makeChannel(actx, c, masterDest()));
       if (masterRack) masterRack.restore(p.masterRack);
