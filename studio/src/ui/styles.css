@@ -40,16 +40,12 @@ main { padding:24px 18px; }
 .tbPlay { width:44px; height:44px; border-radius:50%; font-size:16px; background:var(--amber); color:#1a1306; border:0; }
 .tbPlay.on { background:#e0533a; color:#fff; }
 .tbar input[type="number"] { width:66px; font:inherit; background:var(--panel); color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:6px 8px; }
-.seqWrap { margin:8px 0 4px; }
-.seqWrap h3 { font-size:13px; color:var(--muted); font-weight:600; margin:0 0 8px; }
 .stepRow { display:flex; gap:5px; flex-wrap:wrap; }
 .stepCell { width:28px; height:30px; border-radius:6px; background:linear-gradient(#1b1f29,#13161d); border:1px solid var(--line); cursor:pointer; padding:0; transition:background .08s ease, box-shadow .08s ease; box-shadow:inset 0 1px 0 rgba(255,255,255,.04); }
 .stepCell.beat:not(:first-child) { margin-left:11px; }   /* agrupa los tiempos de 4 en 4 */
 .stepCell:hover { border-color:#4a5163; }
 .stepCell.on { background:var(--amber); border-color:var(--amber); box-shadow:0 0 6px rgba(242,163,60,.35); }
 .stepCell.play { outline:2px solid #fff; outline-offset:1px; }
-.channels { display:flex; flex-direction:column; gap:6px; margin:6px 0; }
-.chRow { display:flex; gap:14px; align-items:center; background:linear-gradient(#161a23,#11141b); border:1px solid var(--line); border-radius:11px; padding:7px 12px; box-shadow:0 1px 2px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.03); }
 .chStrip { width:268px; flex:0 0 auto; display:flex; align-items:center; gap:12px; }
 .chMain { flex:1; min-width:0; display:flex; flex-direction:column; gap:6px; }
 .chStrip.sel { outline:2px solid var(--amber); outline-offset:3px; border-radius:8px; }
@@ -65,7 +61,6 @@ main { padding:24px 18px; }
 .chMix { display:flex; gap:10px; flex:0 0 auto; }
 .chMix label { display:flex; align-items:center; gap:6px; color:var(--muted); font-size:11px; flex:1; }
 .chMix input[type="range"] { flex:1; min-width:0; }
-.chSteps { flex:1; align-self:center; overflow-x:auto; }
 .addCh { margin:8px 0; }
 .racks .rack { min-width:260px; }
 .patBar { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:10px 0; }
@@ -97,7 +92,7 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .knobCell span { color:var(--muted); font-size:10px; letter-spacing:.04em; text-transform:uppercase; }
 
 /* ---------- Panel inferior de efectos (cajón deslizante) ---------- */
-.fxDrawer { position:fixed; left:0; right:0; bottom:0; z-index:50; background:linear-gradient(#12151c,#0c0e13); border-top:1px solid var(--line); box-shadow:0 -10px 28px rgba(0,0,0,.55); transform:translateY(101%); transition:transform .22s cubic-bezier(.32,.72,0,1); max-height:48vh; overflow:auto; padding:10px 18px 18px; }
+.fxDrawer { position:fixed; left:0; right:0; bottom:0; z-index:50; background:linear-gradient(#0b0f0a,#070a06); border-top:1px solid #2b3324; box-shadow:0 -10px 28px rgba(0,0,0,.55); transform:translateY(101%); transition:transform .22s cubic-bezier(.32,.72,0,1); max-height:34vh; overflow:auto; padding:8px 16px 12px; }
 .fxDrawer.open { transform:translateY(0); }
 .fxDrawerHead { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
 .fxDrawerHead b { font-size:14px; }
@@ -125,3 +120,53 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .seKnobs { display: flex; align-items: flex-end; gap: 12px; }
 .seKnobs .knobCell { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 10px; color: #cdd2db; }
 .seTest { background: #2a2f3a; color: #e8eaed; border: 1px solid #3a4150; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+
+/* ==================== PIANOVA STUDIO (rediseño STORM · verde neón) ==================== */
+.pvView{--pv-bg:#0a0d0a;--pv-panel:#10130f;--pv-line:#23291f;--pv-acc:#2dff6a;--pv-acc-dim:rgba(45,255,106,.35);--pv-ink:#c9d2c9;--pv-muted:#8a958a;
+  background:var(--pv-bg);color:var(--pv-ink);padding:14px;border-radius:10px}
+.pvBar{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--pv-line);padding-bottom:10px;margin-bottom:12px}
+.pvTitle{color:var(--pv-acc);font-weight:800;letter-spacing:.14em;font-size:16px;text-shadow:0 0 12px var(--pv-acc-dim)}
+.pvHdrBtns{margin-left:auto;display:flex;gap:8px;align-items:center}
+.pvHdrBtns button{background:#161a14;border:1px solid #38402f;color:#e8eee8;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer}
+.pvHdrBtns button:hover{border-color:var(--pv-acc)}
+.pvTop{display:flex;gap:16px;margin-bottom:14px;flex-wrap:wrap}
+.pvInfo{flex:1;min-width:220px;background:var(--pv-panel);border:1px solid var(--pv-line);border-radius:8px;padding:10px 14px;display:flex;gap:16px;align-items:center}
+.pvInfo .pvIName{color:var(--pv-acc);font-weight:700;letter-spacing:.08em;font-size:12px}
+.pvInfo .pvISub{font-size:10px;color:var(--pv-muted);margin-top:4px}
+.pvWave{flex:1;height:52px;background:linear-gradient(90deg,transparent,rgba(45,255,106,.08));border-radius:4px;overflow:hidden}
+.pvWave svg{width:100%;height:100%}
+.pvTabs{display:flex;gap:8px;margin-bottom:12px}
+.pvTab{padding:6px 20px;border-radius:6px;font-size:12px;letter-spacing:.1em;border:1px solid #2b3324;color:var(--pv-muted);cursor:pointer;background:none}
+.pvTab.on{background:var(--pv-acc);color:#07120a;font-weight:700;border-color:var(--pv-acc);box-shadow:0 0 14px var(--pv-acc-dim)}
+.pvPanel{display:none}
+.pvPanel.on{display:block}
+.pvGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.pvPad{background:#141a13;border:1px solid #2b3324;border-radius:8px;min-height:56px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#b7c1b7;letter-spacing:.04em;text-align:center;padding:6px;cursor:pointer}
+.pvPad:hover{border-color:#3d5a44;background:#18211a}
+.pvPad.sel,.pvPad.sel:hover{border:2px solid var(--pv-acc);background:#141a13;color:#fff;box-shadow:0 0 14px var(--pv-acc-dim) inset}
+.pvPad.add{color:#5a6656;border-style:dashed}
+.pvLbl{font-size:10px;letter-spacing:.14em;color:var(--pv-acc);margin:0 0 6px}
+.pvSteps{margin-bottom:16px}
+.pvSteps .stepRow{display:grid;grid-template-columns:repeat(16,1fr);gap:5px}
+.pvSteps .stepCell{height:30px;border-radius:5px;background:#161c14;border:1px solid #2b3324;cursor:pointer}
+.pvSteps .stepCell.beat{border-color:#44503c}
+.pvSteps .stepCell.on{background:var(--pv-acc);border-color:var(--pv-acc);box-shadow:0 0 8px var(--pv-acc-dim)}
+.pvSteps .stepCell.play{outline:2px solid #fff;outline-offset:1px}
+.pvParams{background:var(--pv-panel);border:1px solid var(--pv-line);border-radius:8px;padding:12px 16px}
+.pvParamsHead{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.pvSoon{background:var(--pv-panel);border:1px dashed #38402f;border-radius:8px;padding:40px;text-align:center;color:var(--pv-muted)}
+.pvSoon b{color:var(--pv-acc)}
+.pvMixer{display:flex;flex-direction:column;gap:8px}
+/* Fila SONIDO del panel de PADS (selector de sonido del canal seleccionado) */
+.pvSoundRow{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.pvSoundRow .pvLbl{margin:0}
+.pvSoundRow select{background:#141a13;border:1px solid #2b3324;color:var(--pv-ink);border-radius:6px;padding:6px 10px;min-width:220px;cursor:pointer}
+.pvSoundRow select:hover{border-color:var(--pv-acc)}
+/* Cajón de efectos compacto (para no tapar el secuenciador) */
+.fxDrawer .rack{padding:8px 10px;min-width:220px;border-radius:8px}
+.fxDrawer .rackHead{margin-bottom:6px}
+.fxDrawer .fxCard{padding:6px 8px}
+.fxDrawer .fxHead b{font-size:12px}
+.fxDrawer .fxParams{gap:8px}
+.fxDrawer .fxKnobLab{font-size:9px}
+.fxDrawer .fxKnobVal{font-size:9px}

@@ -3,7 +3,8 @@ import type { ChannelState } from '../daw/model';
 import { getPresetNames } from '../audio/synth';
 import { DRUM_VOICES, DRUM_LABELS } from '../audio/drums';
 
-export function channelStripHTML(ch: ChannelState, index: number, selected: boolean): string {
+// Solo el selector de sonido del canal (reutilizable en la tira del MIXER y en el panel de PADS).
+export function instrumentSelectHTML(ch: ChannelState): string {
   const cur = ch.instrument.kind === 'drum' ? `drum:${ch.instrument.voice}`
     : ch.instrument.kind === 'synthx' ? 'synthx'
     : `synth:${ch.instrument.preset}`;
@@ -12,15 +13,20 @@ export function channelStripHTML(ch: ChannelState, index: number, selected: bool
   const drumOpts = DRUM_VOICES
     .map(vc => `<option value="drum:${vc}"${cur === `drum:${vc}` ? ' selected' : ''}>${DRUM_LABELS[vc]}</option>`).join('');
   const isSynthx = ch.instrument.kind === 'synthx';
+  return `<select class="chInst" data-inst="${ch.id}">
+    <optgroup label="Sintetizados">${synthOpts}</optgroup>
+    <optgroup label="Sinte editable"><option value="synthx"${isSynthx ? ' selected' : ''}>Sinte editable</option></optgroup>
+    <optgroup label="Batería">${drumOpts}</optgroup>
+  </select>`;
+}
+
+export function channelStripHTML(ch: ChannelState, index: number, selected: boolean): string {
+  const isSynthx = ch.instrument.kind === 'synthx';
   return `<div class="chStrip${selected ? ' sel' : ''}">
     <div class="chMain">
       <div class="chHead">
         <button class="chSel" data-sel="${ch.id}" title="Seleccionar (lo toca el teclado)">${index + 1}</button>
-        <select class="chInst" data-inst="${ch.id}">
-          <optgroup label="Sintetizados">${synthOpts}</optgroup>
-          <optgroup label="Sinte editable"><option value="synthx"${isSynthx ? ' selected' : ''}>🎚️ Sinte editable</option></optgroup>
-          <optgroup label="Batería">${drumOpts}</optgroup>
-        </select>
+        ${instrumentSelectHTML(ch)}
       </div>
       <div class="chBtns">
         ${isSynthx ? `<button class="chBtn" data-syned="${ch.id}" title="Editar el sinte">✏️</button>` : ''}
