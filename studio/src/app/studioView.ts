@@ -11,7 +11,7 @@ import { makeTransport } from '../audio/transport';
 import { makeSequencer, swingOffset } from '../daw/sequencer';
 import { mountTransport } from '../ui/transport';
 import { mountStepGrid } from '../ui/stepgrid';
-import { channelStripHTML } from '../ui/channelstrip';
+import { channelStripHTML, instrumentSelectHTML } from '../ui/channelstrip';
 import { mountKnob } from '../ui/knob';
 import { patternBarHTML } from '../ui/patternbar';
 import { padGridHTML } from '../ui/padGrid';
@@ -66,6 +66,7 @@ export function mountStudioView(root: HTMLElement): void {
       <div id="tabs"></div>
       <div id="panePads" class="pvPanel on">
         <div id="padGrid"></div>
+        <div class="pvSoundRow"><span class="pvLbl">SONIDO</span><span id="pvSound"></span></div>
         <div class="pvLbl" id="stepsLbl">PASOS</div>
         <div id="pvSteps" class="pvSteps"></div>
         <div class="pvLbl">PARÁMETROS</div>
@@ -186,6 +187,8 @@ export function mountStudioView(root: HTMLElement): void {
     (root.querySelector('#pvIName') as HTMLElement).textContent = ch ? `CANAL ${n} · ${ch.name}` : '—';
     (root.querySelector('#pvISub') as HTMLElement).textContent = ch ? tipoLabel(ch) : '';
     (root.querySelector('#stepsLbl') as HTMLElement).textContent = `PASOS · CANAL ${n}`;
+    // selector de sonido del canal seleccionado (aquí mismo, sin ir al MIXER)
+    (root.querySelector('#pvSound') as HTMLElement).innerHTML = ch ? instrumentSelectHTML(ch) : '';
     // pasos del canal seleccionado (un solo grid)
     const g = mountStepGrid(root.querySelector('#pvSteps') as HTMLElement, {
       total: daw.steps,
@@ -214,7 +217,7 @@ export function mountStudioView(root: HTMLElement): void {
         }
       });
     } else {
-      host.innerHTML = '<p class="muted">Este sonido no tiene parámetros de síntesis editables. Elige <b>🎚️ Sinte editable</b> en el MIXER para diseñar el sonido, o usa los efectos.</p>';
+      host.innerHTML = '<p class="muted">Este sonido no tiene parámetros de síntesis editables. Elige <b>Sinte editable</b> en el selector de SONIDO de arriba para diseñar el sonido, o usa los efectos.</p>';
     }
   }
   function tipoLabel(ch: ChannelState): string {
@@ -289,20 +292,26 @@ export function mountStudioView(root: HTMLElement): void {
       routeKeyboardToSelected(); applyAudible(); persist(); renderPads(); renderSelected(); renderMixer(); renderSelectedRack(); return;
     }
   });
+  // Cambia el sonido de un canal (desde el MIXER o desde el selector SONIDO del panel de PADS).
+  function changeInstrument(id: string, val: string): void {
+    let spec: InstrumentSpec;
+    if (val === 'synthx') spec = defaultSynthxInstrument();
+    else if (val.startsWith('drum:')) spec = { kind: 'drum', voice: val.slice(5) };
+    else spec = { kind: 'synth', preset: val.slice(6) };
+    daw = updateChannel(daw, id, { instrument: spec });
+    const audio = channels.find(a => a.id === id); if (audio) audio.setInstrument(spec);
+    if (id === selectedId) { routeKeyboardToSelected(); renderSelected(); }
+    persist(); renderMixer(); renderPads();
+  }
   mixerEl.addEventListener('change', e => {
     const t = e.target as HTMLSelectElement;
     const inst = t.getAttribute('data-inst');
-    if (inst) {
-      const val = t.value;
-      let spec: InstrumentSpec;
-      if (val === 'synthx') spec = defaultSynthxInstrument();
-      else if (val.startsWith('drum:')) spec = { kind: 'drum', voice: val.slice(5) };
-      else spec = { kind: 'synth', preset: val.slice(6) };
-      daw = updateChannel(daw, inst, { instrument: spec });
-      const audio = channels.find(a => a.id === inst); if (audio) audio.setInstrument(spec);
-      if (inst === selectedId) { routeKeyboardToSelected(); renderSelected(); }
-      persist(); renderMixer(); renderPads(); return;
-    }
+    if (inst) changeInstrument(inst, t.value);
+  });
+  (root.querySelector('#pvSound') as HTMLElement).addEventListener('change', e => {
+    const t = e.target as HTMLSelectElement;
+    const inst = t.getAttribute('data-inst');
+    if (inst) changeInstrument(inst, t.value);
   });
 
   // ---------- barra de patrones/canción ----------
