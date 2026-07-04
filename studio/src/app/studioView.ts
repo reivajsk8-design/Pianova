@@ -234,7 +234,7 @@ export function mountStudioView(root: HTMLElement): void {
   function tipoLabel(ch: ChannelState): string {
     if (ch.instrument.kind === 'drum') return 'batería · ' + ch.instrument.voice;
     if (ch.instrument.kind === 'synthx') return 'sinte editable';
-    if (ch.instrument.kind === 'slicer') return 'slicer · ' + ch.instrument.sampleId;
+    if (ch.instrument.kind === 'slicer') { const s = getSample(ch.instrument.sampleId); return 'slicer · ' + (s?.name ?? 'sin audio'); }
     return 'preset · ' + ch.instrument.preset;
   }
   // Pestaña SAMPLES: editor del canal slicer seleccionado (forma de onda + troceado + probar).
@@ -361,7 +361,7 @@ export function mountStudioView(root: HTMLElement): void {
   // Cambia el sonido de un canal (desde el MIXER o desde el selector SONIDO del panel de PADS).
   function changeInstrument(id: string, val: string): void {
     let spec: InstrumentSpec;
-    if (val === 'slicer') { spec = defaultSlicerInstrument('', 60); tab = 'samples'; renderTabs(); showPane(); }
+    if (val === 'slicer') { spec = defaultSlicerInstrument('', 60); selectedId = id; tab = 'samples'; renderTabs(); showPane(); }
     else if (val === 'synthx') spec = defaultSynthxInstrument();
     else if (val.startsWith('drum:')) spec = { kind: 'drum', voice: val.slice(5) };
     else spec = { kind: 'synth', preset: val.slice(6) };
