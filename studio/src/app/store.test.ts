@@ -77,3 +77,16 @@ describe('store · synthx tolerante', () => {
     expect(p.daw.channels[0].instrument).toEqual({ kind: 'synth', preset: 'organo' });
   });
 });
+
+describe('store · samples', () => {
+  it('serializa/parsea el bloque de samples del proyecto', () => {
+    const p = defaultProject();
+    (p as unknown as { samples: Record<string, { name: string; b64: string }> }).samples = { 'smp-1': { name: 'break', b64: 'AAAA' } };
+    const back = parseProject(serializeProject(p));
+    expect(back.samples?.['smp-1']).toEqual({ name: 'break', b64: 'AAAA' });
+  });
+  it('proyecto sin samples da samples vacío (tolerante)', () => {
+    const back = parseProject(serializeProject(defaultProject()));
+    expect(back.samples).toEqual({});
+  });
+});

@@ -2,18 +2,19 @@
 import type { RackState } from '../fx/rack-core';
 import { DawState, ChannelState, Step, defaultDaw, defaultChannel, emptySteps } from '../daw/model';
 import { normalizeParams } from '../audio/synthx-dsp';
+import { serializeSamples, restoreSamples } from '../audio/sampleStore';
 
 export const PROJECT_VERSION = 3;
 const KEY = 'estudio-v1';
 const emptyRack = (): RackState => ({ effects: [] });
 
-export interface ProjectState { version: number; daw: DawState; masterRack: RackState }
+export interface ProjectState { version: number; daw: DawState; masterRack: RackState; samples?: Record<string, { name: string; b64: string }> }
 
 export function defaultProject(): ProjectState {
-  return { version: PROJECT_VERSION, daw: defaultDaw(), masterRack: emptyRack() };
+  return { version: PROJECT_VERSION, daw: defaultDaw(), masterRack: emptyRack(), samples: {} };
 }
 
-export function serializeProject(p: ProjectState): string { return JSON.stringify(p); }
+export function serializeProject(p: ProjectState): string { return JSON.stringify({ ...p, samples: p.samples || serializeSamples() }); }
 
 function rackOf(v: unknown): RackState {
   return (v && typeof v === 'object' && Array.isArray((v as RackState).effects)) ? (v as RackState) : emptyRack();
@@ -69,7 +70,10 @@ function migrate(o: Record<string, unknown>): ProjectState {
 }
 
 export function parseProject(json: string): ProjectState {
-  return migrate(JSON.parse(json) as Record<string, unknown>);
+  const o = JSON.parse(json) as Record<string, unknown>;
+  const base = migrate(o);
+  base.samples = (o.samples && typeof o.samples === 'object') ? o.samples as Record<string, { name: string; b64: string }> : {};
+  return base;
 }
 
 export function loadStore(): ProjectState {
@@ -88,4 +92,9 @@ export function downloadProject(p: ProjectState, filename = 'proyecto.estudio.js
 }
 export function readProjectFile(file: File): Promise<ProjectState> {
   return file.text().then(parseProject);
+}
+
+// Registra en el almacén los samples de un proyecto abierto (sin decodificar aún).
+export function hydrateSamples(p: ProjectState): void {
+  if (p.samples) restoreSamples(p.samples);
 }
