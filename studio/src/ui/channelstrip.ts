@@ -7,6 +7,7 @@ import { DRUM_VOICES, DRUM_LABELS } from '../audio/drums';
 export function instrumentSelectHTML(ch: ChannelState): string {
   const cur = ch.instrument.kind === 'drum' ? `drum:${ch.instrument.voice}`
     : ch.instrument.kind === 'synthx' ? 'synthx'
+    : ch.instrument.kind === 'slicer' ? `slicer:${ch.instrument.sampleId}`
     : `synth:${ch.instrument.preset}`;
   const synthOpts = getPresetNames()
     .map(([k, label]) => `<option value="synth:${k}"${cur === `synth:${k}` ? ' selected' : ''}>${label}</option>`).join('');

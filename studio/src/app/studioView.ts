@@ -223,6 +223,7 @@ export function mountStudioView(root: HTMLElement): void {
   function tipoLabel(ch: ChannelState): string {
     if (ch.instrument.kind === 'drum') return 'batería · ' + ch.instrument.voice;
     if (ch.instrument.kind === 'synthx') return 'sinte editable';
+    if (ch.instrument.kind === 'slicer') return 'slicer · ' + ch.instrument.sampleId;
     return 'preset · ' + ch.instrument.preset;
   }
   function renderMixer(): void {

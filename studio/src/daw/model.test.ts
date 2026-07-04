@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   emptySteps, defaultChannel, defaultDaw, addChannel, removeChannel, updateChannel,
   toggleStep, audibleIds, findChannel, channelSteps, addPattern, removePattern, setCurrentPattern, setSong, setStep,
-  defaultSynthxInstrument
+  defaultSynthxInstrument, defaultSlicerInstrument
 } from './model';
 import { SYNTHX_DEFAULT } from '../audio/synthx-dsp';
 
@@ -83,6 +83,18 @@ describe('instrumento synthx', () => {
     if (inst.kind === 'synthx') {
       expect(inst.params).toEqual(SYNTHX_DEFAULT);
       expect(inst.params).not.toBe(SYNTHX_DEFAULT);   // es copia, no la referencia compartida
+    }
+  });
+});
+
+describe('instrumento slicer', () => {
+  it('defaultSlicerInstrument crea un slicer con base 60 y sin slices', () => {
+    const inst = defaultSlicerInstrument('smp-1');
+    expect(inst.kind).toBe('slicer');
+    if (inst.kind === 'slicer') {
+      expect(inst.sampleId).toBe('smp-1');
+      expect(inst.base).toBe(60);
+      expect(inst.slices).toEqual([]);
     }
   });
 });
