@@ -11,10 +11,13 @@ const emptyRack = (): RackState => ({ effects: [] });
 export interface ProjectState { version: number; daw: DawState; masterRack: RackState; samples?: Record<string, { name: string; b64: string }> }
 
 export function defaultProject(): ProjectState {
-  return { version: PROJECT_VERSION, daw: defaultDaw(), masterRack: emptyRack(), samples: {} };
+  return { version: PROJECT_VERSION, daw: defaultDaw(), masterRack: emptyRack() };
 }
 
-export function serializeProject(p: ProjectState): string { return JSON.stringify({ ...p, samples: p.samples || serializeSamples() }); }
+// Siempre toma una foto viva del almacén de samples (no de `p.samples`, que puede
+// estar desactualizado o ser un objeto vacío): los samples reales viven en el
+// singleton `audio/sampleStore.ts`.
+export function serializeProject(p: ProjectState): string { return JSON.stringify({ ...p, samples: serializeSamples() }); }
 
 function rackOf(v: unknown): RackState {
   return (v && typeof v === 'object' && Array.isArray((v as RackState).effects)) ? (v as RackState) : emptyRack();
@@ -72,7 +75,7 @@ function migrate(o: Record<string, unknown>): ProjectState {
 export function parseProject(json: string): ProjectState {
   const o = JSON.parse(json) as Record<string, unknown>;
   const base = migrate(o);
-  base.samples = (o.samples && typeof o.samples === 'object') ? o.samples as Record<string, { name: string; b64: string }> : {};
+  base.samples = (o.samples && typeof o.samples === 'object' && !Array.isArray(o.samples)) ? o.samples as Record<string, { name: string; b64: string }> : {};
   return base;
 }
 
