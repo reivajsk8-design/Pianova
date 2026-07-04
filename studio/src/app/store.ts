@@ -2,7 +2,7 @@
 import type { RackState } from '../fx/rack-core';
 import { DawState, ChannelState, Step, defaultDaw, defaultChannel, emptySteps } from '../daw/model';
 import { normalizeParams } from '../audio/synthx-dsp';
-import { serializeSamples, restoreSamples } from '../audio/sampleStore';
+import { serializeSamples, restoreSamples, clearSamples } from '../audio/sampleStore';
 
 export const PROJECT_VERSION = 3;
 const KEY = 'estudio-v1';
@@ -98,6 +98,8 @@ export function readProjectFile(file: File): Promise<ProjectState> {
 }
 
 // Registra en el almacén los samples de un proyecto abierto (sin decodificar aún).
+// Primero vacía el almacén para no acumular los samples de un proyecto anterior.
 export function hydrateSamples(p: ProjectState): void {
+  clearSamples();
   if (p.samples) restoreSamples(p.samples);
 }

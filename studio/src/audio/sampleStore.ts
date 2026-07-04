@@ -29,6 +29,9 @@ export async function importSample(name: string, arr: ArrayBuffer): Promise<stri
 
 export function getSample(id: string): SampleEntry | undefined { return samples[id]; }
 
+// Vacía el almacén de samples (al abrir un proyecto, para no acumular los de otro).
+export function clearSamples(): void { for (const k in samples) delete samples[k]; }
+
 export function serializeSamples(): Record<string, { name: string; b64: string }> {
   const out: Record<string, { name: string; b64: string }> = {};
   for (const id in samples) { const s = samples[id]; if (s.b64) out[id] = { name: s.name, b64: s.b64 }; }

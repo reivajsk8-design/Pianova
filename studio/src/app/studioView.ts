@@ -97,12 +97,28 @@ export function mountStudioView(root: HTMLElement): void {
   let audioReady: Promise<void> | null = null;
   let selGrid: { setPlayhead: (s: number) => void } | null = null;
 
+  // El guardado en localStorage se difiere y se agrupa (400ms): `serializeProject` siempre
+  // vuelca el almacén de samples en base64 (hasta ~2MB) y `persist()` se llama en cada
+  // interacción (arrastrar un knob, tocar un paso), así que escribir sin diferir daba tirones.
+  let saveTimer = 0;
+  function scheduleSave(): void {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      saveStore({ version: 3, daw, masterRack: masterRack ? masterRack.serialize() : project.masterRack });
+    }, 400) as unknown as number;
+  }
+  // Escribe ya mismo (cancelando cualquier guardado pendiente): para el botón Guardar,
+  // donde el localStorage debe reflejar el estado actual sin esperar el debounce.
+  function flushSave(): void {
+    if (saveTimer) { clearTimeout(saveTimer); saveTimer = 0; }
+    saveStore({ version: 3, daw, masterRack: masterRack ? masterRack.serialize() : project.masterRack });
+  }
   function persist(): void {
     daw = { ...daw, channels: daw.channels.map(c => {
       const audio = channels.find(a => a.id === c.id);
       return audio ? { ...c, rack: audio.serializeRack() } : c;
     }) };
-    saveStore({ version: 3, daw, masterRack: masterRack ? masterRack.serialize() : project.masterRack });
+    scheduleSave();
   }
 
   function routeKeyboardToSelected(): void {
@@ -447,7 +463,7 @@ export function mountStudioView(root: HTMLElement): void {
   });
 
   // ---------- guardar / abrir proyecto ----------
-  (root.querySelector('#stSave') as HTMLButtonElement).addEventListener('click', () => { persist(); downloadProject({ version: 3, daw, masterRack: masterRack ? masterRack.serialize() : project.masterRack }); });
+  (root.querySelector('#stSave') as HTMLButtonElement).addEventListener('click', () => { persist(); flushSave(); downloadProject({ version: 3, daw, masterRack: masterRack ? masterRack.serialize() : project.masterRack }); });
   (root.querySelector('#stOpen') as HTMLButtonElement).addEventListener('click', () => (root.querySelector('#stFile') as HTMLInputElement).click());
   (root.querySelector('#stFile') as HTMLInputElement).addEventListener('change', async ev => {
     const file = (ev.target as HTMLInputElement).files?.[0]; if (!file) return;
