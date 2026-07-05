@@ -65,6 +65,13 @@ el motor de audio: `studioView` registra cada disparo en un bus de golpes (`padH
 `requestAnimationFrame` (`visualTick`) pinta leyendo el reloj de audio; la matemática es pura y testeada en
 `ui/hitViz.ts`. La onda del editor se cachea en un canvas offscreen para pintar el cursor sin recalcularla.
 
+**Estudio · Fix nota synth colgada (v0.19.1):** las notas de un preset synth con `sustain:true` (cuerda,
+órgano) se quedaban sonando. Causa raíz: `stopLive` decidía a qué motor mandar el note-off según el canal
+**seleccionado al soltar** (introducido en F3, `b702f65`), así que si la selección había cambiado a
+batería/slicer no se llamaba `synth.noteOff` y la voz quedaba colgada; solo se oía en presets sustain (los
+que decaen solos lo ocultaban). Fix: `stopLive` apaga **incondicionalmente por midi** (`synth.noteOff` +
+`synthx.noteOffSynthx`, ambos no-op si no hay voz), como el `silence(midi)` de `pianova.html`.
+
 **Proyecto pro `studio/` — repaso visual del groovebox + headroom (post-F3, sigue v0.13.0, 77 tests):**
 - **Headroom del bus maestro:** `MASTER_MAKEUP` bajado de **2.5 → 1.8** en `audio/masterBus.ts` (el teclado físico saturaba el soft-clipper con acordes/graves; la saturación efectiva es ~`tanh(MAKEUP·x)`; 1.8 limpia sin perder volumen; ajustable por oído). **Ojo:** el texto de la F1 más arriba dice 2.5 (era el valor de entonces); el actual es **1.8**.
 - **Knobs giratorios** (`ui/knob.ts`, componente nuevo): mando estilo DAW, se ajusta arrastrando ↕ + doble-clic resetea, táctil; `valueToAngle` puro+testeado (barrido 270°). Usado en **Vol/Pan por canal**, **Swing** y los **parámetros de los efectos** (con su valor + unidad, cuantizado al `step`). El BPM sigue siendo campo numérico.
