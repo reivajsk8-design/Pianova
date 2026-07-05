@@ -76,6 +76,36 @@ export function channelSteps(daw: DawState, chId: string): Step[] {
   return daw.patterns[daw.current]?.steps[chId] ?? emptySteps(daw.steps);
 }
 
+// Longitud (nº de pasos) del canal en el patrón ACTUAL; por defecto daw.steps si no existe el array.
+export function channelLen(daw: DawState, id: string): number {
+  return daw.patterns[daw.current]?.steps[id]?.length ?? daw.steps;
+}
+
+// Añade una página (DEFAULT_STEPS pasos vacíos) al final del canal en el patrón actual (inmutable).
+export function addStepsPage(daw: DawState, id: string): DawState {
+  return {
+    ...daw,
+    patterns: daw.patterns.map((p, idx) => {
+      if (idx !== daw.current) return p;
+      const cur = p.steps[id] ?? emptySteps(daw.steps);
+      return { steps: { ...p.steps, [id]: [...cur, ...emptySteps(DEFAULT_STEPS)] } };
+    })
+  };
+}
+
+// Quita una página (DEFAULT_STEPS pasos del final) del canal en el patrón actual; nunca por debajo de una página.
+export function removeStepsPage(daw: DawState, id: string): DawState {
+  return {
+    ...daw,
+    patterns: daw.patterns.map((p, idx) => {
+      if (idx !== daw.current) return p;
+      const cur = p.steps[id];
+      if (!cur || cur.length <= DEFAULT_STEPS) return p;
+      return { steps: { ...p.steps, [id]: cur.slice(0, cur.length - DEFAULT_STEPS) } };
+    })
+  };
+}
+
 export function addChannel(daw: DawState, ch: ChannelState): DawState {
   return {
     ...daw,
