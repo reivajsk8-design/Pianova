@@ -42,7 +42,9 @@ function dawV3(v: unknown): DawState {
     song: Array.isArray(o.song) ? o.song : [],
     bpm: typeof o.bpm === 'number' ? o.bpm : 120,
     steps: typeof o.steps === 'number' ? o.steps : 16,
-    swing: typeof o.swing === 'number' ? o.swing : 0
+    swing: typeof o.swing === 'number' ? o.swing : 0,
+    scaleRoot: typeof o.scaleRoot === 'number' ? o.scaleRoot : 0,
+    scaleType: typeof o.scaleType === 'string' ? o.scaleType : 'chromatic'
   };
 }
 
@@ -58,7 +60,7 @@ function dawV2toV3(v: unknown): DawState {
     void _omit;
     return rest as ChannelState;
   });
-  return { channels, patterns: [{ steps: stepsByCh }], current: 0, song: [], bpm: typeof o.bpm === 'number' ? o.bpm : 120, steps: total, swing: 0 };
+  return { channels, patterns: [{ steps: stepsByCh }], current: 0, song: [], bpm: typeof o.bpm === 'number' ? o.bpm : 120, steps: total, swing: 0, scaleRoot: 0, scaleType: 'chromatic' };
 }
 
 function migrate(o: Record<string, unknown>): ProjectState {
@@ -69,7 +71,7 @@ function migrate(o: Record<string, unknown>): ProjectState {
   const preset = typeof o.instrument === 'string' ? o.instrument : 'piano';
   const ch = defaultChannel(preset);
   ch.rack = rackOf(o.instrumentRack);
-  return { version: 3, daw: { channels: [ch], patterns: [{ steps: { [ch.id]: emptySteps(16) } }], current: 0, song: [], bpm: 120, steps: 16, swing: 0 }, masterRack };
+  return { version: 3, daw: { channels: [ch], patterns: [{ steps: { [ch.id]: emptySteps(16) } }], current: 0, song: [], bpm: 120, steps: 16, swing: 0, scaleRoot: 0, scaleType: 'chromatic' }, masterRack };
 }
 
 export function parseProject(json: string): ProjectState {

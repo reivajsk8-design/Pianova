@@ -198,3 +198,26 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 
 /* Slice sonando (iluminación reactiva): resalte independiente del .sel de edición */
 .smpSlice.playing{border-color:#eaffe9;color:#fff;box-shadow:0 0 10px rgba(45,255,106,.55)}
+
+/* ---------- Mini piano-roll por canal ---------- */
+.pr{border:1px solid var(--pv-line);border-radius:8px;overflow:hidden;background:#0c110b}
+.prTools{display:flex;align-items:center;gap:8px;padding:4px 6px;border-bottom:1px solid var(--pv-line)}
+.prTools .chBtn{width:26px;height:22px;padding:0}
+.prHint{font-size:10px}
+.prGrid{display:flex;flex-direction:column}
+.prRow{display:flex;align-items:stretch;height:16px}
+.prRow.black{background:#0a0f09}
+.prRow.inscale{background:rgba(45,255,106,.06)}
+.prRow.black.inscale{background:rgba(45,255,106,.05)}
+.prLabel{flex:0 0 44px;font-size:9px;color:var(--pv-muted);display:flex;align-items:center;padding-left:6px;border-right:1px solid var(--pv-line)}
+.prCells{display:grid;flex:1;grid-auto-flow:column;grid-auto-columns:1fr}
+.prCell{border-right:1px solid #141a12;border-bottom:1px solid #141a12;cursor:pointer}
+.prCell.beat{border-left:1px solid #2b3324}
+.prCell.on{background:var(--pv-acc);box-shadow:0 0 6px var(--pv-acc-dim) inset}
+.prCell.play{background:rgba(255,255,255,.10)}
+.prCell.on.play{background:var(--pv-acc);outline:1px solid #fff;outline-offset:-1px}
+/* Barra de escala encima del piano-roll */
+.pvScale{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:11px;color:var(--pv-muted)}
+.pvScale:empty{display:none}
+.pvScale select{background:#141a13;border:1px solid #2b3324;color:var(--pv-ink);border-radius:6px;padding:4px 8px;cursor:pointer}
+.pvScale select:hover{border-color:var(--pv-acc)}

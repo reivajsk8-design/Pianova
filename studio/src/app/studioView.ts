@@ -11,6 +11,8 @@ import { makeTransport } from '../audio/transport';
 import { makeSequencer, swingOffset } from '../daw/sequencer';
 import { mountTransport } from '../ui/transport';
 import { mountStepGrid } from '../ui/stepgrid';
+import { mountPianoRoll } from '../ui/pianoRoll';
+import { SCALE_LABELS, NOTE_NAMES } from '../daw/scales';
 import { channelStripHTML, instrumentSelectHTML } from '../ui/channelstrip';
 import { mountKnob } from '../ui/knob';
 import { patternBarHTML } from '../ui/patternbar';
@@ -49,6 +51,7 @@ export function mountStudioView(root: HTMLElement): void {
   let songPos = -1;
   let barStarted = false;
   let recording = false;
+  let prLow = 48;   // octava base visible del piano-roll (Do3), recordada entre re-montajes
 
   root.innerHTML = `
     <div class="pvView">
@@ -75,6 +78,7 @@ export function mountStudioView(root: HTMLElement): void {
         <div id="padGrid"></div>
         <div class="pvSoundRow"><span class="pvLbl">SONIDO</span><span id="pvSound"></span></div>
         <div class="pvLbl" id="stepsLbl">PASOS</div>
+        <div id="pvScale" class="pvScale"></div>
         <div id="pvSteps" class="pvSteps"></div>
         <div class="pvLbl">PARÁMETROS</div>
         <div id="pvParams" class="pvParams"></div>
@@ -237,13 +241,41 @@ export function mountStudioView(root: HTMLElement): void {
     (root.querySelector('#stepsLbl') as HTMLElement).textContent = `PASOS · CANAL ${n}`;
     // selector de sonido del canal seleccionado (aquí mismo, sin ir al MIXER)
     (root.querySelector('#pvSound') as HTMLElement).innerHTML = ch ? instrumentSelectHTML(ch) : '';
-    // pasos del canal seleccionado (un solo grid)
-    const g = mountStepGrid(root.querySelector('#pvSteps') as HTMLElement, {
-      total: daw.steps,
-      isOn: (i) => channelSteps(daw, selectedId)[i]?.on ?? false,
-      onToggle: (i) => { daw = toggleStep(daw, selectedId, i); persist(); }
-    });
-    selGrid = { setPlayhead: g.setPlayhead };
+    // PASOS: piano-roll para canales melódicos; fila on/off para batería.
+    const stepsHost = root.querySelector('#pvSteps') as HTMLElement;
+    const scaleHost = root.querySelector('#pvScale') as HTMLElement;
+    const melodic = !!ch && ch.instrument.kind !== 'drum';
+    if (melodic) {
+      // barra de escala
+      const tonicOpts = NOTE_NAMES.map((nm, i) => `<option value="${i}"${i === daw.scaleRoot ? ' selected' : ''}>${nm}</option>`).join('');
+      const typeOpts = Object.keys(SCALE_LABELS).map(k => `<option value="${k}"${k === daw.scaleType ? ' selected' : ''}>${SCALE_LABELS[k]}</option>`).join('');
+      scaleHost.innerHTML = `<span>Escala</span><select id="scTonic">${tonicOpts}</select><select id="scType">${typeOpts}</select>`;
+      (scaleHost.querySelector('#scTonic') as HTMLSelectElement).addEventListener('change', e => {
+        daw = { ...daw, scaleRoot: +(e.target as HTMLSelectElement).value }; persist(); renderSelected();
+      });
+      (scaleHost.querySelector('#scType') as HTMLSelectElement).addEventListener('change', e => {
+        daw = { ...daw, scaleType: (e.target as HTMLSelectElement).value }; persist(); renderSelected();
+      });
+      const pr = mountPianoRoll(stepsHost, {
+        total: daw.steps, lowMidi: prLow, scaleRoot: daw.scaleRoot, scaleType: daw.scaleType,
+        getStep: (i) => channelSteps(daw, selectedId)[i],
+        onSetNote: (i, midi) => {
+          const cur = channelSteps(daw, selectedId)[i];
+          daw = setStep(daw, selectedId, i, midi == null ? { on: false } : { on: true, note: midi, vel: cur?.vel });
+          persist();
+        },
+        onRange: (lo) => { prLow = lo; }
+      });
+      selGrid = { setPlayhead: pr.setPlayhead };
+    } else {
+      scaleHost.innerHTML = '';
+      const g = mountStepGrid(stepsHost, {
+        total: daw.steps,
+        isOn: (i) => channelSteps(daw, selectedId)[i]?.on ?? false,
+        onToggle: (i) => { daw = toggleStep(daw, selectedId, i); persist(); }
+      });
+      selGrid = { setPlayhead: g.setPlayhead };
+    }
     // parámetros del canal seleccionado
     const host = root.querySelector('#pvParams') as HTMLElement;
     if (ch && ch.instrument.kind === 'synthx') {
