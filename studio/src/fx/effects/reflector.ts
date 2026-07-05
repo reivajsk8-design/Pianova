@@ -1,6 +1,6 @@
 // Reflector: delay corto con realimentación (puede ser negativa → peines/inversión, sonido de reflexión).
 import { registerEffect, makeEffect, ParamSpec } from '../effect';
-import { ramp } from '../param';
+import { ramp, delayTimeSetter } from '../param';
 
 export const REFLECTOR_PARAMS: ParamSpec[] = [
   { name: 'time', label: 'Tiempo', min: 1, max: 100, step: 0.5, default: 18, unit: 'ms' },
@@ -19,8 +19,9 @@ registerEffect('reflector', {
     input.connect(delay);
     delay.connect(wetMix); wetMix.connect(sink);
     delay.connect(fb); fb.connect(delay);
+    const setTime = delayTimeSetter(delay, actx, REFLECTOR_PARAMS[0].default);   // tiempo con debounce (sin warble)
     return (name, value) => {
-      if (name === 'time') ramp(delay.delayTime, value / 1000, actx);
+      if (name === 'time') setTime(value);
       else if (name === 'reflection') ramp(fb.gain, value, actx);   // negativo permitido
       else if (name === 'mix') { ramp(wetMix.gain, value, actx); ramp(dryMix.gain, 1 - value, actx); }
     };
