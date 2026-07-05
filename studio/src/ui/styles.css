@@ -96,7 +96,13 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .fxSection .rack { min-width:0; padding:8px 10px; }
 .fxSection .rackHead { margin-bottom:6px; }
 .fxSection .fxCard { padding:7px 8px; }
-.fxSection .fxHead b { font-size:12px; }
+/* Cabecera compacta del módulo: el nombre ocupa su línea y los controles (bypass + ◀▶✕)
+   envuelven debajo, para que no se salgan del cuadro estrecho del efecto. */
+.fxSection .fxHead { flex-wrap:wrap; gap:4px 6px; }
+.fxSection .fxHead b { flex:1 1 100%; font-size:12px; }
+.fxSection .fxHead .grow { display:none; }
+.fxSection .fxHead .chBtn { width:22px; height:22px; padding:0; }
+.fxSection .fxByp { font-size:11px; }
 .fxSection .fxKnobLab, .fxSection .fxKnobVal { font-size:9px; }
 
 /* ---------- Efectos compactos (parámetros como knobs) ---------- */
