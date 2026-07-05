@@ -37,6 +37,9 @@ import type { SampleEditorHandle } from '../ui/sampleEditor';
 
 const STEPS_PER_BEAT = 4;
 const SEQ_VEL = 0.95;
+// Mínimo común múltiplo: la longitud maestra del secuenciador es el m.c.m. de las longitudes de los canales,
+// así CADA canal divide a la maestra → ninguno se trunca y el cabezal (paso % longitud) queda exacto.
+function lcm2(a: number, b: number): number { const g = (x: number, y: number): number => (y ? g(y, x % y) : x); return a / g(a, b) * b; }
 const WAVE_SVG = '<svg viewBox="0 0 200 50" preserveAspectRatio="none"><path d="M0,25 Q10,5 20,25 T40,25 T60,25 T80,25 T100,25 T120,25 T140,25 T160,25 T180,25 T200,25" fill="none" stroke="#2dff6a" stroke-width="1.5" opacity=".85"/></svg>';
 
 export function mountStudioView(root: HTMLElement): void {
@@ -202,8 +205,8 @@ export function mountStudioView(root: HTMLElement): void {
       const pat = daw.patterns[pIdx];
       if (!pat) return daw.steps;
       let m = daw.steps;
-      for (const c of daw.channels) { const L = pat.steps[c.id]?.length ?? 0; if (L > m) m = L; }
-      return m;
+      for (const c of daw.channels) { const L = pat.steps[c.id]?.length ?? 0; if (L > 0) m = lcm2(m, L); }
+      return m;   // m.c.m.: p. ej. 16+32 → 32; 32+48 → 96 (todos encajan sin truncar)
     },
     onStep: (i, when) => {
       if (i === 0) {
