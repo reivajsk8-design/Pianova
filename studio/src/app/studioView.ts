@@ -57,7 +57,6 @@ export function mountStudioView(root: HTMLElement): void {
         <span class="pvHdrBtns">
           <button id="stConnect">Conectar teclado</button>
           <span id="stMidi" class="muted">Sin conectar</span>
-          <button id="fxToggle">🎛 Efectos</button>
           <button id="stSave">💾 Guardar</button>
           <button id="stOpen">📂 Abrir</button>
           <input id="stFile" type="file" accept="application/json,.json" hidden>
@@ -87,13 +86,12 @@ export function mountStudioView(root: HTMLElement): void {
         <div id="mixer" class="pvMixer"></div>
         <button id="addCh" class="addCh">＋ Añadir canal</button>
       </div>
+      <div id="fxSection" class="fxSection">
+        <div id="chRack"></div>
+        <div id="masterRack"></div>
+      </div>
       <div id="stKeyboard"></div>
       <p class="muted">Toca con el ratón, las teclas <b>A S D F G H J K</b> / <b>W E T Y U</b>, o tu teclado MIDI.</p>
-      <div id="fxDrawer" class="fxDrawer">
-        <div class="fxDrawerHead"><b id="fxTitle">Efectos</b><span class="grow"></span>
-          <button id="fxClose" class="chBtn" title="Cerrar el panel">✕ Cerrar</button></div>
-        <div class="racks"><div id="chRack"></div><div id="masterRack"></div></div>
-      </div>
     </div>`;
 
   let channels: Channel[] = [];
@@ -361,7 +359,6 @@ export function mountStudioView(root: HTMLElement): void {
     const audio = channels.find(a => a.id === selectedId);
     const ch = findChannel(daw, selectedId);
     const n = daw.channels.findIndex(c => c.id === selectedId) + 1;
-    const titleEl = root.querySelector('#fxTitle'); if (titleEl) titleEl.textContent = 'Efectos · Canal ' + n;
     if (audio && ch) mountRack(host, audio.rack, 'Canal ' + n, persist);
     else host.innerHTML = '<div class="rack"><div class="rackHead"><b>Canal</b></div><p class="muted">Inicia el audio (pulsa una tecla o ▶) para sus efectos.</p></div>';
   }
@@ -369,11 +366,6 @@ export function mountStudioView(root: HTMLElement): void {
   function selectChannel(id: string): void { selectedId = id; sliceHits.length = 0; routeKeyboardToSelected(); renderPads(); renderSelected(); renderSamples(); renderMixer(); renderSelectedRack(); }
   function applyAudible(): void { const aud = audibleIds(daw.channels); for (const a of channels) a.setAudible(aud.has(a.id)); }
 
-  // ---------- cajón de efectos ----------
-  const fxDrawer = root.querySelector('#fxDrawer') as HTMLElement;
-  function openDrawer(): void { fxDrawer.classList.add('open'); }
-  (root.querySelector('#fxClose') as HTMLButtonElement).addEventListener('click', () => fxDrawer.classList.remove('open'));
-  (root.querySelector('#fxToggle') as HTMLButtonElement).addEventListener('click', () => { audioOn(); fxDrawer.classList.toggle('open'); });
 
   // ---------- pestañas ----------
   (root.querySelector('#tabs') as HTMLElement).addEventListener('click', e => {
@@ -394,7 +386,7 @@ export function mountStudioView(root: HTMLElement): void {
   mixerEl.addEventListener('click', e => {
     const t = e.target as HTMLElement;
     const sel = t.getAttribute('data-sel'); if (sel) { selectChannel(sel); return; }
-    const fx = t.getAttribute('data-fx'); if (fx) { selectChannel(fx); openDrawer(); return; }
+    const fx = t.getAttribute('data-fx'); if (fx) { selectChannel(fx); return; }
     const syn = t.getAttribute('data-syned'); if (syn) { selectChannel(syn); tab = 'pads'; renderTabs(); showPane(); return; }
     const mute = t.getAttribute('data-mute');
     if (mute) { const c = findChannel(daw, mute); daw = updateChannel(daw, mute, { muted: !c?.muted }); applyAudible(); persist(); renderMixer(); return; }
