@@ -128,14 +128,21 @@ export function mountSampleEditor(
         <label class="smpRev"><input type="checkbox" id="skRev" ${s.reverse ? 'checked' : ''}> Reverse</label>
         <button class="smpBtn" id="skTest">▶ Probar</button>
       </div>`;
+    // opts.slices no se refresca al editar (para no re-montar el editor a mitad de un arrastre),
+    // así que `s` mantiene datos obsoletos tras la primera edición. Mutamos `s` en el propio
+    // handler para que la vista local del editor quede en sync con el modelo (que sí se actualiza
+    // de forma inmutable en otro sitio); así una futura renderPanel() no muestra ni reescribe valores viejos.
     mountKnob(panel.querySelector('#skGain') as HTMLElement, { min: 0, max: 2, value: s.gain, default: 1, size: 34,
-      onChange: v => opts.onUpdateSlice?.(selected, { gain: v }) });
+      onChange: v => { s.gain = v; opts.onUpdateSlice?.(selected, { gain: v }); } });
     mountKnob(panel.querySelector('#skFin') as HTMLElement, { min: 0, max: 0.3, value: s.fadeIn, default: 0, size: 34,
-      onChange: v => opts.onUpdateSlice?.(selected, { fadeIn: v }) });
+      onChange: v => { s.fadeIn = v; opts.onUpdateSlice?.(selected, { fadeIn: v }); } });
     mountKnob(panel.querySelector('#skFout') as HTMLElement, { min: 0, max: 0.3, value: s.fadeOut, default: 0, size: 34,
-      onChange: v => opts.onUpdateSlice?.(selected, { fadeOut: v }) });
-    (panel.querySelector('#skRev') as HTMLInputElement).addEventListener('change', e =>
-      opts.onUpdateSlice?.(selected, { reverse: (e.target as HTMLInputElement).checked }));
+      onChange: v => { s.fadeOut = v; opts.onUpdateSlice?.(selected, { fadeOut: v }); } });
+    (panel.querySelector('#skRev') as HTMLInputElement).addEventListener('change', e => {
+      const checked = (e.target as HTMLInputElement).checked;
+      s.reverse = checked;
+      opts.onUpdateSlice?.(selected, { reverse: checked });
+    });
     (panel.querySelector('#skTest') as HTMLButtonElement).addEventListener('click', () => opts.onTest(selected));
   }
 
