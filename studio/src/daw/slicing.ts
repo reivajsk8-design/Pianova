@@ -50,3 +50,10 @@ export function sliceIndexForNote(base: number, count: number, midi: number): nu
   const idx = midi - base;
   return (idx >= 0 && idx < count) ? idx : -1;
 }
+
+// Devuelve un array nuevo con el slice `index` combinado con `patch` (los demás intactos).
+// Índice fuera de rango: devuelve el mismo array sin cambios.
+export function updateSlice(slices: SliceDef[], index: number, patch: Partial<SliceDef>): SliceDef[] {
+  if (index < 0 || index >= slices.length) return slices;
+  return slices.map((s, i) => i === index ? { ...s, ...patch } : s);
+}

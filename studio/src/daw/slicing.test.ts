@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { equalSlices, detectOnsets, marksToSlices, sliceIndexForNote } from './slicing';
+import { equalSlices, detectOnsets, marksToSlices, sliceIndexForNote, updateSlice } from './slicing';
 
 describe('slicing', () => {
   it('equalSlices da n marcas de inicio equiespaciadas', () => {
@@ -33,5 +33,28 @@ describe('slicing', () => {
     expect(sliceIndexForNote(60, 4, 63)).toBe(3);
     expect(sliceIndexForNote(60, 4, 64)).toBe(-1);
     expect(sliceIndexForNote(60, 4, 59)).toBe(-1);
+  });
+});
+
+describe('updateSlice', () => {
+  const base = () => [
+    { start: 0, end: 1, gain: 1, reverse: false, fadeIn: 0, fadeOut: 0 },
+    { start: 1, end: 2, gain: 1, reverse: false, fadeIn: 0, fadeOut: 0 }
+  ];
+  it('combina el patch en el slice indicado y deja los demás', () => {
+    const out = updateSlice(base(), 1, { gain: 0.5, reverse: true });
+    expect(out[1]).toEqual({ start: 1, end: 2, gain: 0.5, reverse: true, fadeIn: 0, fadeOut: 0 });
+    expect(out[0]).toEqual(base()[0]);
+  });
+  it('devuelve un array nuevo (no muta el original)', () => {
+    const src = base();
+    const out = updateSlice(src, 0, { gain: 2 });
+    expect(out).not.toBe(src);
+    expect(src[0].gain).toBe(1);   // el original no cambia
+  });
+  it('índice fuera de rango: devuelve el original sin cambios', () => {
+    const src = base();
+    expect(updateSlice(src, 5, { gain: 0 })).toBe(src);
+    expect(updateSlice(src, -1, { gain: 0 })).toBe(src);
   });
 });

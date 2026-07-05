@@ -26,7 +26,7 @@ import { loadStore, saveStore, downloadProject, readProjectFile, ProjectState, h
 import * as synthx from '../audio/synthx';
 import { mountSynthEditor } from '../ui/synthEditor';
 import { importSample, getSample, decodePending } from '../audio/sampleStore';
-import { equalSlices, detectOnsets, marksToSlices, sliceIndexForNote } from '../daw/slicing';
+import { equalSlices, detectOnsets, marksToSlices, sliceIndexForNote, updateSlice } from '../daw/slicing';
 import { playSlice } from '../audio/slicer';
 import { mountSampleEditor } from '../ui/sampleEditor';
 
@@ -269,7 +269,16 @@ export function mountStudioView(root: HTMLElement): void {
       onSliceEqual: (n) => applySlices(selectedId, equalSlicesFor(selectedId, n)),
       onSliceOnsets: () => applySlices(selectedId, onsetsFor(selectedId)),
       onSetMarks: (marks) => applySlices(selectedId, marks),
-      onTest: (i) => testSlice(selectedId, i)
+      onTest: (i) => testSlice(selectedId, i),
+      onUpdateSlice: (index, patch) => {
+        const ch = findChannel(daw, selectedId);
+        if (ch?.instrument.kind !== 'slicer') return;
+        const slices = updateSlice(ch.instrument.slices, index, patch);
+        const spec: InstrumentSpec = { ...ch.instrument, slices };
+        daw = updateChannel(daw, selectedId, { instrument: spec });
+        channels.find(a => a.id === selectedId)?.setInstrument(spec);
+        persist();   // NO renderSamples(): el editor no se re-monta mientras arrastras un knob
+      }
     });
   }
   async function importAudioToChannel(id: string, file: File): Promise<void> {
