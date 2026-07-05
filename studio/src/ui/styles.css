@@ -221,3 +221,12 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .pvScale:empty{display:none}
 .pvScale select{background:#141a13;border:1px solid #2b3324;color:var(--pv-ink);border-radius:6px;padding:4px 8px;cursor:pointer}
 .pvScale select:hover{border-color:var(--pv-acc)}
+
+/* Barra de longitud de pasos + páginas */
+.pvLenBar{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:11px;color:var(--pv-muted);flex-wrap:wrap}
+.pvLenBtn{background:#141a13;border:1px solid #2b3324;color:var(--pv-ink);border-radius:6px;padding:2px 8px;cursor:pointer;font-size:12px}
+.pvLenBtn:hover{border-color:var(--pv-acc)}
+.pvLenN{color:var(--pv-ink)}
+.pvPages{display:flex;align-items:center;gap:4px;margin-left:8px}
+.pvPage{background:#141a13;border:1px solid #2b3324;color:var(--pv-muted);border-radius:5px;padding:2px 8px;cursor:pointer;font-size:11px}
+.pvPage.on{border-color:var(--pv-acc);color:#fff;box-shadow:0 0 6px var(--pv-acc-dim)}
