@@ -1,7 +1,13 @@
 // studio/src/ui/sampleEditor.ts
-// Editor del canal slicer (pestaña SAMPLES): forma de onda + marcas editables + troceado + probar slice.
+// Editor del canal slicer (pestaña SAMPLES): forma de onda + marcas editables + troceado + probar slice
+// + resalte del slice que suena con una línea-cursor recorriendo la onda (iluminación reactiva).
 import type { SliceDef } from '../daw/slicing';
 import { mountKnob } from './knob';
+import type { ActiveSlice } from './hitViz';
+
+export interface SampleEditorHandle {
+  setActiveSlices(active: ActiveSlice[]): void;
+}
 
 const NOTE_NAMES = ['Do', 'Do#', 'Re', 'Re#', 'Mi', 'Fa', 'Fa#', 'Sol', 'Sol#', 'La', 'La#', 'Si'];
 const noteName = (m: number): string => NOTE_NAMES[((m % 12) + 12) % 12] + (Math.floor(m / 12) - 1);
@@ -15,7 +21,7 @@ export function mountSampleEditor(
     onSetMarks?: (marks: number[]) => void;
     onUpdateSlice?: (index: number, patch: Partial<SliceDef>) => void;
   }
-): void {
+): SampleEditorHandle {
   root.innerHTML = `<div class="smpEd">
     <div class="smpBar">
       <label class="smpBtn">Importar audio…<input id="smpFile" type="file" accept="audio/*" hidden></label>
@@ -38,6 +44,9 @@ export function mountSampleEditor(
     opts.onSliceEqual(n);
   });
 
+  // Por defecto no-op; si hay onda, se sustituye por el pintado real del cursor/resalte.
+  let setActive: (a: ActiveSlice[]) => void = () => {};
+
   const buffer = opts.buffer;
   const canvas = root.querySelector('#smpWave') as HTMLCanvasElement | null;
   if (buffer && canvas) {
@@ -58,23 +67,40 @@ export function mountSampleEditor(
         return -1;
       };
 
-      // Dibuja la onda + una lista de marcas (para el redibujo en vivo durante el arrastre).
-      const draw = (markList: number[]): void => {
-        ctx.fillStyle = '#0c110b'; ctx.fillRect(0, 0, W, H);
-        ctx.strokeStyle = '#2dff6a'; ctx.globalAlpha = 0.85; ctx.beginPath();
+      // La onda se calcula UNA vez en un canvas offscreen; cada frame solo se vuelca + overlays (perf).
+      const wave = document.createElement('canvas'); wave.width = W; wave.height = H;
+      const wctx = wave.getContext('2d');
+      if (wctx) {
+        wctx.fillStyle = '#0c110b'; wctx.fillRect(0, 0, W, H);
+        wctx.strokeStyle = '#2dff6a'; wctx.globalAlpha = 0.85; wctx.beginPath();
         for (let x = 0; x < W; x++) {
           let min = 1, max = -1; const i0 = Math.floor(x / W * N), i1 = Math.floor((x + 1) / W * N);
           for (let i = i0; i < i1; i++) { const v = data[i]; if (v < min) min = v; if (v > max) max = v; }
-          ctx.moveTo(x, mid + min * mid); ctx.lineTo(x, mid + max * mid);
+          wctx.moveTo(x, mid + min * mid); wctx.lineTo(x, mid + max * mid);
         }
-        ctx.stroke(); ctx.globalAlpha = 1;
+        wctx.stroke(); wctx.globalAlpha = 1;
+      }
+
+      // Vuelca la onda cacheada + regiones/cursores de slices activos + marcas.
+      const draw = (markList: number[], active: ActiveSlice[]): void => {
+        ctx.drawImage(wave, 0, 0);
+        for (const a of active) {
+          const sl = opts.slices[a.index]; if (!sl) continue;
+          const x0 = timeToX(sl.start), x1 = timeToX(sl.end);
+          ctx.fillStyle = 'rgba(45,255,106,0.14)'; ctx.fillRect(x0, 0, Math.max(1, x1 - x0), H);
+          const cx = Math.round(timeToX(sl.start + a.progress * (sl.end - sl.start))) + 0.5;
+          ctx.strokeStyle = '#eaffe9'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, H); ctx.stroke(); ctx.lineWidth = 1;
+        }
         ctx.strokeStyle = '#fff';
         for (const t of markList) {
           const x = Math.round(timeToX(t)) + 0.5;
           ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
         }
       };
-      draw(marks());
+
+      let lastActive: ActiveSlice[] = [];
+      draw(marks(), lastActive);
 
       let drag = -1;                 // índice de la marca que se arrastra (-1 = ninguna)
       let live: number[] | null = null;
@@ -85,7 +111,7 @@ export function mountSampleEditor(
       canvas.addEventListener('pointermove', e => {
         if (drag < 0 || !live) { canvas.style.cursor = markNear(relX(e)) > 0 ? 'ew-resize' : 'default'; return; }
         live[drag] = xToTime(relX(e));
-        draw(live);
+        draw(live, lastActive);
       });
       const endDrag = (): void => {
         if (drag >= 0 && live) opts.onSetMarks?.(live);
@@ -102,6 +128,17 @@ export function mountSampleEditor(
         const i = markNear(relX(e));
         if (i > 0) { const ms = marks(); ms.splice(i, 1); opts.onSetMarks?.(ms); }   // borrar (no la marca 0)
       });
+
+      setActive = (active: ActiveSlice[]): void => {
+        if (active.length === 0 && lastActive.length === 0) return;   // nada que pintar ni limpiar
+        lastActive = active;
+        draw(marks(), active);
+        const l = root.querySelector('#smpList');
+        l?.querySelectorAll<HTMLButtonElement>('.smpSlice').forEach(b => {
+          const on = active.some(a => a.index === +(b.dataset.i ?? '-1'));
+          b.classList.toggle('playing', on);
+        });
+      };
     }
   }
 
@@ -148,4 +185,5 @@ export function mountSampleEditor(
 
   renderList();
   renderPanel();
+  return { setActiveSlices: (a) => setActive(a) };
 }

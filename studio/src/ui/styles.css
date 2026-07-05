@@ -141,7 +141,9 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .pvPanel{display:none}
 .pvPanel.on{display:block}
 .pvGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
-.pvPad{background:#141a13;border:1px solid #2b3324;border-radius:8px;min-height:56px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#b7c1b7;letter-spacing:.04em;text-align:center;padding:6px;cursor:pointer}
+.pvPad{background:#141a13;border:1px solid #2b3324;border-radius:8px;min-height:56px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#b7c1b7;letter-spacing:.04em;text-align:center;padding:6px;cursor:pointer;position:relative}
+/* Destello reactivo del pad: capa de glow cuya opacidad la fija el bucle visual (--hit 0..1) */
+.pvPad::after{content:'';position:absolute;inset:-1px;border-radius:8px;pointer-events:none;box-shadow:0 0 16px 2px var(--pv-acc);opacity:var(--hit,0)}
 .pvPad:hover{border-color:#3d5a44;background:#18211a}
 .pvPad.sel,.pvPad.sel:hover{border:2px solid var(--pv-acc);background:#141a13;color:#fff;box-shadow:0 0 14px var(--pv-acc-dim) inset}
 .pvPad.add{color:#5a6656;border-style:dashed}
@@ -194,3 +196,6 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .smpKnobs{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
 .smpKnobs .knobCell{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:10px;color:#c9d2c9}
 .smpRev{display:flex;align-items:center;gap:6px;font-size:12px;color:#c9d2c9}
+
+/* Slice sonando (iluminación reactiva): resalte independiente del .sel de edición */
+.smpSlice.playing{border-color:#eaffe9;color:#fff;box-shadow:0 0 10px rgba(45,255,106,.55)}

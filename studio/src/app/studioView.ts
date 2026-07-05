@@ -17,6 +17,7 @@ import { patternBarHTML } from '../ui/patternbar';
 import { padGridHTML } from '../ui/padGrid';
 import { studioTabsHTML, StudioTab } from '../ui/studioTabs';
 import { makeChannel, Channel } from '../daw/channel';
+import { padLevel, activeSlices, type PadHit, type SliceHit } from '../ui/hitViz';
 import {
   DawState, ChannelState, InstrumentSpec, defaultChannel, addChannel, removeChannel,
   updateChannel, toggleStep, setStep, findChannel, audibleIds, channelSteps,
@@ -30,6 +31,7 @@ import { importSample, getSample, decodePending } from '../audio/sampleStore';
 import { equalSlices, detectOnsets, marksToSlices, sliceIndexForNote, updateSlice } from '../daw/slicing';
 import { playSlice } from '../audio/slicer';
 import { mountSampleEditor } from '../ui/sampleEditor';
+import type { SampleEditorHandle } from '../ui/sampleEditor';
 
 const STEPS_PER_BEAT = 4;
 const SEQ_VEL = 0.95;
@@ -98,6 +100,11 @@ export function mountStudioView(root: HTMLElement): void {
   let masterRack: Rack | null = null;
   let audioReady: Promise<void> | null = null;
   let selGrid: { setPlayhead: (s: number) => void } | null = null;
+  const padHits = new Map<string, PadHit>();   // último golpe por canal (para el destello)
+  const PAD_FADE = 0.15;                        // s que dura el destello
+  let visRaf = 0;                               // rAF del bucle visual (0 = parado)
+  const sliceHits: SliceHit[] = [];               // slices sonando (canal slicer seleccionado)
+  let sampleHandle: SampleEditorHandle | null = null;
 
   // El guardado en localStorage se difiere y se agrupa (400ms): `serializeProject` siempre
   // vuelca el almacén de samples en base64 (hasta ~2MB) y `persist()` se llama en cada
@@ -141,7 +148,10 @@ export function mountStudioView(root: HTMLElement): void {
       const idx = sliceIndexForNote(ch.instrument.base, ch.instrument.slices.length, m);
       const actx = getAudioContext();
       if (audio && actx && s?.buffer && idx >= 0) playSlice(audio.instrumentBus, s.buffer, ch.instrument.slices[idx], actx.currentTime, v);
+      if (s?.buffer && idx >= 0 && actx) { const sl = ch.instrument.slices[idx]; if (sl) sliceHits.push({ index: idx, t: actx.currentTime, dur: sl.end - sl.start }); }
     } else { routeKeyboardToSelected(); synth.noteOn(m, v); }
+    const nowT = getAudioContext()?.currentTime;
+    if (nowT !== undefined) { padHits.set(selectedId, { t: nowT, vel: v }); ensureVisualLoop(); }
     if (recording && seq.isPlaying()) recordStep(m, v);
   }
   function recordStep(m: number, v: number): void {
@@ -187,10 +197,17 @@ export function mountStudioView(root: HTMLElement): void {
       for (const c of daw.channels) {
         if (!audibles.has(c.id)) continue;
         const st = pat.steps[c.id]?.[i];
-        if (st && st.on) {
-          const audio = channels.find(a => a.id === c.id);
-          const secPerStep = (60 / transport.bpm) / STEPS_PER_BEAT;
-          if (audio) audio.trigger(st.note ?? 60, st.vel ?? SEQ_VEL, when + swingOffset(i, daw.swing, secPerStep));
+        if (!st || !st.on) continue;
+        const audio = channels.find(a => a.id === c.id);
+        const secPerStep = (60 / transport.bpm) / STEPS_PER_BEAT;
+        const vel = st.vel ?? SEQ_VEL;
+        const at = when + swingOffset(i, daw.swing, secPerStep);
+        if (audio) audio.trigger(st.note ?? 60, vel, at);
+        padHits.set(c.id, { t: at, vel });                  // destello del pad, sincronizado al sonido
+        if (c.id === selectedId && c.instrument.kind === 'slicer') {
+          const idx = sliceIndexForNote(c.instrument.base, c.instrument.slices.length, st.note ?? 60);
+          const sl = c.instrument.slices[idx];
+          if (sl) sliceHits.push({ index: idx, t: at, dur: sl.end - sl.start });
         }
       }
     }
@@ -261,11 +278,12 @@ export function mountStudioView(root: HTMLElement): void {
     const ch = findChannel(daw, selectedId);
     if (!ch || ch.instrument.kind !== 'slicer') {
       host.innerHTML = '<div class="pvSoon">Elige <b>🔪 Slicer</b> en el SONIDO de un canal para cargar y trocear un audio.</div>';
+      sampleHandle = null;
       return;
     }
     const inst = ch.instrument;
     const s = getSample(inst.sampleId);
-    mountSampleEditor(host, {
+    sampleHandle = mountSampleEditor(host, {
       buffer: s?.buffer ?? null, slices: inst.slices, base: inst.base,
       onImport: (file) => { void importAudioToChannel(selectedId, file); },
       onSliceEqual: (n) => applySlices(selectedId, equalSlicesFor(selectedId, n)),
@@ -317,6 +335,7 @@ export function mountStudioView(root: HTMLElement): void {
     const buf = bufferOf(id); const ch = findChannel(daw, id); const audio = channels.find(a => a.id === id);
     if (buf && audio && ch?.instrument.kind === 'slicer' && ch.instrument.slices[index]) {
       playSlice(audio.instrumentBus, buf, ch.instrument.slices[index], (getAudioContext()?.currentTime ?? 0), 0.9);
+      if (id === selectedId) { const sl = ch.instrument.slices[index]; sliceHits.push({ index, t: (getAudioContext()?.currentTime ?? 0), dur: sl.end - sl.start }); ensureVisualLoop(); }
     }
   }
   function renderMixer(): void {
@@ -343,7 +362,7 @@ export function mountStudioView(root: HTMLElement): void {
     else host.innerHTML = '<div class="rack"><div class="rackHead"><b>Canal</b></div><p class="muted">Inicia el audio (pulsa una tecla o ▶) para sus efectos.</p></div>';
   }
   function renderAll(): void { renderTabs(); showPane(); renderPads(); renderSelected(); renderSamples(); renderMixer(); renderPatternBar(); renderSelectedRack(); }
-  function selectChannel(id: string): void { selectedId = id; routeKeyboardToSelected(); renderPads(); renderSelected(); renderSamples(); renderMixer(); renderSelectedRack(); }
+  function selectChannel(id: string): void { selectedId = id; sliceHits.length = 0; routeKeyboardToSelected(); renderPads(); renderSelected(); renderSamples(); renderMixer(); renderSelectedRack(); }
   function applyAudible(): void { const aud = audibleIds(daw.channels); for (const a of channels) a.setAudible(aud.has(a.id)); }
 
   // ---------- cajón de efectos ----------
@@ -431,12 +450,31 @@ export function mountStudioView(root: HTMLElement): void {
   (root.querySelector('#addCh') as HTMLButtonElement).addEventListener('click', addNewChannel);
 
   // ---------- transporte + cabezal ----------
-  let phRaf = 0;
-  function playhead(): void {
-    const s = ((Math.floor(transport.beatNow() * STEPS_PER_BEAT) % daw.steps) + daw.steps) % daw.steps;
-    selGrid?.setPlayhead(s);
-    phRaf = requestAnimationFrame(playhead);
+  function paintPads(now: number): void {
+    const grid = root.querySelector('#padGrid'); if (!grid) return;
+    grid.querySelectorAll<HTMLElement>('[data-pad]').forEach(el => {
+      const lvl = padLevel(padHits.get(el.dataset.pad ?? ''), now, PAD_FADE);
+      el.style.setProperty('--hit', lvl.toFixed(3));
+    });
   }
+  function clearPads(): void {
+    root.querySelectorAll<HTMLElement>('#padGrid [data-pad]').forEach(el => el.style.setProperty('--hit', '0'));
+  }
+  function visualTick(): void {
+    const now = getAudioContext()?.currentTime ?? 0;
+    const playing = seq.isPlaying();
+    if (playing) {
+      const s = ((Math.floor(transport.beatNow() * STEPS_PER_BEAT) % daw.steps) + daw.steps) % daw.steps;
+      selGrid?.setPlayhead(s);
+    }
+    for (const [id, h] of padHits) if (now - h.t >= PAD_FADE) padHits.delete(id);            // poda pads
+    for (let k = sliceHits.length - 1; k >= 0; k--) if (now - sliceHits[k].t >= sliceHits[k].dur) sliceHits.splice(k, 1);   // poda slices
+    paintPads(now);
+    sampleHandle?.setActiveSlices(activeSlices(sliceHits, now));
+    if (playing || padHits.size || sliceHits.length) visRaf = requestAnimationFrame(visualTick);
+    else { visRaf = 0; clearPads(); sampleHandle?.setActiveSlices([]); }
+  }
+  function ensureVisualLoop(): void { if (!visRaf) visRaf = requestAnimationFrame(visualTick); }
   seq.setBpm(daw.bpm);
   const tUI = mountTransport(root.querySelector('#transport') as HTMLElement, {
     getBpm: () => transport.bpm,
@@ -445,9 +483,9 @@ export function mountStudioView(root: HTMLElement): void {
       audioOn();
       barStarted = false;
       if (songMode && daw.song.length) { songPos = 0; playPattern = daw.song[0]; } else { songPos = -1; playPattern = daw.current; }
-      seq.play(); tUI.setPlaying(true); renderPatternBar(); phRaf = requestAnimationFrame(playhead);
+      seq.play(); tUI.setPlaying(true); renderPatternBar(); ensureVisualLoop();
     },
-    onStop: () => { seq.stop(); tUI.setPlaying(false); cancelAnimationFrame(phRaf); selGrid?.setPlayhead(-1); songPos = -1; playPattern = daw.current; renderPatternBar(); },
+    onStop: () => { seq.stop(); tUI.setPlaying(false); selGrid?.setPlayhead(-1); padHits.clear(); clearPads(); sliceHits.length = 0; sampleHandle?.setActiveSlices([]); songPos = -1; playPattern = daw.current; renderPatternBar(); },
     onBpm: (bpm) => { daw = { ...daw, bpm }; seq.setBpm(bpm); persist(); },
     onSwing: (swing) => { daw = { ...daw, swing }; persist(); },
     onRecord: () => { recording = !recording; tUI.setRecording(recording); }
