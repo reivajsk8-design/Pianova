@@ -44,7 +44,7 @@ export function mountSampleEditor(
       const data = buffer.getChannelData(0), N = data.length, dur = buffer.duration;
       const HIT = 6;   // px de tolerancia para "sobre una marca"
       const timeToX = (t: number): number => t / dur * W;
-      const xToTime = (x: number): number => Math.max(0, Math.min(dur, x / W * dur));
+      const xToTime = (x: number): number => Math.max(0, Math.min(dur - 1 / buffer.sampleRate, x / W * dur));
       const relX = (e: PointerEvent | MouseEvent): number => {
         const r = canvas.getBoundingClientRect(); return (e.clientX - r.left) / r.width * W;
       };
