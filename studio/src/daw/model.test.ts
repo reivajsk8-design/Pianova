@@ -74,6 +74,11 @@ describe('modelo daw con patrones', () => {
     expect(channelSteps(d, id)[2].on).toBe(false);
   });
   it('defaultDaw tiene swing 0', () => { expect(defaultDaw().swing).toBe(0); });
+  it('defaultDaw trae escala por defecto (Do cromática)', () => {
+    const d = defaultDaw();
+    expect(d.scaleRoot).toBe(0);
+    expect(d.scaleType).toBe('chromatic');
+  });
 });
 
 describe('newChannelId + syncChannelIdSeed (evita canales con id duplicado tras recargar)', () => {

@@ -18,6 +18,7 @@ export interface ChannelState {
 export interface PatternState { steps: Record<string, Step[]> }
 export interface DawState {
   channels: ChannelState[]; patterns: PatternState[]; current: number; song: number[]; bpm: number; steps: number; swing: number;
+  scaleRoot: number; scaleType: string;
 }
 
 export const DEFAULT_STEPS = 16;
@@ -63,7 +64,7 @@ export function emptyPattern(channels: ChannelState[], steps: number): PatternSt
 
 export function defaultDaw(): DawState {
   const ch = defaultChannel('piano');
-  return { channels: [ch], patterns: [emptyPattern([ch], DEFAULT_STEPS)], current: 0, song: [], bpm: 120, steps: DEFAULT_STEPS, swing: 0 };
+  return { channels: [ch], patterns: [emptyPattern([ch], DEFAULT_STEPS)], current: 0, song: [], bpm: 120, steps: DEFAULT_STEPS, swing: 0, scaleRoot: 0, scaleType: 'chromatic' };
 }
 
 export function findChannel(daw: DawState, id: string): ChannelState | undefined {
