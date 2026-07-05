@@ -73,6 +73,14 @@ fijo (`.fxCard` ~156px, knobs en rejilla 2×N); mover efectos ahora es **◀/▶
 (menos márgenes/padding; teclado 160→140px). Solo presentación (`app/studioView.ts` + `ui/rack.ts` +
 `ui/styles.css`); el motor y la lógica de efectos (añadir/bypass/mover/quitar/persistencia) no cambian.
 
+**Estudio · Longitud de pasos por canal (v0.23.0):** cada canal puede tener **16/32/48…** pasos en **páginas
+de 16** (＋16/−16 en la zona de PASOS, con pestañas de página), **solo en los canales elegidos**. La longitud
+es la del array de pasos del canal en ese patrón; helpers `channelLen`/`addStepsPage`/`removeStepsPage`
+(`daw/model.ts`, testeados). El secuenciador avanza al **máximo** (canal más largo) y cada canal lee
+`arr[step % arr.length]` → un canal de 16 se repite mientras uno de 32 hace su melodía, sin descuadrarse
+(todo múltiplos de 16). La UI muestra 16 pasos por página; el cabezal solo recorre la página que suena. Sin
+cambios de motor. (La barra de patrones/canción se simplificará aparte.)
+
 **Estudio · Arreglos patrones/knobs + botón Nuevo (v0.22.0):** (1) el **patrón seleccionado suena en vivo**
 — `onStep` reproduce `daw.current` fuera de modo canción (antes se quedaba fijo con el patrón de al pulsar
 Play); el encadenado sigue en 🔗 Canción. (2) **Suavizado de parámetros de efectos**: helper `ramp()`
