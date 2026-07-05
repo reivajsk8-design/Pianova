@@ -24,8 +24,9 @@ export function mountPianoRoll(
     let rows = '';
     for (let r = 0; r < ROWS; r++) {
       const midi = low + (ROWS - 1 - r);                 // agudo arriba, grave abajo
+      // En cromática no hay escala que marcar (todo entra) → no se resalta nada, solo con una escala real.
       const cls = (BLACK.has(((midi % 12) + 12) % 12) ? ' black' : '') +
-                  (inScale(midi, opts.scaleRoot, opts.scaleType) ? ' inscale' : '');
+                  ((opts.scaleType !== 'chromatic' && inScale(midi, opts.scaleRoot, opts.scaleType)) ? ' inscale' : '');
       let cells = '';
       for (let i = 0; i < opts.total; i++) {
         const st = opts.getStep(i);

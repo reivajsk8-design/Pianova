@@ -218,5 +218,6 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .prCell.on.play{background:var(--pv-acc);outline:1px solid #fff;outline-offset:-1px}
 /* Barra de escala encima del piano-roll */
 .pvScale{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:11px;color:var(--pv-muted)}
+.pvScale:empty{display:none}
 .pvScale select{background:#141a13;border:1px solid #2b3324;color:var(--pv-ink);border-radius:6px;padding:4px 8px;cursor:pointer}
 .pvScale select:hover{border-color:var(--pv-acc)}
