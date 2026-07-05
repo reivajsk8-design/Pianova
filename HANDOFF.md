@@ -57,6 +57,14 @@ por slice (knobs + casilla), que suenan al instante y se persisten. El motor (`a
 sin re-montar el editor). El **recorte inicio/fin** de cada slice se ajusta con las marcas (S2). Pendiente
 S4: navegador de carpetas del disco.
 
+**Estudio · Iluminación reactiva (v0.19.0):** realimentación visual de qué suena. Los **pads destellan**
+(glow verde neón por variable CSS `--hit`) al sonar su paso en la reproducción y al tocar en vivo con el
+teclado, **más brillo cuanto más fuerte** el golpe (velocity). En la pestaña SAMPLES, el **slice que suena
+se resalta** en la lista y una **línea-cursor recorre su onda** (secuenciador + preview/teclado). Sin tocar
+el motor de audio: `studioView` registra cada disparo en un bus de golpes (`padHits`/`sliceHits`) y un bucle
+`requestAnimationFrame` (`visualTick`) pinta leyendo el reloj de audio; la matemática es pura y testeada en
+`ui/hitViz.ts`. La onda del editor se cachea en un canvas offscreen para pintar el cursor sin recalcularla.
+
 **Proyecto pro `studio/` — repaso visual del groovebox + headroom (post-F3, sigue v0.13.0, 77 tests):**
 - **Headroom del bus maestro:** `MASTER_MAKEUP` bajado de **2.5 → 1.8** en `audio/masterBus.ts` (el teclado físico saturaba el soft-clipper con acordes/graves; la saturación efectiva es ~`tanh(MAKEUP·x)`; 1.8 limpia sin perder volumen; ajustable por oído). **Ojo:** el texto de la F1 más arriba dice 2.5 (era el valor de entonces); el actual es **1.8**.
 - **Knobs giratorios** (`ui/knob.ts`, componente nuevo): mando estilo DAW, se ajusta arrastrando ↕ + doble-clic resetea, táctil; `valueToAngle` puro+testeado (barrido 270°). Usado en **Vol/Pan por canal**, **Swing** y los **parámetros de los efectos** (con su valor + unidad, cuantizado al `step`). El BPM sigue siendo campo numérico.
