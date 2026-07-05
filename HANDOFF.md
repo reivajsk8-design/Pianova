@@ -73,6 +73,14 @@ fijo (`.fxCard` ~156px, knobs en rejilla 2×N); mover efectos ahora es **◀/▶
 (menos márgenes/padding; teclado 160→140px). Solo presentación (`app/studioView.ts` + `ui/rack.ts` +
 `ui/styles.css`); el motor y la lógica de efectos (añadir/bypass/mover/quitar/persistencia) no cambian.
 
+**Estudio · Piano-roll por canal + escala (v0.21.0):** en la sección PASOS, los canales **melódicos**
+(synth/synthx/slicer) muestran un **mini piano-roll** (`ui/pianoRoll.ts`, filas=notas ~2 octavas con octava
+▲/▼, columnas=pasos, monofónico por paso; clic pone/mueve/borra la nota vía `setStep`); la **batería** sigue
+con la fila on/off. Una **barra de escala** (tónica + tipo) **resalta** las notas de la escala (informativo):
+helper puro `daw/scales.ts` (`SCALES`+`inScale`, portado de `pianova.html`) + escala en el estado
+(`scaleRoot`/`scaleType`, persistida con migración). Para el **slicer**, cada paso puede disparar un **slice
+distinto** (la nota elige el slice). Sin cambios de motor (el disparo ya usa `st.note`).
+
 **Estudio · Fix nota synth colgada (v0.19.1):** las notas de un preset synth con `sustain:true` (cuerda,
 órgano) se quedaban sonando. Causa raíz: `stopLive` decidía a qué motor mandar el note-off según el canal
 **seleccionado al soltar** (introducido en F3, `b702f65`), así que si la selección había cambiado a
