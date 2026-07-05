@@ -1,5 +1,6 @@
 // Equalizer de 3 bandas: graves (low shelf), medios (peaking con frecuencia) y agudos (high shelf).
 import { registerEffect, makeEffect, ParamSpec } from '../effect';
+import { ramp } from '../param';
 
 export const EQ_PARAMS: ParamSpec[] = [
   { name: 'low', label: 'Graves', min: -18, max: 18, step: 0.5, default: 0, unit: 'dB' },
@@ -16,10 +17,10 @@ registerEffect('equalizer', {
     const hi = actx.createBiquadFilter(); hi.type = 'highshelf'; hi.frequency.value = 6000;
     input.connect(lo); lo.connect(mid); mid.connect(hi); hi.connect(sink);
     return (name: string, value: number) => {
-      if (name === 'low') lo.gain.value = value;
-      else if (name === 'mid') mid.gain.value = value;
-      else if (name === 'midFreq') mid.frequency.value = value;
-      else if (name === 'high') hi.gain.value = value;
+      if (name === 'low') ramp(lo.gain, value, actx);
+      else if (name === 'mid') ramp(mid.gain, value, actx);
+      else if (name === 'midFreq') ramp(mid.frequency, value, actx);
+      else if (name === 'high') ramp(hi.gain, value, actx);
     };
   }, state)
 });

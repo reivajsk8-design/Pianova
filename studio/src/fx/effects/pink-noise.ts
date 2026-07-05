@@ -2,6 +2,7 @@
 // el ruido se suma con el nivel elegido. Es una fuente → teardown la para.
 import { registerEffect, makeEffect, ParamSpec } from '../effect';
 import { pinkNoiseSamples } from './noise-dsp';
+import { ramp } from '../param';
 
 export const PINK_PARAMS: ParamSpec[] = [
   { name: 'level', label: 'Nivel', min: 0, max: 1, step: 0.01, default: 0.2 }
@@ -21,7 +22,7 @@ registerEffect('pink-noise', {
     src.connect(level); level.connect(sink);
     src.start();
     return {
-      apply: (name: string, value: number) => { if (name === 'level') level.gain.value = value; },
+      apply: (name: string, value: number) => { if (name === 'level') ramp(level.gain, value, actx); },
       teardown: () => { try { src.stop(); } catch { /* ya */ } src.disconnect(); level.disconnect(); }
     };
   }, state)

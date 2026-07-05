@@ -24,12 +24,12 @@ import {
   DawState, ChannelState, InstrumentSpec, defaultChannel, addChannel, removeChannel,
   updateChannel, toggleStep, setStep, findChannel, audibleIds, channelSteps,
   addPattern, removePattern, setCurrentPattern, setSong, defaultSynthxInstrument, defaultSlicerInstrument,
-  syncChannelIdSeed
+  syncChannelIdSeed, defaultDaw
 } from '../daw/model';
 import { loadStore, saveStore, downloadProject, readProjectFile, ProjectState, hydrateSamples } from './store';
 import * as synthx from '../audio/synthx';
 import { mountSynthEditor } from '../ui/synthEditor';
-import { importSample, getSample, decodePending } from '../audio/sampleStore';
+import { importSample, getSample, decodePending, clearSamples } from '../audio/sampleStore';
 import { equalSlices, detectOnsets, marksToSlices, sliceIndexForNote, updateSlice } from '../daw/slicing';
 import { playSlice } from '../audio/slicer';
 import { mountSampleEditor } from '../ui/sampleEditor';
@@ -60,6 +60,7 @@ export function mountStudioView(root: HTMLElement): void {
         <span class="pvHdrBtns">
           <button id="stConnect">Conectar teclado</button>
           <span id="stMidi" class="muted">Sin conectar</span>
+          <button id="stNew">🆕 Nuevo</button>
           <button id="stSave">💾 Guardar</button>
           <button id="stOpen">📂 Abrir</button>
           <input id="stFile" type="file" accept="application/json,.json" hidden>
@@ -198,7 +199,8 @@ export function mountStudioView(root: HTMLElement): void {
         if (!barStarted) barStarted = true;
         else if (songMode && daw.song.length) { songPos = (songPos + 1) % daw.song.length; playPattern = daw.song[songPos]; renderPatternBar(); }
       }
-      const pat = daw.patterns[playPattern]; if (!pat) return;
+      const idx = (songMode && daw.song.length) ? playPattern : daw.current;
+      const pat = daw.patterns[idx]; if (!pat) return;
       const audibles = audibleIds(daw.channels);
       for (const c of daw.channels) {
         if (!audibles.has(c.id)) continue;
@@ -543,6 +545,25 @@ export function mountStudioView(root: HTMLElement): void {
   // ---------- guardar / abrir proyecto ----------
   (root.querySelector('#stSave') as HTMLButtonElement).addEventListener('click', () => { persist(); flushSave(); downloadProject({ version: 3, daw, masterRack: masterRack ? masterRack.serialize() : project.masterRack }); });
   (root.querySelector('#stOpen') as HTMLButtonElement).addEventListener('click', () => (root.querySelector('#stFile') as HTMLInputElement).click());
+  (root.querySelector('#stNew') as HTMLButtonElement).addEventListener('click', async () => {
+    if (!window.confirm('¿Empezar de cero? Se borrará el proyecto actual (patrones, canciones, samples y efectos).')) return;
+    seq.stop(); tUI.setPlaying(false);   // empezar de cero también para la reproducción
+    await initAudio();
+    channels.forEach(a => a.dispose()); channels = [];
+    daw = defaultDaw();
+    clearSamples();
+    const actx = ensureAudio();
+    channels = daw.channels.map(c => makeChannel(actx, c, masterDest()));
+    project.masterRack = { effects: [] };
+    if (masterRack) masterRack.restore(project.masterRack);
+    selectedId = daw.channels[0]?.id ?? '';
+    songMode = false; playPattern = daw.current; songPos = -1; prLow = 48; recording = false;
+    applyAudible(); routeKeyboardToSelected();
+    seq.setBpm(daw.bpm);
+    const bpmEl = root.querySelector('#tbBpm') as HTMLInputElement | null;
+    if (bpmEl) bpmEl.value = String(daw.bpm);
+    renderAll(); saveStore({ version: 3, daw, masterRack: project.masterRack });
+  });
   (root.querySelector('#stFile') as HTMLInputElement).addEventListener('change', async ev => {
     const file = (ev.target as HTMLInputElement).files?.[0]; if (!file) return;
     try {

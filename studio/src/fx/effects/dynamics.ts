@@ -2,6 +2,7 @@
 // enlazada nativa) y mono (suma a mono antes de comprimir). Comparten el mismo motor.
 import { registerEffect, makeEffect, ParamSpec } from '../effect';
 import { dbToLin } from './gain';
+import { ramp } from '../param';
 
 export const DYNAMICS_PARAMS: ParamSpec[] = [
   { name: 'threshold', label: 'Umbral', min: -60, max: 0, step: 0.5, default: -24, unit: 'dB' },
@@ -24,12 +25,12 @@ function buildCompressor(actx: AudioContext, input: GainNode, sink: GainNode, mo
   const makeup = actx.createGain();
   head.connect(comp); comp.connect(makeup); makeup.connect(sink);
   return (name: string, value: number) => {
-    if (name === 'threshold') comp.threshold.value = value;
-    else if (name === 'ratio') comp.ratio.value = value;
-    else if (name === 'knee') comp.knee.value = value;
-    else if (name === 'attack') comp.attack.value = value;
-    else if (name === 'release') comp.release.value = value;
-    else if (name === 'makeup') makeup.gain.value = dbToLin(value);
+    if (name === 'threshold') ramp(comp.threshold, value, actx);
+    else if (name === 'ratio') ramp(comp.ratio, value, actx);
+    else if (name === 'knee') ramp(comp.knee, value, actx);
+    else if (name === 'attack') ramp(comp.attack, value, actx);
+    else if (name === 'release') ramp(comp.release, value, actx);
+    else if (name === 'makeup') ramp(makeup.gain, dbToLin(value), actx);
   };
 }
 

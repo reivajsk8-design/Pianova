@@ -1,5 +1,6 @@
 // Echo: línea de delay con realimentación filtrada (paso-bajo en el lazo) y mezcla seco/húmedo.
 import { registerEffect, makeEffect, ParamSpec } from '../effect';
+import { ramp } from '../param';
 
 export const ECHO_PARAMS: ParamSpec[] = [
   { name: 'time', label: 'Tiempo', min: 20, max: 1000, step: 1, default: 300, unit: 'ms' },
@@ -21,10 +22,10 @@ registerEffect('echo', {
     delay.connect(tone); tone.connect(wetMix); wetMix.connect(sink);
     tone.connect(fb); fb.connect(delay);   // realimentación filtrada
     return (name, value) => {
-      if (name === 'time') delay.delayTime.value = value / 1000;
-      else if (name === 'feedback') fb.gain.value = value;
-      else if (name === 'tone') tone.frequency.value = value;
-      else if (name === 'mix') { wetMix.gain.value = value; dryMix.gain.value = 1 - value; }
+      if (name === 'time') ramp(delay.delayTime, value / 1000, actx);
+      else if (name === 'feedback') ramp(fb.gain, value, actx);
+      else if (name === 'tone') ramp(tone.frequency, value, actx);
+      else if (name === 'mix') { ramp(wetMix.gain, value, actx); ramp(dryMix.gain, 1 - value, actx); }
     };
   }, state)
 });

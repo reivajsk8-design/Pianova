@@ -1,6 +1,7 @@
 // Equalizer/BW: una banda peaking paramétrica con control de ancho de banda (octavas → Q).
 import { registerEffect, makeEffect, ParamSpec } from '../effect';
 import { bandwidthToQ } from './color-dsp';
+import { ramp } from '../param';
 
 export const EQBW_PARAMS: ParamSpec[] = [
   { name: 'freq', label: 'Frecuencia', min: 60, max: 12000, step: 10, default: 1000, unit: 'Hz' },
@@ -14,9 +15,9 @@ registerEffect('equalizer-bw', {
     const band = actx.createBiquadFilter(); band.type = 'peaking'; band.frequency.value = 1000;
     input.connect(band); band.connect(sink);
     return (name: string, value: number) => {
-      if (name === 'freq') band.frequency.value = value;
-      else if (name === 'gain') band.gain.value = value;
-      else if (name === 'bw') band.Q.value = bandwidthToQ(value);
+      if (name === 'freq') ramp(band.frequency, value, actx);
+      else if (name === 'gain') ramp(band.gain, value, actx);
+      else if (name === 'bw') ramp(band.Q, bandwidthToQ(value), actx);
     };
   }, state)
 });

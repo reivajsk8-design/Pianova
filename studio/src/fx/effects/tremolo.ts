@@ -1,6 +1,7 @@
 // studio/src/fx/effects/tremolo.ts
 // Tremolo: un LFO modula la ganancia → la amplitud "tiembla". Forma 0=seno, 1=triángulo, 2=cuadrada.
 import { registerEffect, makeEffect, ParamSpec } from '../effect';
+import { ramp } from '../param';
 
 const SHAPES: OscillatorType[] = ['sine', 'triangle', 'square'];
 
@@ -20,8 +21,8 @@ registerEffect('tremolo', {
     lfo.connect(lfoGain); lfoGain.connect(amp.gain);
     lfo.start();
     const apply = (name: string, value: number) => {
-      if (name === 'rate') lfo.frequency.value = value;
-      else if (name === 'depth') { amp.gain.value = 1 - value * 0.5; lfoGain.gain.value = value * 0.5; }
+      if (name === 'rate') ramp(lfo.frequency, value, actx);
+      else if (name === 'depth') { ramp(amp.gain, 1 - value * 0.5, actx); ramp(lfoGain.gain, value * 0.5, actx); }
       else if (name === 'shape') lfo.type = SHAPES[Math.max(0, Math.min(2, Math.round(value)))];
     };
     return { apply, teardown: () => { try { lfo.stop(); } catch { /* ya */ } lfo.disconnect(); lfoGain.disconnect(); } };

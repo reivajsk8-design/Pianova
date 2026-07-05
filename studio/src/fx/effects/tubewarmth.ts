@@ -2,6 +2,7 @@
 // cambiar drive/warmth. oversample 4x + mezcla seco/húmedo.
 import { registerEffect, makeEffect, ParamSpec } from '../effect';
 import { tubeSample, makeCurve } from './color-dsp';
+import { ramp } from '../param';
 
 export const TUBEWARMTH_PARAMS: ParamSpec[] = [
   { name: 'drive', label: 'Drive', min: 0, max: 1, step: 0.01, default: 0.3 },
@@ -28,7 +29,7 @@ registerEffect('tubewarmth', {
     return (name: string, value: number) => {
       if (name === 'drive') { drive = value; rebuild(); }
       else if (name === 'warmth') { warmth = value; rebuild(); }
-      else if (name === 'mix') { wetMix.gain.value = value; dryMix.gain.value = 1 - value; }
+      else if (name === 'mix') { ramp(wetMix.gain, value, actx); ramp(dryMix.gain, 1 - value, actx); }
     };
   }, state)
 });

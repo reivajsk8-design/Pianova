@@ -73,6 +73,15 @@ fijo (`.fxCard` ~156px, knobs en rejilla 2×N); mover efectos ahora es **◀/▶
 (menos márgenes/padding; teclado 160→140px). Solo presentación (`app/studioView.ts` + `ui/rack.ts` +
 `ui/styles.css`); el motor y la lógica de efectos (añadir/bypass/mover/quitar/persistencia) no cambian.
 
+**Estudio · Arreglos patrones/knobs + botón Nuevo (v0.22.0):** (1) el **patrón seleccionado suena en vivo**
+— `onStep` reproduce `daw.current` fuera de modo canción (antes se quedaba fijo con el patrón de al pulsar
+Play); el encadenado sigue en 🔗 Canción. (2) **Suavizado de parámetros de efectos**: helper `ramp()`
+(`fx/param.ts`, `setTargetAtTime`) reemplaza las asignaciones directas `AudioParam.value =` en el `apply` de
+los 19 efectos → se acabó el "zipper noise"/clic/clipeo al arrastrar knobs (no se tocan reconstrucciones de
+buffer ni `.type`/`.curve`; efecto lateral menor: al construir/restaurar un efecto los params hacen un
+micro-glide ~30-46ms, imperceptible). (3) botón **🆕 Nuevo**: reinicia a `defaultDaw()` con confirmación
+(reutiliza el flujo de abrir proyecto; limpia samples y rack maestro).
+
 **Estudio · Piano-roll por canal + escala (v0.21.0):** en la sección PASOS, los canales **melódicos**
 (synth/synthx/slicer) muestran un **mini piano-roll** (`ui/pianoRoll.ts`, filas=notas ~2 octavas con octava
 ▲/▼, columnas=pasos, monofónico por paso; clic pone/mueve/borra la nota vía `setStep`); la **batería** sigue
