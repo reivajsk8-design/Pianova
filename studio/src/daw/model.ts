@@ -3,12 +3,14 @@
 import type { RackState } from '../fx/rack-core';
 import type { SynthxParams } from '../audio/synthx-dsp';
 import { SYNTHX_DEFAULT } from '../audio/synthx-dsp';
+import type { SliceDef } from './slicing';
 
 export interface Step { on: boolean; note?: number; vel?: number }
 export type InstrumentSpec =
   | { kind: 'synth'; preset: string }
   | { kind: 'drum'; voice: string }
-  | { kind: 'synthx'; params: SynthxParams };
+  | { kind: 'synthx'; params: SynthxParams }
+  | { kind: 'slicer'; sampleId: string; base: number; slices: SliceDef[] };
 export interface ChannelState {
   id: string; name: string; instrument: InstrumentSpec;
   volume: number; pan: number; muted: boolean; soloed: boolean; rack: RackState;
@@ -36,6 +38,10 @@ export function defaultChannel(preset = 'piano', id?: string): ChannelState {
 
 export function defaultSynthxInstrument(): InstrumentSpec {
   return { kind: 'synthx', params: { ...SYNTHX_DEFAULT } };
+}
+
+export function defaultSlicerInstrument(sampleId: string, base = 60): InstrumentSpec {
+  return { kind: 'slicer', sampleId, base, slices: [] };
 }
 
 export function emptyPattern(channels: ChannelState[], steps: number): PatternState {

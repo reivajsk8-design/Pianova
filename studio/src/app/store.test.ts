@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { defaultProject, serializeProject, parseProject, PROJECT_VERSION } from './store';
 import { SYNTHX_DEFAULT } from '../audio/synthx-dsp';
+import { restoreSamples } from '../audio/sampleStore';
 
 describe('proyecto v3', () => {
   it('defaultProject es v3 con 1 canal y 1 patrón', () => {
@@ -12,7 +13,8 @@ describe('proyecto v3', () => {
   });
   it('round-trip conserva el estado', () => {
     const p = defaultProject(); p.daw.bpm = 100;
-    expect(parseProject(serializeProject(p))).toEqual(p);
+    // serializeProject añade siempre el snapshot del almacén de samples (aquí vacío).
+    expect(parseProject(serializeProject(p))).toEqual({ ...p, samples: {} });
   });
   it('migra v2 (canales con steps) a v3 (steps en el patrón 0)', () => {
     const v2 = JSON.stringify({
@@ -75,5 +77,17 @@ describe('store · synthx tolerante', () => {
     };
     const p = parseProject(JSON.stringify(proj));
     expect(p.daw.channels[0].instrument).toEqual({ kind: 'synth', preset: 'organo' });
+  });
+});
+
+describe('store · samples', () => {
+  it('serializeProject incluye los samples del almacén (snapshot vivo)', () => {
+    restoreSamples({ 'smp-1': { name: 'break', b64: 'AAAA' } });   // pobla el almacén (singleton)
+    const back = parseProject(serializeProject(defaultProject()));
+    expect(back.samples?.['smp-1']).toEqual({ name: 'break', b64: 'AAAA' });
+  });
+  it('proyecto sin bloque samples da samples vacío (tolerante)', () => {
+    const back = parseProject('{"version":3,"daw":{"channels":[],"patterns":[]}}');
+    expect(back.samples).toEqual({});
   });
 });

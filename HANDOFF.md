@@ -32,6 +32,15 @@ Snapshot para retomar el proyecto en otra sesión (humana o con Claude Code).
 
 **Estudio · Rediseño PIANOVA STUDIO (v0.15.0):** la vista del Estudio se reorganizó al estilo STORM/Tempest (negro + **verde neón `#2dff6a`**): cabecera con transporte (BPM grande) + info del canal + onda; **pestañas PADS / SAMPLES / MIXER**. **PADS** = rejilla de pads (= canales) + PASOS y PARÁMETROS del canal seleccionado (editor del sinte inline para `synthx`; aviso para batería/preset). **MIXER** reubica las tiras de canal (selector de sonido, mute/solo/efectos, knobs vol/pan). **SAMPLES** es un placeholder para el siguiente sub-proyecto (Simpler con slicing). El **motor no cambió** (audio/secuenciador/sinte/modelo/persistencia); es solo presentación. Tema en `ui/styles.css` (`.pv*`), componentes `ui/padGrid.ts` y `ui/studioTabs.ts`, vista reescrita en `app/studioView.ts`.
 
+**Estudio · Sampler con slicing — S1 núcleo (v0.16.0):** cuarto tipo de instrumento de canal `slicer`:
+importar un audio (`audio/sampleStore.ts`, base64 persistente), trocearlo en slices por **transitorios** o
+**N iguales** (`daw/slicing.ts` puro: `equalSlices`/`detectOnsets`/`marksToSlices`/`sliceIndexForNote`),
+cada slice mapeado a una nota (slice 0 = `base`), disparado por el secuenciador y el teclado
+(`audio/slicer.ts`: recorte/ganancia/fades/reverse). Editor en la pestaña SAMPLES (`ui/sampleEditor.ts`:
+onda + marcas + botones de troceado + ▶ probar). Persistencia de los samples pequeños en el proyecto
+(`app/store.ts`). Modelo `InstrumentSpec` `slicer` + rama en `daw/channel.ts`. Pendiente (S2–S4): ajuste
+manual de marcas, edición por slice (recorte/ganancia/reverse/fade en la UI) y navegador de carpetas.
+
 **Proyecto pro `studio/` — repaso visual del groovebox + headroom (post-F3, sigue v0.13.0, 77 tests):**
 - **Headroom del bus maestro:** `MASTER_MAKEUP` bajado de **2.5 → 1.8** en `audio/masterBus.ts` (el teclado físico saturaba el soft-clipper con acordes/graves; la saturación efectiva es ~`tanh(MAKEUP·x)`; 1.8 limpia sin perder volumen; ajustable por oído). **Ojo:** el texto de la F1 más arriba dice 2.5 (era el valor de entonces); el actual es **1.8**.
 - **Knobs giratorios** (`ui/knob.ts`, componente nuevo): mando estilo DAW, se ajusta arrastrando ↕ + doble-clic resetea, táctil; `valueToAngle` puro+testeado (barrido 270°). Usado en **Vol/Pan por canal**, **Swing** y los **parámetros de los efectos** (con su valor + unidad, cuantizado al `step`). El BPM sigue siendo campo numérico.

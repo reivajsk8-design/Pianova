@@ -170,3 +170,14 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .fxDrawer .fxParams{gap:8px}
 .fxDrawer .fxKnobLab{font-size:9px}
 .fxDrawer .fxKnobVal{font-size:9px}
+
+/* --- Editor del sampler (pestaña SAMPLES) --- */
+.smpEd{padding:6px 2px}
+.smpBar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px}
+.smpBtn{background:#141a13;border:1px solid #2b3324;color:#c9d2c9;border-radius:6px;padding:6px 10px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.smpBtn:hover{border-color:#2dff6a}
+.smpBtn select,.smpBtn button{background:#0e130d;border:1px solid #2b3324;color:#c9d2c9;border-radius:5px;padding:3px 7px;cursor:pointer}
+.smpWave{width:100%;height:120px;border:1px solid #23291f;border-radius:8px;display:block;margin-bottom:10px;background:#0c110b}
+.smpList{display:flex;flex-wrap:wrap;gap:6px}
+.smpSlice{background:#141a13;border:1px solid #2b3324;color:#cdd2c9;border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer}
+.smpSlice:hover{border-color:#2dff6a;color:#fff}
