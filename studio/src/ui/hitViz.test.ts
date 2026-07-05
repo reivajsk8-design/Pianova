@@ -43,8 +43,8 @@ describe('padLevel', () => {
     expect(padLevel(undefined, 5, 0.15)).toBe(0);
   });
   it('usa la edad y la velocity del golpe', () => {
-    expect(padLevel({ t: 5, vel: 127 }, 5, 0.15)).toBeCloseTo(1, 5);
-    expect(padLevel({ t: 5, vel: 127 }, 5.2, 0.15)).toBe(0);   // ya caducó
+    expect(padLevel({ t: 5, vel: 1 }, 5, 0.15)).toBeCloseTo(1, 5);
+    expect(padLevel({ t: 5, vel: 1 }, 5.2, 0.15)).toBe(0);   // ya caducó
   });
 });
 

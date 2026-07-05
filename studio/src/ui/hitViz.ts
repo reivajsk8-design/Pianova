@@ -2,7 +2,7 @@
 // Matemática pura de la iluminación reactiva (destello de pads + progreso de slices).
 // Sin estado ni DOM: fácil de testear. La consume studioView (pads/slices) y sampleEditor (cursor).
 
-export interface PadHit { t: number; vel: number }          // t: tiempo de audio (s); vel: 0–127
+export interface PadHit { t: number; vel: number }          // t: tiempo de audio (s); vel: 0–1
 export interface SliceHit { index: number; t: number; dur: number }   // dur: duración audible (s)
 export interface ActiveSlice { index: number; progress: number }      // progress: 0–1
 
@@ -25,7 +25,7 @@ export function sliceProgress(nowSec: number, startSec: number, durSec: number):
 // Brillo 0–1 de un pad a partir de su último golpe (o 0 si no hay).
 export function padLevel(hit: PadHit | undefined, nowSec: number, fadeSec: number): number {
   if (!hit) return 0;
-  return flashLevel(nowSec - hit.t, hit.vel / 127, fadeSec);
+  return flashLevel(nowSec - hit.t, hit.vel, fadeSec);
 }
 
 // Slices activos (progress en [0,1)) con su progreso, a partir de los golpes registrados.

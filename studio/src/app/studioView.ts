@@ -362,7 +362,7 @@ export function mountStudioView(root: HTMLElement): void {
     else host.innerHTML = '<div class="rack"><div class="rackHead"><b>Canal</b></div><p class="muted">Inicia el audio (pulsa una tecla o ▶) para sus efectos.</p></div>';
   }
   function renderAll(): void { renderTabs(); showPane(); renderPads(); renderSelected(); renderSamples(); renderMixer(); renderPatternBar(); renderSelectedRack(); }
-  function selectChannel(id: string): void { selectedId = id; routeKeyboardToSelected(); renderPads(); renderSelected(); renderSamples(); renderMixer(); renderSelectedRack(); }
+  function selectChannel(id: string): void { selectedId = id; sliceHits.length = 0; routeKeyboardToSelected(); renderPads(); renderSelected(); renderSamples(); renderMixer(); renderSelectedRack(); }
   function applyAudible(): void { const aud = audibleIds(daw.channels); for (const a of channels) a.setAudible(aud.has(a.id)); }
 
   // ---------- cajón de efectos ----------
