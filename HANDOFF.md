@@ -65,6 +65,14 @@ el motor de audio: `studioView` registra cada disparo en un bus de golpes (`padH
 `requestAnimationFrame` (`visualTick`) pinta leyendo el reloj de audio; la matemática es pura y testeada en
 `ui/hitViz.ts`. La onda del editor se cachea en un canvas offscreen para pintar el cursor sin recalcularla.
 
+**Estudio · Compacto estilo VST (v0.20.0):** la cadena de efectos deja de estar en el cajón inferior
+deslizante (eliminado, con su botón "🎛 Efectos") y pasa a una **sección fija `#fxSection`** siempre visible,
+antes del teclado, con **dos filas horizontales** (Canal seleccionado + Máster). Dentro de cada rack los
+efectos se disponen en **horizontal** (`.rackList` en fila con scroll-x) como **módulos compactos** de ancho
+fijo (`.fxCard` ~156px, knobs en rejilla 2×N); mover efectos ahora es **◀/▶**. Además una pasada de densidad
+(menos márgenes/padding; teclado 160→140px). Solo presentación (`app/studioView.ts` + `ui/rack.ts` +
+`ui/styles.css`); el motor y la lógica de efectos (añadir/bypass/mover/quitar/persistencia) no cambian.
+
 **Estudio · Fix nota synth colgada (v0.19.1):** las notas de un preset synth con `sustain:true` (cuerda,
 órgano) se quedaban sonando. Causa raíz: `stopLive` decidía a qué motor mandar el note-off según el canal
 **seleccionado al soltar** (introducido en F3, `b702f65`), así que si la selección había cambiado a
