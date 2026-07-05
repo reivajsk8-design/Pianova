@@ -1,6 +1,7 @@
 // studio/src/ui/sampleEditor.ts
 // Editor del canal slicer (pestaña SAMPLES): forma de onda + marcas editables + troceado + probar slice.
 import type { SliceDef } from '../daw/slicing';
+import { mountKnob } from './knob';
 
 const NOTE_NAMES = ['Do', 'Do#', 'Re', 'Re#', 'Mi', 'Fa', 'Fa#', 'Sol', 'Sol#', 'La', 'La#', 'Si'];
 const noteName = (m: number): string => NOTE_NAMES[((m % 12) + 12) % 12] + (Math.floor(m / 12) - 1);
@@ -12,6 +13,7 @@ export function mountSampleEditor(
     onImport: (file: File) => void; onSliceEqual: (n: number) => void;
     onSliceOnsets: () => void; onTest: (index: number) => void;
     onSetMarks?: (marks: number[]) => void;
+    onUpdateSlice?: (index: number, patch: Partial<SliceDef>) => void;
   }
 ): void {
   root.innerHTML = `<div class="smpEd">
@@ -24,6 +26,7 @@ export function mountSampleEditor(
     ${opts.buffer ? '<canvas id="smpWave" class="smpWave" width="900" height="120"></canvas>' : '<p class="muted">Importa un audio para trocearlo en slices.</p>'}
     ${opts.buffer ? '<p class="smpHint muted">Arrastra una marca para moverla · doble-clic en un hueco para añadir · clic derecho en una marca para borrar</p>' : ''}
     <div id="smpList" class="smpList"></div>
+    <div id="smpSlicePanel" class="smpSlicePanel"></div>
   </div>`;
 
   (root.querySelector('#smpFile') as HTMLInputElement | null)?.addEventListener('change', ev => {
@@ -103,9 +106,39 @@ export function mountSampleEditor(
   }
 
   const list = root.querySelector('#smpList') as HTMLElement;
-  list.innerHTML = opts.slices.map((s, i) =>
-    `<button class="smpSlice" data-i="${i}" title="Probar">▶ ${i + 1} · ${noteName(opts.base + i)}</button>`).join('')
-    || (buffer ? '<p class="muted">Pulsa "Trocear" para crear los slices.</p>' : '');
-  list.querySelectorAll<HTMLButtonElement>('.smpSlice').forEach(b =>
-    b.addEventListener('click', () => opts.onTest(+(b.dataset.i ?? '0'))));
+  const panel = root.querySelector('#smpSlicePanel') as HTMLElement;
+  let selected = -1;
+
+  function renderList(): void {
+    list.innerHTML = opts.slices.map((s, i) =>
+      `<button class="smpSlice${i === selected ? ' sel' : ''}" data-i="${i}" title="Seleccionar y probar">▶ ${i + 1} · ${noteName(opts.base + i)}</button>`).join('')
+      || (opts.buffer ? '<p class="muted">Pulsa "Trocear" para crear los slices.</p>' : '');
+    list.querySelectorAll<HTMLButtonElement>('.smpSlice').forEach(b =>
+      b.addEventListener('click', () => { selected = +(b.dataset.i ?? '0'); opts.onTest(selected); renderList(); renderPanel(); }));
+  }
+
+  function renderPanel(): void {
+    const s = opts.slices[selected];
+    if (!s) { panel.innerHTML = ''; return; }
+    panel.innerHTML = `<div class="smpSliceHead">SLICE ${selected + 1} · ${noteName(opts.base + selected)}</div>
+      <div class="smpKnobs">
+        <div class="knobCell"><div class="knob" id="skGain"></div><span>Ganancia</span></div>
+        <div class="knobCell"><div class="knob" id="skFin"></div><span>Fade in</span></div>
+        <div class="knobCell"><div class="knob" id="skFout"></div><span>Fade out</span></div>
+        <label class="smpRev"><input type="checkbox" id="skRev" ${s.reverse ? 'checked' : ''}> Reverse</label>
+        <button class="smpBtn" id="skTest">▶ Probar</button>
+      </div>`;
+    mountKnob(panel.querySelector('#skGain') as HTMLElement, { min: 0, max: 2, value: s.gain, default: 1, size: 34,
+      onChange: v => opts.onUpdateSlice?.(selected, { gain: v }) });
+    mountKnob(panel.querySelector('#skFin') as HTMLElement, { min: 0, max: 0.3, value: s.fadeIn, default: 0, size: 34,
+      onChange: v => opts.onUpdateSlice?.(selected, { fadeIn: v }) });
+    mountKnob(panel.querySelector('#skFout') as HTMLElement, { min: 0, max: 0.3, value: s.fadeOut, default: 0, size: 34,
+      onChange: v => opts.onUpdateSlice?.(selected, { fadeOut: v }) });
+    (panel.querySelector('#skRev') as HTMLInputElement).addEventListener('change', e =>
+      opts.onUpdateSlice?.(selected, { reverse: (e.target as HTMLInputElement).checked }));
+    (panel.querySelector('#skTest') as HTMLButtonElement).addEventListener('click', () => opts.onTest(selected));
+  }
+
+  renderList();
+  renderPanel();
 }
