@@ -26,8 +26,8 @@ main { padding:24px 18px; }
 .rack { flex:1; min-width:280px; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px; }
 .rackHead { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
 .fxAdd { font:inherit; background:var(--bg); color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:6px 9px; }
-.rackList { display:flex; flex-direction:column; gap:10px; }
-.fxCard { border:1px solid var(--line); border-radius:10px; padding:10px; background:var(--bg); }
+.rackList { display:flex; flex-flow:row nowrap; gap:10px; overflow-x:auto; padding-bottom:6px; }
+.fxCard { flex:0 0 156px; width:156px; border:1px solid var(--line); border-radius:10px; padding:10px; background:var(--bg); }
 .fxHead { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
 .fxHead b { flex:1; }
 .fxHead button { padding:4px 9px; }
@@ -91,13 +91,13 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .knobCell { display:flex; flex-direction:column; align-items:center; gap:3px; }
 .knobCell span { color:var(--muted); font-size:10px; letter-spacing:.04em; text-transform:uppercase; }
 
-/* ---------- Panel inferior de efectos (cajón deslizante) ---------- */
-.fxDrawer { position:fixed; left:0; right:0; bottom:0; z-index:50; background:linear-gradient(#0b0f0a,#070a06); border-top:1px solid #2b3324; box-shadow:0 -10px 28px rgba(0,0,0,.55); transform:translateY(101%); transition:transform .22s cubic-bezier(.32,.72,0,1); max-height:34vh; overflow:auto; padding:8px 16px 12px; }
-.fxDrawer.open { transform:translateY(0); }
-.fxDrawerHead { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-.fxDrawerHead b { font-size:14px; }
-#fxClose { width:auto; padding:0 10px; height:28px; }
-.fxDrawer .racks { margin-top:0; }
+/* ---------- Sección de efectos (cadena horizontal, siempre visible) ---------- */
+.fxSection { display:flex; flex-direction:column; gap:8px; margin:10px 0; }
+.fxSection .rack { min-width:0; padding:8px 10px; }
+.fxSection .rackHead { margin-bottom:6px; }
+.fxSection .fxCard { padding:7px 8px; }
+.fxSection .fxHead b { font-size:12px; }
+.fxSection .fxKnobLab, .fxSection .fxKnobVal { font-size:9px; }
 
 /* ---------- Efectos compactos (parámetros como knobs) ---------- */
 .fxCard { padding:9px 11px; }
@@ -106,7 +106,7 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .fxHead b { flex:0 0 auto; }
 .fxHead .chBtn { width:28px; height:26px; }
 .fxByp { white-space:nowrap; }
-.fxParams { display:flex; flex-wrap:wrap; gap:8px 14px; }
+.fxParams { display:flex; flex-flow:row wrap; justify-content:center; gap:8px; }
 .fxKnob { display:flex; flex-direction:column; align-items:center; gap:2px; width:54px; }
 .fxKnobLab { color:var(--muted); font-size:10px; text-align:center; line-height:1.1; }
 .fxKnobVal { color:var(--ink); font-size:10px; }
@@ -165,13 +165,6 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .pvSoundRow select{background:#141a13;border:1px solid #2b3324;color:var(--pv-ink);border-radius:6px;padding:6px 10px;min-width:220px;cursor:pointer}
 .pvSoundRow select:hover{border-color:var(--pv-acc)}
 /* Cajón de efectos compacto (para no tapar el secuenciador) */
-.fxDrawer .rack{padding:8px 10px;min-width:220px;border-radius:8px}
-.fxDrawer .rackHead{margin-bottom:6px}
-.fxDrawer .fxCard{padding:6px 8px}
-.fxDrawer .fxHead b{font-size:12px}
-.fxDrawer .fxParams{gap:8px}
-.fxDrawer .fxKnobLab{font-size:9px}
-.fxDrawer .fxKnobVal{font-size:9px}
 
 /* --- Editor del sampler (pestaña SAMPLES) --- */
 .smpEd{padding:6px 2px}

@@ -29,8 +29,8 @@ export function mountRack(root: HTMLElement, rack: Rack, title: string, onChange
           <b>${def ? def.label : e.type}</b>
           <span class="grow"></span>
           <label class="fxByp"><input type="checkbox" data-byp="${e.id}" ${e.isBypassed() ? 'checked' : ''}> Bypass</label>
-          <button class="chBtn" data-up="${e.id}" title="Subir">↑</button>
-          <button class="chBtn" data-down="${e.id}" title="Bajar">↓</button>
+          <button class="chBtn" data-up="${e.id}" title="Mover a la izquierda">◀</button>
+          <button class="chBtn" data-down="${e.id}" title="Mover a la derecha">▶</button>
           <button class="chBtn" data-del="${e.id}" title="Quitar">✕</button>
         </div>
         <div class="fxParams">${params}</div>
