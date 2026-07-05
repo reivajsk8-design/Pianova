@@ -24,7 +24,7 @@ import {
   DawState, ChannelState, InstrumentSpec, defaultChannel, addChannel, removeChannel,
   updateChannel, toggleStep, setStep, findChannel, audibleIds, channelSteps,
   addPattern, removePattern, setCurrentPattern, setSong, defaultSynthxInstrument, defaultSlicerInstrument,
-  syncChannelIdSeed, defaultDaw
+  syncChannelIdSeed, defaultDaw, channelLen, addStepsPage, removeStepsPage
 } from '../daw/model';
 import { loadStore, saveStore, downloadProject, readProjectFile, ProjectState, hydrateSamples } from './store';
 import * as synthx from '../audio/synthx';
@@ -37,6 +37,9 @@ import type { SampleEditorHandle } from '../ui/sampleEditor';
 
 const STEPS_PER_BEAT = 4;
 const SEQ_VEL = 0.95;
+// Mínimo común múltiplo: la longitud maestra del secuenciador es el m.c.m. de las longitudes de los canales,
+// así CADA canal divide a la maestra → ninguno se trunca y el cabezal (paso % longitud) queda exacto.
+function lcm2(a: number, b: number): number { const g = (x: number, y: number): number => (y ? g(y, x % y) : x); return a / g(a, b) * b; }
 const WAVE_SVG = '<svg viewBox="0 0 200 50" preserveAspectRatio="none"><path d="M0,25 Q10,5 20,25 T40,25 T60,25 T80,25 T100,25 T120,25 T140,25 T160,25 T180,25 T200,25" fill="none" stroke="#2dff6a" stroke-width="1.5" opacity=".85"/></svg>';
 
 export function mountStudioView(root: HTMLElement): void {
@@ -52,6 +55,8 @@ export function mountStudioView(root: HTMLElement): void {
   let barStarted = false;
   let recording = false;
   let prLow = 48;   // octava base visible del piano-roll (Do3), recordada entre re-montajes
+  const PAGE = 16;    // una página = 16 pasos
+  let stepPage = 0;   // página visible del canal seleccionado
 
   root.innerHTML = `
     <div class="pvView">
@@ -79,6 +84,7 @@ export function mountStudioView(root: HTMLElement): void {
         <div id="padGrid"></div>
         <div class="pvSoundRow"><span class="pvLbl">SONIDO</span><span id="pvSound"></span></div>
         <div class="pvLbl" id="stepsLbl">PASOS</div>
+        <div id="pvLenBar" class="pvLenBar"></div>
         <div id="pvScale" class="pvScale"></div>
         <div id="pvSteps" class="pvSteps"></div>
         <div class="pvLbl">PARÁMETROS</div>
@@ -158,7 +164,8 @@ export function mountStudioView(root: HTMLElement): void {
     if (recording && seq.isPlaying()) recordStep(m, v);
   }
   function recordStep(m: number, v: number): void {
-    const step = ((Math.round(transport.beatNow() * STEPS_PER_BEAT) % daw.steps) + daw.steps) % daw.steps;
+    const len = channelLen(daw, selectedId);
+    const step = ((Math.round(transport.beatNow() * STEPS_PER_BEAT) % len) + len) % len;
     daw = setStep(daw, selectedId, step, { on: true, note: m, vel: v });
     persist(); renderSelected();
   }
@@ -193,7 +200,14 @@ export function mountStudioView(root: HTMLElement): void {
   const transport = makeTransport(() => getAudioContext()?.currentTime ?? 0);
   const seq = makeSequencer(transport, {
     stepsPerBeat: STEPS_PER_BEAT,
-    getTotalSteps: () => daw.steps,
+    getTotalSteps: () => {
+      const pIdx = (songMode && daw.song.length) ? playPattern : daw.current;
+      const pat = daw.patterns[pIdx];
+      if (!pat) return daw.steps;
+      let m = daw.steps;
+      for (const c of daw.channels) { const L = pat.steps[c.id]?.length ?? 0; if (L > 0) m = lcm2(m, L); }
+      return m;   // m.c.m.: p. ej. 16+32 → 32; 32+48 → 96 (todos encajan sin truncar)
+    },
     onStep: (i, when) => {
       if (i === 0) {
         if (!barStarted) barStarted = true;
@@ -204,7 +218,8 @@ export function mountStudioView(root: HTMLElement): void {
       const audibles = audibleIds(daw.channels);
       for (const c of daw.channels) {
         if (!audibles.has(c.id)) continue;
-        const st = pat.steps[c.id]?.[i];
+        const arr = pat.steps[c.id];
+        const st = (arr && arr.length) ? arr[i % arr.length] : undefined;   // cada canal repite a su longitud
         if (!st || !st.on) continue;
         const audio = channels.find(a => a.id === c.id);
         const secPerStep = (60 / transport.bpm) / STEPS_PER_BEAT;
@@ -243,10 +258,34 @@ export function mountStudioView(root: HTMLElement): void {
     (root.querySelector('#stepsLbl') as HTMLElement).textContent = `PASOS · CANAL ${n}`;
     // selector de sonido del canal seleccionado (aquí mismo, sin ir al MIXER)
     (root.querySelector('#pvSound') as HTMLElement).innerHTML = ch ? instrumentSelectHTML(ch) : '';
-    // PASOS: piano-roll para canales melódicos; fila on/off para batería.
+    // PASOS: piano-roll para canales melódicos; fila on/off para batería. Longitud por canal, en páginas de 16.
     const stepsHost = root.querySelector('#pvSteps') as HTMLElement;
     const scaleHost = root.querySelector('#pvScale') as HTMLElement;
+    const lenHost = root.querySelector('#pvLenBar') as HTMLElement;
     const melodic = !!ch && ch.instrument.kind !== 'drum';
+
+    // Barra de longitud + páginas (para cualquier canal).
+    const len = channelLen(daw, selectedId);
+    const pages = Math.max(1, Math.ceil(len / PAGE));
+    if (stepPage >= pages) stepPage = pages - 1;
+    const pageTabs = pages > 1
+      ? '<span class="pvPages">Pág:' + Array.from({ length: pages }, (_, p) =>
+          `<button class="pvPage${p === stepPage ? ' on' : ''}" data-page="${p}">${p + 1}</button>`).join('') + '</span>'
+      : '';
+    lenHost.innerHTML = `<span>Longitud</span>`
+      + `<button class="pvLenBtn" data-lenminus title="Quitar 16 pasos">−16</button>`
+      + `<span class="pvLenN">${len} pasos</span>`
+      + `<button class="pvLenBtn" data-lenplus title="Añadir 16 pasos">＋16</button>${pageTabs}`;
+    (lenHost.querySelector('[data-lenplus]') as HTMLButtonElement).addEventListener('click', () => {
+      daw = addStepsPage(daw, selectedId); persist(); renderSelected();
+    });
+    (lenHost.querySelector('[data-lenminus]') as HTMLButtonElement).addEventListener('click', () => {
+      daw = removeStepsPage(daw, selectedId); persist(); renderSelected();
+    });
+    lenHost.querySelectorAll<HTMLButtonElement>('.pvPage').forEach(b =>
+      b.addEventListener('click', () => { stepPage = +(b.dataset.page ?? '0'); renderSelected(); }));
+
+    const off = stepPage * PAGE;   // desplazamiento de la página visible
     if (melodic) {
       // barra de escala
       const tonicOpts = NOTE_NAMES.map((nm, i) => `<option value="${i}"${i === daw.scaleRoot ? ' selected' : ''}>${nm}</option>`).join('');
@@ -259,11 +298,11 @@ export function mountStudioView(root: HTMLElement): void {
         daw = { ...daw, scaleType: (e.target as HTMLSelectElement).value }; persist(); renderSelected();
       });
       const pr = mountPianoRoll(stepsHost, {
-        total: daw.steps, lowMidi: prLow, scaleRoot: daw.scaleRoot, scaleType: daw.scaleType,
-        getStep: (i) => channelSteps(daw, selectedId)[i],
+        total: PAGE, lowMidi: prLow, scaleRoot: daw.scaleRoot, scaleType: daw.scaleType,
+        getStep: (i) => channelSteps(daw, selectedId)[off + i],
         onSetNote: (i, midi) => {
-          const cur = channelSteps(daw, selectedId)[i];
-          daw = setStep(daw, selectedId, i, midi == null ? { on: false } : { on: true, note: midi, vel: cur?.vel });
+          const cur = channelSteps(daw, selectedId)[off + i];
+          daw = setStep(daw, selectedId, off + i, midi == null ? { on: false } : { on: true, note: midi, vel: cur?.vel });
           persist();
         },
         onRange: (lo) => { prLow = lo; }
@@ -272,9 +311,9 @@ export function mountStudioView(root: HTMLElement): void {
     } else {
       scaleHost.innerHTML = '';
       const g = mountStepGrid(stepsHost, {
-        total: daw.steps,
-        isOn: (i) => channelSteps(daw, selectedId)[i]?.on ?? false,
-        onToggle: (i) => { daw = toggleStep(daw, selectedId, i); persist(); }
+        total: PAGE,
+        isOn: (i) => channelSteps(daw, selectedId)[off + i]?.on ?? false,
+        onToggle: (i) => { daw = toggleStep(daw, selectedId, off + i); persist(); }
       });
       selGrid = { setPlayhead: g.setPlayhead };
     }
@@ -397,7 +436,7 @@ export function mountStudioView(root: HTMLElement): void {
     else host.innerHTML = '<div class="rack"><div class="rackHead"><b>Canal</b></div><p class="muted">Inicia el audio (pulsa una tecla o ▶) para sus efectos.</p></div>';
   }
   function renderAll(): void { renderTabs(); showPane(); renderPads(); renderSelected(); renderSamples(); renderMixer(); renderPatternBar(); renderSelectedRack(); }
-  function selectChannel(id: string): void { selectedId = id; sliceHits.length = 0; routeKeyboardToSelected(); renderPads(); renderSelected(); renderSamples(); renderMixer(); renderSelectedRack(); }
+  function selectChannel(id: string): void { selectedId = id; stepPage = 0; sliceHits.length = 0; routeKeyboardToSelected(); renderPads(); renderSelected(); renderSamples(); renderMixer(); renderSelectedRack(); }
   function applyAudible(): void { const aud = audibleIds(daw.channels); for (const a of channels) a.setAudible(aud.has(a.id)); }
 
 
@@ -494,8 +533,9 @@ export function mountStudioView(root: HTMLElement): void {
     const now = getAudioContext()?.currentTime ?? 0;
     const playing = seq.isPlaying();
     if (playing) {
-      const s = ((Math.floor(transport.beatNow() * STEPS_PER_BEAT) % daw.steps) + daw.steps) % daw.steps;
-      selGrid?.setPlayhead(s);
+      const len = channelLen(daw, selectedId);
+      const s = ((Math.floor(transport.beatNow() * STEPS_PER_BEAT) % len) + len) % len;
+      selGrid?.setPlayhead(Math.floor(s / PAGE) === stepPage ? (s % PAGE) : -1);   // solo si suena esta página
     }
     for (const [id, h] of padHits) if (now - h.t >= PAD_FADE) padHits.delete(id);            // poda pads
     for (let k = sliceHits.length - 1; k >= 0; k--) if (now - sliceHits[k].t >= sliceHits[k].dur) sliceHits.splice(k, 1);   // poda slices

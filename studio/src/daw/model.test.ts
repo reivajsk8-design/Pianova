@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   emptySteps, defaultChannel, defaultDaw, addChannel, removeChannel, updateChannel,
   toggleStep, audibleIds, findChannel, channelSteps, addPattern, removePattern, setCurrentPattern, setSong, setStep,
-  defaultSynthxInstrument, defaultSlicerInstrument, newChannelId, syncChannelIdSeed
+  defaultSynthxInstrument, defaultSlicerInstrument, newChannelId, syncChannelIdSeed,
+  channelLen, addStepsPage, removeStepsPage
 } from './model';
 import { SYNTHX_DEFAULT } from '../audio/synthx-dsp';
 
@@ -122,5 +123,27 @@ describe('instrumento slicer', () => {
       expect(inst.base).toBe(60);
       expect(inst.slices).toEqual([]);
     }
+  });
+});
+
+describe('longitud de pasos por canal', () => {
+  it('channelLen devuelve la longitud del canal en el patrón actual (16 por defecto)', () => {
+    const d = defaultDaw();
+    expect(channelLen(d, d.channels[0].id)).toBe(16);
+  });
+  it('addStepsPage añade 16 pasos (apagados) al canal, inmutable', () => {
+    const d = defaultDaw(); const id = d.channels[0].id;
+    const d2 = addStepsPage(d, id);
+    expect(channelLen(d2, id)).toBe(32);
+    expect(channelLen(d, id)).toBe(16);                    // original intacto
+    expect(channelSteps(d2, id).slice(16).every(s => s.on === false)).toBe(true);
+  });
+  it('removeStepsPage quita 16, con mínimo de una página', () => {
+    const id = defaultDaw().channels[0].id;
+    let e = addStepsPage(defaultDaw(), id);                // 32
+    e = removeStepsPage(e, id);                            // 16
+    expect(channelLen(e, id)).toBe(16);
+    const e2 = removeStepsPage(e, id);                     // ya en 16 → se queda en 16
+    expect(channelLen(e2, id)).toBe(16);
   });
 });
