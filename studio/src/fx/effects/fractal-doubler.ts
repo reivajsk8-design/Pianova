@@ -35,8 +35,8 @@ registerEffect('fractal-doubler', {
     let amount = FRACTAL_PARAMS[0].default;
     const applyMod = () => {
       for (let i = 0; i < lfos.length; i++) {
-        lfos[i].frequency.value = rate * RATE_MUL[i];
-        lfoGains[i].gain.value = (amount / 1000) * (0.6 + 0.4 * (i / lfos.length));
+        ramp(lfos[i].frequency, rate * RATE_MUL[i], actx);
+        ramp(lfoGains[i].gain, (amount / 1000) * (0.6 + 0.4 * (i / lfos.length)), actx);
       }
     };
     const apply = (name: string, value: number) => {
