@@ -547,6 +547,7 @@ export function mountStudioView(root: HTMLElement): void {
   (root.querySelector('#stOpen') as HTMLButtonElement).addEventListener('click', () => (root.querySelector('#stFile') as HTMLInputElement).click());
   (root.querySelector('#stNew') as HTMLButtonElement).addEventListener('click', async () => {
     if (!window.confirm('¿Empezar de cero? Se borrará el proyecto actual (patrones, canciones, samples y efectos).')) return;
+    seq.stop(); tUI.setPlaying(false);   // empezar de cero también para la reproducción
     await initAudio();
     channels.forEach(a => a.dispose()); channels = [];
     daw = defaultDaw();
