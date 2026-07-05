@@ -1,6 +1,7 @@
 // studio/src/fx/effects/fractal-doubler.ts
 // Fractal Doubler: 3 copias con delays cortos modulados a velocidades no enteras (suena "doblado"/grueso).
 import { registerEffect, makeEffect, ParamSpec } from '../effect';
+import { ramp } from '../param';
 
 export const FRACTAL_PARAMS: ParamSpec[] = [
   { name: 'amount', label: 'Profundidad', min: 0, max: 8, step: 0.1, default: 3, unit: 'ms' },
@@ -41,7 +42,7 @@ registerEffect('fractal-doubler', {
     const apply = (name: string, value: number) => {
       if (name === 'amount') { amount = value; applyMod(); }
       else if (name === 'rate') { rate = value; applyMod(); }
-      else if (name === 'mix') { wetMix.gain.value = value; dryMix.gain.value = 1 - value; }
+      else if (name === 'mix') { ramp(wetMix.gain, value, actx); ramp(dryMix.gain, 1 - value, actx); }
     };
     return { apply, teardown: () => { lfos.forEach(l => { try { l.stop(); } catch { /* ya */ } l.disconnect(); }); lfoGains.forEach(g => g.disconnect()); } };
   }, state)

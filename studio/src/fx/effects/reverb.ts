@@ -2,6 +2,7 @@
 // debounce al cambiar tamaño/caída (evita reconstruir en cada paso del deslizador).
 import { registerEffect, makeEffect, ParamSpec } from '../effect';
 import { impulseSamples } from './reverb-impulse';
+import { ramp } from '../param';
 
 export const REVERB_PARAMS: ParamSpec[] = [
   { name: 'size', label: 'Tamaño', min: 0.2, max: 4, step: 0.1, default: 1.8, unit: 's' },
@@ -41,8 +42,8 @@ registerEffect('reverb', {
     return (name, value) => {
       if (name === 'size') { size = value; scheduleRebuild(); }
       else if (name === 'decay') { decay = value; scheduleRebuild(); }
-      else if (name === 'tone') tone.frequency.value = value;
-      else if (name === 'mix') { wetMix.gain.value = value; dryMix.gain.value = 1 - value; }
+      else if (name === 'tone') ramp(tone.frequency, value, actx);
+      else if (name === 'mix') { ramp(wetMix.gain, value, actx); ramp(dryMix.gain, 1 - value, actx); }
     };
   }, state)
 });

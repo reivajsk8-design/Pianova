@@ -1,5 +1,6 @@
 // Efecto utilidad: trim de ganancia (-24..+24 dB). Sirve para probar el rack de punta a punta.
 import { registerEffect, makeEffect, ParamSpec } from '../effect';
+import { ramp } from '../param';
 
 export const GAIN_PARAMS: ParamSpec[] = [
   { name: 'gain', label: 'Ganancia', min: -24, max: 24, step: 0.5, default: 0, unit: 'dB' }
@@ -12,6 +13,6 @@ registerEffect('gain', {
   create: (actx, state) => makeEffect(actx, 'gain', GAIN_PARAMS, (actx, input, sink) => {
     const g = actx.createGain();
     input.connect(g); g.connect(sink);
-    return (name, value) => { if (name === 'gain') g.gain.value = dbToLin(value); };
+    return (name, value) => { if (name === 'gain') ramp(g.gain, dbToLin(value), actx); };
   }, state)
 });

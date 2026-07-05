@@ -1,6 +1,7 @@
 // Scaling Limiter: DynamicsCompressor con ratio alto (limita picos) + ganancia de compensación (makeup).
 import { registerEffect, makeEffect, ParamSpec } from '../effect';
 import { dbToLin } from './gain';
+import { ramp } from '../param';
 
 export const LIMITER_PARAMS: ParamSpec[] = [
   { name: 'threshold', label: 'Umbral', min: -40, max: 0, step: 0.5, default: -3, unit: 'dB' },
@@ -16,9 +17,9 @@ registerEffect('limiter', {
     const makeup = actx.createGain();
     input.connect(comp); comp.connect(makeup); makeup.connect(sink);
     return (name: string, value: number) => {
-      if (name === 'threshold') comp.threshold.value = value;
-      else if (name === 'release') comp.release.value = value;
-      else if (name === 'makeup') makeup.gain.value = dbToLin(value);
+      if (name === 'threshold') ramp(comp.threshold, value, actx);
+      else if (name === 'release') ramp(comp.release, value, actx);
+      else if (name === 'makeup') ramp(makeup.gain, dbToLin(value), actx);
     };
   }, state)
 });

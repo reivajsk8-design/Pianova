@@ -1,5 +1,6 @@
 // Stereo Echo (ping-pong): dos delays con paneo L/R y realimentación cruzada (rebota de un lado a otro).
 import { registerEffect, makeEffect, ParamSpec } from '../effect';
+import { ramp } from '../param';
 
 export const STEREO_ECHO_PARAMS: ParamSpec[] = [
   { name: 'timeL', label: 'Tiempo izq.', min: 20, max: 1000, step: 1, default: 250, unit: 'ms' },
@@ -25,10 +26,10 @@ registerEffect('stereo-echo', {
     dL.connect(fbL); fbL.connect(dR);   // cruce L -> R
     dR.connect(fbR); fbR.connect(dL);   // cruce R -> L (ping-pong)
     return (name, value) => {
-      if (name === 'timeL') dL.delayTime.value = value / 1000;
-      else if (name === 'timeR') dR.delayTime.value = value / 1000;
-      else if (name === 'feedback') { fbL.gain.value = value; fbR.gain.value = value; }
-      else if (name === 'mix') { wetMix.gain.value = value; dryMix.gain.value = 1 - value; }
+      if (name === 'timeL') ramp(dL.delayTime, value / 1000, actx);
+      else if (name === 'timeR') ramp(dR.delayTime, value / 1000, actx);
+      else if (name === 'feedback') { ramp(fbL.gain, value, actx); ramp(fbR.gain, value, actx); }
+      else if (name === 'mix') { ramp(wetMix.gain, value, actx); ramp(dryMix.gain, 1 - value, actx); }
     };
   }, state)
 });

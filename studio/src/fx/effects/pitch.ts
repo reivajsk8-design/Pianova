@@ -1,6 +1,7 @@
 // Pitch Shifter: desplaza el tono con un AudioWorkletNode granular ('pitch-processor'). El módulo del
 // worklet ya está cargado (la vista Estudio espera a ensureWorklets antes de permitir añadir efectos).
 import { registerEffect, makeEffect, ParamSpec } from '../effect';
+import { ramp } from '../param';
 
 export const PITCH_PARAMS: ParamSpec[] = [
   { name: 'semitones', label: 'Semitonos', min: -12, max: 12, step: 1, default: 0, unit: 'st' },
@@ -18,8 +19,8 @@ registerEffect('pitch', {
     const pitchParam = node.parameters.get('pitch');
     return {
       apply: (name: string, value: number) => {
-        if (name === 'semitones') { if (pitchParam) pitchParam.value = value; }
-        else if (name === 'mix') { wetMix.gain.value = value; dryMix.gain.value = 1 - value; }
+        if (name === 'semitones') { if (pitchParam) ramp(pitchParam, value, actx); }
+        else if (name === 'mix') { ramp(wetMix.gain, value, actx); ramp(dryMix.gain, 1 - value, actx); }
       },
       teardown: () => { try { node.disconnect(); } catch { /* ya */ } }
     };

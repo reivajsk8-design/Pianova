@@ -1,6 +1,7 @@
 // studio/src/fx/effects/rotary.ts
 // Rotary Speaker (Leslie): un LFO modula amplitud (tremolo suave) y paneo (giro) → altavoz giratorio.
 import { registerEffect, makeEffect, ParamSpec } from '../effect';
+import { ramp } from '../param';
 
 export const ROTARY_PARAMS: ParamSpec[] = [
   { name: 'speed', label: 'Velocidad', min: 0.3, max: 7, step: 0.1, default: 5.5, unit: 'Hz' },
@@ -20,11 +21,11 @@ registerEffect('rotary', {
     lfo.connect(panDepth); panDepth.connect(panner.pan);
     lfo.start();
     const apply = (name: string, value: number) => {
-      if (name === 'speed') lfo.frequency.value = value;
+      if (name === 'speed') ramp(lfo.frequency, value, actx);
       else if (name === 'depth') {
-        amp.gain.value = 1 - value * 0.3;   // tremolo suave (la amplitud no se va a 0)
-        ampDepth.gain.value = value * 0.3;
-        panDepth.gain.value = value;        // el giro sí usa todo el paneo
+        ramp(amp.gain, 1 - value * 0.3, actx);   // tremolo suave (la amplitud no se va a 0)
+        ramp(ampDepth.gain, value * 0.3, actx);
+        ramp(panDepth.gain, value, actx);        // el giro sí usa todo el paneo
       }
     };
     return { apply, teardown: () => { try { lfo.stop(); } catch { /* ya */ } lfo.disconnect(); ampDepth.disconnect(); panDepth.disconnect(); } };

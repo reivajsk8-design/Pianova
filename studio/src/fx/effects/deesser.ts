@@ -1,6 +1,7 @@
 // DeEsser por bandas: la banda grave pasa intacta; la banda aguda (sibilancias) se comprime y se vuelve
 // a sumar. Cuando suben las "eses", esa banda se atenúa.
 import { registerEffect, makeEffect, ParamSpec } from '../effect';
+import { ramp } from '../param';
 
 export const DEESSER_PARAMS: ParamSpec[] = [
   { name: 'freq', label: 'Frecuencia', min: 2000, max: 12000, step: 100, default: 6000, unit: 'Hz' },
@@ -18,9 +19,9 @@ registerEffect('deesser', {
     input.connect(low); low.connect(sink);                          // banda grave intacta
     input.connect(high); high.connect(comp); comp.connect(sink);    // banda aguda comprimida
     return (name: string, value: number) => {
-      if (name === 'freq') { low.frequency.value = value; high.frequency.value = value; }
-      else if (name === 'threshold') comp.threshold.value = value;
-      else if (name === 'amount') comp.ratio.value = value;
+      if (name === 'freq') { ramp(low.frequency, value, actx); ramp(high.frequency, value, actx); }
+      else if (name === 'threshold') ramp(comp.threshold, value, actx);
+      else if (name === 'amount') ramp(comp.ratio, value, actx);
     };
   }, state)
 });
