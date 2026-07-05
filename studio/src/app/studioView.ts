@@ -160,10 +160,14 @@ export function mountStudioView(root: HTMLElement): void {
     persist(); renderSelected();
   }
   function stopLive(m: number): void {
-    const ch = findChannel(daw, selectedId);
-    if (ch?.instrument.kind === 'synthx') { synthx.noteOffSynthx(m); return; }
-    if (ch?.instrument.kind === 'slicer') return;   // los slices son one-shot, no hay nota que soltar
-    if (ch && ch.instrument.kind !== 'drum') synth.noteOff(m);
+    // Apaga la nota por midi de forma INCONDICIONAL (como silence() en pianova.html). El note-off
+    // debe soltar lo que sonó al TOCAR, y la selección puede haber cambiado desde entonces (p. ej.
+    // pulsar otro pad mientras suena). Antes stopLive decidía según el canal seleccionado AHORA, así
+    // que si apuntaba a batería/slicer no se llamaba synth.noteOff y la voz synth quedaba colgada;
+    // solo se notaba en presets sustain:true (cuerda, órgano). Ambos note-off hacen no-op si no hay
+    // voz para ese midi, así que es seguro llamarlos siempre. Los slices/batería son one-shot.
+    synth.noteOff(m);
+    synthx.noteOffSynthx(m);
   }
 
   function initAudio(): Promise<void> {
