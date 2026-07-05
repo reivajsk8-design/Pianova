@@ -17,7 +17,7 @@ import { patternBarHTML } from '../ui/patternbar';
 import { padGridHTML } from '../ui/padGrid';
 import { studioTabsHTML, StudioTab } from '../ui/studioTabs';
 import { makeChannel, Channel } from '../daw/channel';
-import { padLevel, type PadHit } from '../ui/hitViz';
+import { padLevel, activeSlices, type PadHit, type SliceHit } from '../ui/hitViz';
 import {
   DawState, ChannelState, InstrumentSpec, defaultChannel, addChannel, removeChannel,
   updateChannel, toggleStep, setStep, findChannel, audibleIds, channelSteps,
@@ -31,6 +31,7 @@ import { importSample, getSample, decodePending } from '../audio/sampleStore';
 import { equalSlices, detectOnsets, marksToSlices, sliceIndexForNote, updateSlice } from '../daw/slicing';
 import { playSlice } from '../audio/slicer';
 import { mountSampleEditor } from '../ui/sampleEditor';
+import type { SampleEditorHandle } from '../ui/sampleEditor';
 
 const STEPS_PER_BEAT = 4;
 const SEQ_VEL = 0.95;
@@ -102,6 +103,8 @@ export function mountStudioView(root: HTMLElement): void {
   const padHits = new Map<string, PadHit>();   // último golpe por canal (para el destello)
   const PAD_FADE = 0.15;                        // s que dura el destello
   let visRaf = 0;                               // rAF del bucle visual (0 = parado)
+  const sliceHits: SliceHit[] = [];               // slices sonando (canal slicer seleccionado)
+  let sampleHandle: SampleEditorHandle | null = null;
 
   // El guardado en localStorage se difiere y se agrupa (400ms): `serializeProject` siempre
   // vuelca el almacén de samples en base64 (hasta ~2MB) y `persist()` se llama en cada
@@ -145,6 +148,7 @@ export function mountStudioView(root: HTMLElement): void {
       const idx = sliceIndexForNote(ch.instrument.base, ch.instrument.slices.length, m);
       const actx = getAudioContext();
       if (audio && actx && s?.buffer && idx >= 0) playSlice(audio.instrumentBus, s.buffer, ch.instrument.slices[idx], actx.currentTime, v);
+      if (s?.buffer && idx >= 0 && actx) { const sl = ch.instrument.slices[idx]; if (sl) sliceHits.push({ index: idx, t: actx.currentTime, dur: sl.end - sl.start }); }
     } else { routeKeyboardToSelected(); synth.noteOn(m, v); }
     const nowT = getAudioContext()?.currentTime;
     if (nowT !== undefined) { padHits.set(selectedId, { t: nowT, vel: v }); ensureVisualLoop(); }
@@ -200,6 +204,11 @@ export function mountStudioView(root: HTMLElement): void {
         const at = when + swingOffset(i, daw.swing, secPerStep);
         if (audio) audio.trigger(st.note ?? 60, vel, at);
         padHits.set(c.id, { t: at, vel });                  // destello del pad, sincronizado al sonido
+        if (c.id === selectedId && c.instrument.kind === 'slicer') {
+          const idx = sliceIndexForNote(c.instrument.base, c.instrument.slices.length, st.note ?? 60);
+          const sl = c.instrument.slices[idx];
+          if (sl) sliceHits.push({ index: idx, t: at, dur: sl.end - sl.start });
+        }
       }
     }
   });
@@ -269,11 +278,12 @@ export function mountStudioView(root: HTMLElement): void {
     const ch = findChannel(daw, selectedId);
     if (!ch || ch.instrument.kind !== 'slicer') {
       host.innerHTML = '<div class="pvSoon">Elige <b>🔪 Slicer</b> en el SONIDO de un canal para cargar y trocear un audio.</div>';
+      sampleHandle = null;
       return;
     }
     const inst = ch.instrument;
     const s = getSample(inst.sampleId);
-    mountSampleEditor(host, {
+    sampleHandle = mountSampleEditor(host, {
       buffer: s?.buffer ?? null, slices: inst.slices, base: inst.base,
       onImport: (file) => { void importAudioToChannel(selectedId, file); },
       onSliceEqual: (n) => applySlices(selectedId, equalSlicesFor(selectedId, n)),
@@ -325,6 +335,7 @@ export function mountStudioView(root: HTMLElement): void {
     const buf = bufferOf(id); const ch = findChannel(daw, id); const audio = channels.find(a => a.id === id);
     if (buf && audio && ch?.instrument.kind === 'slicer' && ch.instrument.slices[index]) {
       playSlice(audio.instrumentBus, buf, ch.instrument.slices[index], (getAudioContext()?.currentTime ?? 0), 0.9);
+      if (id === selectedId) { const sl = ch.instrument.slices[index]; sliceHits.push({ index, t: (getAudioContext()?.currentTime ?? 0), dur: sl.end - sl.start }); ensureVisualLoop(); }
     }
   }
   function renderMixer(): void {
@@ -456,10 +467,12 @@ export function mountStudioView(root: HTMLElement): void {
       const s = ((Math.floor(transport.beatNow() * STEPS_PER_BEAT) % daw.steps) + daw.steps) % daw.steps;
       selGrid?.setPlayhead(s);
     }
-    for (const [id, h] of padHits) if (now - h.t >= PAD_FADE) padHits.delete(id);   // poda caducados
+    for (const [id, h] of padHits) if (now - h.t >= PAD_FADE) padHits.delete(id);            // poda pads
+    for (let k = sliceHits.length - 1; k >= 0; k--) if (now - sliceHits[k].t >= sliceHits[k].dur) sliceHits.splice(k, 1);   // poda slices
     paintPads(now);
-    if (playing || padHits.size) visRaf = requestAnimationFrame(visualTick);
-    else { visRaf = 0; clearPads(); }
+    sampleHandle?.setActiveSlices(activeSlices(sliceHits, now));
+    if (playing || padHits.size || sliceHits.length) visRaf = requestAnimationFrame(visualTick);
+    else { visRaf = 0; clearPads(); sampleHandle?.setActiveSlices([]); }
   }
   function ensureVisualLoop(): void { if (!visRaf) visRaf = requestAnimationFrame(visualTick); }
   seq.setBpm(daw.bpm);
@@ -472,7 +485,7 @@ export function mountStudioView(root: HTMLElement): void {
       if (songMode && daw.song.length) { songPos = 0; playPattern = daw.song[0]; } else { songPos = -1; playPattern = daw.current; }
       seq.play(); tUI.setPlaying(true); renderPatternBar(); ensureVisualLoop();
     },
-    onStop: () => { seq.stop(); tUI.setPlaying(false); selGrid?.setPlayhead(-1); padHits.clear(); clearPads(); songPos = -1; playPattern = daw.current; renderPatternBar(); },
+    onStop: () => { seq.stop(); tUI.setPlaying(false); selGrid?.setPlayhead(-1); padHits.clear(); clearPads(); sliceHits.length = 0; sampleHandle?.setActiveSlices([]); songPos = -1; playPattern = daw.current; renderPatternBar(); },
     onBpm: (bpm) => { daw = { ...daw, bpm }; seq.setBpm(bpm); persist(); },
     onSwing: (swing) => { daw = { ...daw, swing }; persist(); },
     onRecord: () => { recording = !recording; tUI.setRecording(recording); }
