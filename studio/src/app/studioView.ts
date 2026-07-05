@@ -24,7 +24,7 @@ import {
   DawState, ChannelState, InstrumentSpec, defaultChannel, addChannel, removeChannel,
   updateChannel, toggleStep, setStep, findChannel, audibleIds, channelSteps,
   addPattern, removePattern, setCurrentPattern, setSong, defaultSynthxInstrument, defaultSlicerInstrument,
-  syncChannelIdSeed, defaultDaw
+  syncChannelIdSeed, defaultDaw, channelLen
 } from '../daw/model';
 import { loadStore, saveStore, downloadProject, readProjectFile, ProjectState, hydrateSamples } from './store';
 import * as synthx from '../audio/synthx';
@@ -158,7 +158,8 @@ export function mountStudioView(root: HTMLElement): void {
     if (recording && seq.isPlaying()) recordStep(m, v);
   }
   function recordStep(m: number, v: number): void {
-    const step = ((Math.round(transport.beatNow() * STEPS_PER_BEAT) % daw.steps) + daw.steps) % daw.steps;
+    const len = channelLen(daw, selectedId);
+    const step = ((Math.round(transport.beatNow() * STEPS_PER_BEAT) % len) + len) % len;
     daw = setStep(daw, selectedId, step, { on: true, note: m, vel: v });
     persist(); renderSelected();
   }
@@ -193,7 +194,14 @@ export function mountStudioView(root: HTMLElement): void {
   const transport = makeTransport(() => getAudioContext()?.currentTime ?? 0);
   const seq = makeSequencer(transport, {
     stepsPerBeat: STEPS_PER_BEAT,
-    getTotalSteps: () => daw.steps,
+    getTotalSteps: () => {
+      const pIdx = (songMode && daw.song.length) ? playPattern : daw.current;
+      const pat = daw.patterns[pIdx];
+      if (!pat) return daw.steps;
+      let m = daw.steps;
+      for (const c of daw.channels) { const L = pat.steps[c.id]?.length ?? 0; if (L > m) m = L; }
+      return m;
+    },
     onStep: (i, when) => {
       if (i === 0) {
         if (!barStarted) barStarted = true;
@@ -204,7 +212,8 @@ export function mountStudioView(root: HTMLElement): void {
       const audibles = audibleIds(daw.channels);
       for (const c of daw.channels) {
         if (!audibles.has(c.id)) continue;
-        const st = pat.steps[c.id]?.[i];
+        const arr = pat.steps[c.id];
+        const st = (arr && arr.length) ? arr[i % arr.length] : undefined;   // cada canal repite a su longitud
         if (!st || !st.on) continue;
         const audio = channels.find(a => a.id === c.id);
         const secPerStep = (60 / transport.bpm) / STEPS_PER_BEAT;
