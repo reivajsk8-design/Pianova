@@ -20,7 +20,8 @@ import { makeChannel, Channel } from '../daw/channel';
 import {
   DawState, ChannelState, InstrumentSpec, defaultChannel, addChannel, removeChannel,
   updateChannel, toggleStep, setStep, findChannel, audibleIds, channelSteps,
-  addPattern, removePattern, setCurrentPattern, setSong, defaultSynthxInstrument, defaultSlicerInstrument
+  addPattern, removePattern, setCurrentPattern, setSong, defaultSynthxInstrument, defaultSlicerInstrument,
+  syncChannelIdSeed
 } from '../daw/model';
 import { loadStore, saveStore, downloadProject, readProjectFile, ProjectState, hydrateSamples } from './store';
 import * as synthx from '../audio/synthx';
@@ -37,6 +38,7 @@ const WAVE_SVG = '<svg viewBox="0 0 200 50" preserveAspectRatio="none"><path d="
 export function mountStudioView(root: HTMLElement): void {
   const project: ProjectState = loadStore();
   let daw: DawState = project.daw;
+  syncChannelIdSeed(daw.channels);   // evita que un canal nuevo repita un id 'ch-N' ya restaurado
   let selectedId = daw.channels[0]?.id ?? '';
   let tab: StudioTab = 'pads';
 
@@ -482,6 +484,7 @@ export function mountStudioView(root: HTMLElement): void {
       await initAudio();
       channels.forEach(a => a.dispose()); channels = [];
       daw = p.daw; project.masterRack = p.masterRack;
+      syncChannelIdSeed(daw.channels);   // igual al abrir un proyecto de archivo
       hydrateSamples(p); await decodePending();
       const actx = ensureAudio();
       channels = daw.channels.map(c => makeChannel(actx, c, masterDest()));

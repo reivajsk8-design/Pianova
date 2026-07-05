@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   emptySteps, defaultChannel, defaultDaw, addChannel, removeChannel, updateChannel,
   toggleStep, audibleIds, findChannel, channelSteps, addPattern, removePattern, setCurrentPattern, setSong, setStep,
-  defaultSynthxInstrument, defaultSlicerInstrument
+  defaultSynthxInstrument, defaultSlicerInstrument, newChannelId, syncChannelIdSeed
 } from './model';
 import { SYNTHX_DEFAULT } from '../audio/synthx-dsp';
 
@@ -74,6 +74,27 @@ describe('modelo daw con patrones', () => {
     expect(channelSteps(d, id)[2].on).toBe(false);
   });
   it('defaultDaw tiene swing 0', () => { expect(defaultDaw().swing).toBe(0); });
+});
+
+describe('newChannelId + syncChannelIdSeed (evita canales con id duplicado tras recargar)', () => {
+  // Semillas ascendentes muy altas para que las pruebas sean robustas al estado del contador
+  // (otras pruebas de este archivo crean canales y suben _cid; syncChannelIdSeed solo sube, nunca baja).
+  it('tras sincronizar con los canales existentes, el próximo id supera al mayor ch-N', () => {
+    syncChannelIdSeed([{ id: 'ch-3' }, { id: 'ch-700001' }, { id: 'ch-2' }]);
+    expect(newChannelId()).toBe('ch-700002');
+  });
+  it('genera ids únicos consecutivos', () => {
+    syncChannelIdSeed([{ id: 'ch-800000' }]);
+    const a = newChannelId(), b = newChannelId();
+    expect(a).toBe('ch-800001');
+    expect(b).toBe('ch-800002');
+    expect(a).not.toBe(b);
+  });
+  it('ignora ids que no siguen el patrón ch-N (no baja el contador)', () => {
+    syncChannelIdSeed([{ id: 'ch-900000' }]);
+    syncChannelIdSeed([{ id: 'foo' }, { id: 'bar-9' }]);   // nada válido → contador intacto
+    expect(newChannelId()).toBe('ch-900001');
+  });
 });
 
 describe('instrumento synthx', () => {

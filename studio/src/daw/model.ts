@@ -29,6 +29,17 @@ export function emptySteps(n: number): Step[] {
 let _cid = 0;
 export function newChannelId(): string { return 'ch-' + (++_cid); }
 
+// Sincroniza el contador de ids con los canales ya presentes (al cargar un proyecto de localStorage
+// o de un archivo): sube _cid por encima del mayor 'ch-N' existente para que newChannelId() nunca
+// repita un id ya en uso. Sin esto, tras recargar (el contador vuelve a 0) el primer canal añadido
+// recibía 'ch-1', duplicando el id del canal existente → se seleccionaban/sonaban dos a la vez.
+export function syncChannelIdSeed(channels: { id: string }[]): void {
+  for (const c of channels) {
+    const m = /^ch-(\d+)$/.exec(c.id);
+    if (m) { const n = +m[1]; if (n > _cid) _cid = n; }
+  }
+}
+
 export function defaultChannel(preset = 'piano', id?: string): ChannelState {
   return {
     id: id ?? newChannelId(), name: 'Canal', instrument: { kind: 'synth', preset },
