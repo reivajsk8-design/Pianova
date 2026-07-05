@@ -268,6 +268,7 @@ export function mountStudioView(root: HTMLElement): void {
       onImport: (file) => { void importAudioToChannel(selectedId, file); },
       onSliceEqual: (n) => applySlices(selectedId, equalSlicesFor(selectedId, n)),
       onSliceOnsets: () => applySlices(selectedId, onsetsFor(selectedId)),
+      onSetMarks: (marks) => applySlices(selectedId, marks),
       onTest: (i) => testSlice(selectedId, i)
     });
   }

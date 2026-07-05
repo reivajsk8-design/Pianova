@@ -181,3 +181,7 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .smpList{display:flex;flex-wrap:wrap;gap:6px}
 .smpSlice{background:#141a13;border:1px solid #2b3324;color:#cdd2c9;border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer}
 .smpSlice:hover{border-color:#2dff6a;color:#fff}
+
+/* Editor del sampler: pista de ayuda + cursor sobre la onda */
+.smpHint{font-size:11px;margin:2px 0 8px}
+.smpWave{touch-action:none}
