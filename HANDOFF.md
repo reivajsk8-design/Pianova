@@ -41,6 +41,14 @@ onda + marcas + botones de troceado + ▶ probar). Persistencia de los samples p
 (`app/store.ts`). Modelo `InstrumentSpec` `slicer` + rama en `daw/channel.ts`. Pendiente (S2–S4): ajuste
 manual de marcas, edición por slice (recorte/ganancia/reverse/fade en la UI) y navegador de carpetas.
 
+**Estudio · Sampler con slicing — S2 marcas manuales (v0.17.0):** en el editor del canal `slicer` (pestaña
+SAMPLES) las marcas de corte son editables sobre la forma de onda: **arrastrar** una marca la mueve (con
+redibujo en vivo), **doble-clic** en un hueco añade una, **clic derecho** sobre una marca la borra; la
+primera marca (inicio) queda fija. Todo pasa por `marksToSlices` (ordena/dedup/fuerza el 0) y se persiste.
+Solo UI (`ui/sampleEditor.ts` + cableado `onSetMarks` en `app/studioView.ts`); motor/modelo/DSP intactos.
+Pendiente S3 (edición por slice: recorte/ganancia/reverse/fade en la UI — el motor ya lo soporta) y S4
+(navegador de carpetas del disco).
+
 **Proyecto pro `studio/` — repaso visual del groovebox + headroom (post-F3, sigue v0.13.0, 77 tests):**
 - **Headroom del bus maestro:** `MASTER_MAKEUP` bajado de **2.5 → 1.8** en `audio/masterBus.ts` (el teclado físico saturaba el soft-clipper con acordes/graves; la saturación efectiva es ~`tanh(MAKEUP·x)`; 1.8 limpia sin perder volumen; ajustable por oído). **Ojo:** el texto de la F1 más arriba dice 2.5 (era el valor de entonces); el actual es **1.8**.
 - **Knobs giratorios** (`ui/knob.ts`, componente nuevo): mando estilo DAW, se ajusta arrastrando ↕ + doble-clic resetea, táctil; `valueToAngle` puro+testeado (barrido 270°). Usado en **Vol/Pan por canal**, **Swing** y los **parámetros de los efectos** (con su valor + unidad, cuantizado al `step`). El BPM sigue siendo campo numérico.
