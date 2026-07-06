@@ -112,6 +112,8 @@ carpeta se guarda en **IndexedDB** (base `estudio`) y se reabre si el permiso si
 (helpers puros testeados + API con estado) + `ui/libraryPanel.ts` + cableado en `app/studioView.ts`. Sin
 favoritos/recientes/arrastrar (posible ampliación). No cambia el motor ni el proyecto.
 
+**Estudio · acortar/alargar nota arrastrando (v0.32.0):** las notas del piano-roll tienen **longitud fraccionaria** (múltiplos de 1/4 de paso; mínimo 1/4). Se dibujan como **barra proporcional** (media nota = media celda) y se **acortan/alargan arrastrando el borde** (snap a 1/4). `Step.len` admite fracciones; `snapLen`/`MIN_LEN` + `effectiveLen`/`paintNote` (mínimo 0,25) en `daw/model.ts`; `ui/pianoRoll.ts` reescribe el dibujo (capa de barras) y el arrastre (posición fraccionaria del puntero). El motor no cambia (`gate = len × paso`). Compat v0.31 → `len` entero igual.
+
 **Estudio · EQ gráfico paramétrico E1 (v0.25.0):** nuevo efecto de inserción **"EQ gráfico"** (canal o máster):
 cadena de **8 biquads** (lowshelf · 6 picos · highshelf) con **editor gráfico** en overlay — curva de respuesta,
 **espectro en tiempo real** (AnalyserNode) detrás, **8 nodos arrastrables** (arrastrar = frec./ganancia · rueda =
