@@ -91,10 +91,12 @@ export function mountStudioView(root: HTMLElement): void {
       <div id="tabs"></div>
       <div id="panePads" class="pvPanel on">
         <div id="padGrid"></div>
-        <div class="pvSoundRow"><span class="pvLbl">SONIDO</span><span id="pvSound"></span></div>
-        <div class="pvLbl" id="stepsLbl">PASOS</div>
-        <div id="pvLenBar" class="pvLenBar"></div>
-        <div id="pvScale" class="pvScale"></div>
+        <div class="pvCtlBar">
+          <span class="pvLbl">SONIDO</span><span id="pvSound"></span>
+          <button class="pvFoldBtn" id="stepsFold" title="Plegar / desplegar el piano-roll"><span class="pvFold">▾</span> Piano-roll</button>
+          <div id="pvLenBar" class="pvLenBar"></div>
+          <div id="pvScale" class="pvScale"></div>
+        </div>
         <div id="pvSteps" class="pvSteps"></div>
         <div class="pvLbl">PARÁMETROS</div>
         <div id="pvParams" class="pvParams"></div>
@@ -286,15 +288,13 @@ export function mountStudioView(root: HTMLElement): void {
     const n = daw.channels.findIndex(c => c.id === selectedId) + 1;
     (root.querySelector('#pvIName') as HTMLElement).textContent = ch ? `CANAL ${n} · ${ch.name}` : '—';
     (root.querySelector('#pvISub') as HTMLElement).textContent = ch ? tipoLabel(ch) : '';
-    // Cabecera PASOS clicable: pliega/despliega el piano-roll (▾ abierto / ▸ plegado) para compactar la vista.
-    const stepsLbl = root.querySelector('#stepsLbl') as HTMLElement;
-    stepsLbl.innerHTML = `<span class="pvFold">${stepsCollapsed ? '▸' : '▾'}</span> PASOS · CANAL ${n}`;
-    stepsLbl.style.cursor = 'pointer';
-    stepsLbl.title = 'Plegar / desplegar el piano-roll';
-    stepsLbl.onclick = () => {
+    // Botón "▾ Piano-roll": pliega/despliega el piano-roll para compactar la vista.
+    const foldBtn = root.querySelector('#stepsFold') as HTMLButtonElement;
+    (foldBtn.querySelector('.pvFold') as HTMLElement).textContent = stepsCollapsed ? '▸' : '▾';
+    foldBtn.onclick = () => {
       stepsCollapsed = !stepsCollapsed;
       (root.querySelector('#pvSteps') as HTMLElement).style.display = stepsCollapsed ? 'none' : '';
-      (stepsLbl.querySelector('.pvFold') as HTMLElement).textContent = stepsCollapsed ? '▸' : '▾';
+      (foldBtn.querySelector('.pvFold') as HTMLElement).textContent = stepsCollapsed ? '▸' : '▾';
     };
     // selector de sonido del canal seleccionado (aquí mismo, sin ir al MIXER)
     (root.querySelector('#pvSound') as HTMLElement).innerHTML = ch ? instrumentSelectHTML(ch) : '';
