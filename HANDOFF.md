@@ -112,6 +112,8 @@ carpeta se guarda en **IndexedDB** (base `estudio`) y se reabre si el permiso si
 (helpers puros testeados + API con estado) + `ui/libraryPanel.ts` + cableado en `app/studioView.ts`. Sin
 favoritos/recientes/arrastrar (posible ampliación). No cambia el motor ni el proyecto.
 
+**Estudio · plegar el piano-roll (v0.36.0):** la cabecera **"PASOS · CANAL n"** es clicable (flecha ▾ abierto / ▸ plegado) y **oculta/muestra solo el piano-roll** (`#pvSteps`) para compactar la vista cuando ya tienes la melodía (Longitud/Rejilla y Escala se mantienen). Estado `stepsCollapsed` en `app/studioView.ts` (memoria de sesión; se respeta al re-render); CSS `.pvFold`. Solo UI, sin motor.
+
 **Estudio · rack de efectos compacto (v0.35.0):** en la cadena de efectos, cada tarjeta muestra por defecto solo sus **2 primeros knobs**; el resto se despliega/pliega con **⚙** en la misma tarjeta (estado en memoria de sesión, `Set` en `mountRack`). El bypass pasa de casilla a **LED** (`.fxLed`, puntito verde = activo). `.rackList` gana `align-items:flex-start` para que desplegar una no estire las demás. Solo UI (`ui/rack.ts` + CSS); el EQ gráfico mantiene su "✎ Editar EQ", y motor/efectos/persistencia sin tocar. 2ª mejora visual (tras densidad y pestañas); pendiente C: mapeo MIDI de knobs.
 
 **Estudio · pestañas segmentadas + atajos (v0.34.0):** las pestañas PADS/SAMPLES/MIXER pasan a **control segmentado ancho** (las tres unidas, ocupan todo el ancho, activo relleno verde con glow inset) para verse más y acertar mejor; **atajos de teclado 1/2/3** para saltar de pestaña (`window.keydown` en `app/studioView.ts`, ignorado si se escribe en un campo, con el editor EQ abierto o con Ctrl/Meta/Alt). `ui/studioTabs.ts` añade `title` con el atajo; CSS `.pvTabs`/`.pvTab`. Solo UI.
