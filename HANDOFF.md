@@ -73,6 +73,14 @@ fijo (`.fxCard` ~156px, knobs en rejilla 2×N); mover efectos ahora es **◀/▶
 (menos márgenes/padding; teclado 160→140px). Solo presentación (`app/studioView.ts` + `ui/rack.ts` +
 `ui/styles.css`); el motor y la lógica de efectos (añadir/bypass/mover/quitar/persistencia) no cambian.
 
+**Estudio · EQ gráfico paramétrico E1 (v0.25.0):** nuevo efecto de inserción **"EQ gráfico"** (canal o máster):
+cadena de **8 biquads** (lowshelf · 6 picos · highshelf) con **editor gráfico** en overlay — curva de respuesta,
+**espectro en tiempo real** (AnalyserNode) detrás, **8 nodos arrastrables** (arrastrar = frec./ganancia · rueda =
+Q · botones 1–8 = on/off), **presets** + Plano. Núcleo puro testeado `fx/eq-core.ts` (bandas/params/matemática
+del canvas) + efecto `fx/effects/eq-graphic.ts` (expone `eq: EqApi` en el `Effect`; el rack muestra ✎ Editar en
+vez de knobs) + `ui/eqEditor.ts` (canvas) + overlay en `app/studioView.ts`. Persistencia por params aplanados.
+Sin cambios de motor. **Pendiente E2:** dinámica por banda (threshold/attack/release) + mid/side.
+
 **Estudio · Piano-roll resalta la nota tocada (v0.24.0):** al tocar en vivo (MIDI, teclas del PC o ratón), la
 **fila de esa nota** en el piano-roll del canal seleccionado se **sombrea** (clase `.prRow.live`, resalte por
 `box-shadow`) mientras la mantienes; al soltar se apaga. Si la nota cae fuera de las ~2 octavas visibles, el
