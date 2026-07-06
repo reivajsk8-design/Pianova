@@ -42,7 +42,7 @@ main { padding:24px 18px; }
 .tbar { display:flex; align-items:center; gap:10px; margin:8px 0; }
 .tbPlay { width:38px; height:38px; border-radius:50%; font-size:15px; background:var(--amber); color:#1a1306; border:0; }
 .tbPlay.on { background:#e0533a; color:#fff; }
-.tbar input[type="number"] { width:60px; font:inherit; font-family:var(--pv-mono,ui-monospace,monospace); background:var(--panel); color:var(--ink); border:1px solid var(--line); border-radius:4px; padding:5px 8px; }
+.tbar input[type="number"] { width:60px; font:inherit; font-family:var(--pv-mono,ui-monospace,monospace); text-align:center; background:var(--panel); color:var(--ink); border:1px solid var(--line); border-radius:4px; padding:5px 8px; }
 .stepRow { display:flex; gap:5px; flex-wrap:wrap; }
 .stepCell { width:28px; height:30px; border-radius:6px; background:linear-gradient(#1b1f29,#13161d); border:1px solid var(--line); cursor:pointer; padding:0; transition:background .08s ease, box-shadow .08s ease; box-shadow:inset 0 1px 0 rgba(255,255,255,.04); }
 .stepCell.beat:not(:first-child) { margin-left:11px; }   /* agrupa los tiempos de 4 en 4 */
@@ -68,11 +68,11 @@ main { padding:24px 18px; }
 .racks .rack { min-width:260px; }
 .patBar { display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin:8px 0; }
 .patLab { color:var(--muted); font-size:11px; margin-right:4px; }
-.patBtn { width:26px; height:26px; border-radius:4px; background:var(--panel); color:var(--ink); border:1px solid var(--line); }
+.patBtn { width:26px; height:26px; border-radius:4px; background:var(--panel); color:var(--ink); border:1px solid var(--line); display:inline-flex; align-items:center; justify-content:center; font-family:var(--pv-mono,ui-monospace,monospace); }
 .patBtn.on { background:var(--amber); color:#1a1306; border-color:var(--amber); }
-.patIcon { height:26px; padding:0 8px; border-radius:4px; background:var(--panel); color:var(--muted); border:1px solid var(--line); }
+.patIcon { height:26px; padding:0 8px; border-radius:4px; background:var(--panel); color:var(--muted); border:1px solid var(--line); display:inline-flex; align-items:center; justify-content:center; }
 .patSep { width:1px; height:20px; background:var(--line); margin:0 6px; }
-.songToggle { height:26px; padding:0 10px; border-radius:4px; background:var(--panel); color:var(--ink); border:1px solid var(--line); }
+.songToggle { height:26px; padding:0 10px; border-radius:4px; background:var(--panel); color:var(--ink); border:1px solid var(--line); display:inline-flex; align-items:center; justify-content:center; }
 .songToggle.on { background:var(--amber); color:#1a1306; border-color:var(--amber); }
 .songSeq { display:inline-flex; gap:4px; align-items:center; flex-wrap:wrap; }
 .songChip { min-width:20px; text-align:center; padding:2px 6px; border-radius:4px; background:var(--bg); border:1px solid var(--line); color:var(--muted); font-size:11px; font-family:var(--pv-mono,ui-monospace,monospace); }
@@ -139,6 +139,11 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .pvHdrBtns{margin-left:auto;display:flex;gap:6px;align-items:center}
 .pvHdrBtns button{background:#161a14;border:1px solid #38402f;color:#e8eee8;padding:4px 9px;border-radius:4px;font-size:11px;cursor:pointer}
 .pvHdrBtns button:hover{border-color:var(--pv-acc)}
+/* Chip de estado de conexión MIDI: puntito rojo (sin teclado) / verde (conectado) */
+.pvConn{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--pv-muted);border:1px solid #2b3324;border-radius:4px;padding:3px 8px;background:#141a13;white-space:nowrap}
+.pvConn::before{content:'';width:8px;height:8px;border-radius:50%;background:#e0533a;flex:0 0 auto}
+.pvConn.on{color:var(--pv-ink)}
+.pvConn.on::before{background:var(--pv-acc);box-shadow:0 0 6px var(--pv-acc-dim)}
 .pvTop{display:flex;gap:10px;margin-bottom:6px;flex-wrap:wrap}
 .pvInfo{flex:1;min-width:180px;background:var(--pv-panel);border:1px solid var(--pv-line);border-radius:5px;padding:6px 10px;display:flex;gap:12px;align-items:center}
 .pvInfo .pvIName{color:var(--pv-acc);font-weight:700;letter-spacing:.08em;font-size:11px}
