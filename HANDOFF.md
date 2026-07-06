@@ -112,6 +112,8 @@ carpeta se guarda en **IndexedDB** (base `estudio`) y se reabre si el permiso si
 (helpers puros testeados + API con estado) + `ui/libraryPanel.ts` + cableado en `app/studioView.ts`. Sin
 favoritos/recientes/arrastrar (posible ampliación). No cambia el motor ni el proyecto.
 
+**Estudio · pulido del menú de arriba (v0.38.0):** mejora visual de la cabecera/transporte: el **BPM** y el **nº de patrón** se **centran** (`text-align:center` + flex-center en `.patBtn`/`.patIcon`/`.songToggle`, monoespaciada); el estado de conexión **"Sin conectar"** pasa a un **chip con LED** (`.pvConn`: puntito rojo = sin teclado / verde = conectado con el nombre) — el JS (`connectMidi` `onState`/error + error de abrir proyecto) alterna la clase `.on` y pone texto plano (sin emojis 🟢🔴). Solo UI (`app/studioView.ts` + CSS).
+
 **Estudio · barra de controles PADS en una fila (v0.37.0):** SONIDO + botón **▾ Piano-roll** (plegar) + Longitud/Rejilla + Escala pasan a **una sola fila** (`.pvCtlBar`, flex-wrap) en vez de 4 filas apiladas → menos scroll y aprovecha el hueco horizontal. El plegado del piano-roll ahora es un **botón claro "▾ Piano-roll"** (antes el texto "PASOS", que no se entendía). Reestructura el HTML de `#panePads` + cablea `#stepsFold` en `renderSelected` (`app/studioView.ts`) + CSS `.pvCtlBar`/`.pvFoldBtn`. Solo UI.
 
 **Estudio · plegar el piano-roll (v0.36.0):** la cabecera **"PASOS · CANAL n"** es clicable (flecha ▾ abierto / ▸ plegado) y **oculta/muestra solo el piano-roll** (`#pvSteps`) para compactar la vista cuando ya tienes la melodía (Longitud/Rejilla y Escala se mantienen). Estado `stepsCollapsed` en `app/studioView.ts` (memoria de sesión; se respeta al re-render); CSS `.pvFold`. Solo UI, sin motor.

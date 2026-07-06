@@ -73,7 +73,7 @@ export function mountStudioView(root: HTMLElement): void {
         <span class="pvTitle">◢ PIANOVA STUDIO</span>
         <span class="pvHdrBtns">
           <button id="stConnect">Conectar teclado</button>
-          <span id="stMidi" class="muted">Sin conectar</span>
+          <span id="stMidi" class="pvConn">Sin conectar</span>
           <button id="stNew">🆕 Nuevo</button>
           <button id="stSave">💾 Guardar</button>
           <button id="stOpen">📂 Abrir</button>
@@ -681,10 +681,14 @@ export function mountStudioView(root: HTMLElement): void {
     connectMidi({
       onNoteOn: (m, v) => playLive(m, v),
       onNoteOff: (m) => stopLive(m),
-      onState: (names) => { st.textContent = names.length ? '🟢 ' + names.join(' · ') : 'Ningún teclado'; }
+      onState: (names) => {   // chip verde con el nombre del teclado, o gris/rojo si no hay ninguno
+        st.classList.toggle('on', names.length > 0);
+        st.textContent = names.length ? names.join(' · ') : 'Ningún teclado';
+      }
     }).catch(err => {
-      st.textContent = '🔴 ' + ((err instanceof Error && err.message) ? err.message
-        : 'Este navegador no soporta Web MIDI; usa el ratón o el teclado del ordenador.');
+      st.classList.remove('on');
+      st.textContent = (err instanceof Error && err.message) ? err.message
+        : 'Sin Web MIDI; usa el ratón o el teclado del ordenador.';
     });
   });
 
@@ -730,7 +734,8 @@ export function mountStudioView(root: HTMLElement): void {
       if (bpmEl) bpmEl.value = String(daw.bpm);
       renderAll(); saveStore({ version: 3, daw, masterRack: p.masterRack });
     } catch {
-      (root.querySelector('#stMidi') as HTMLElement).textContent = '🔴 No se pudo abrir el proyecto.';
+      const st = root.querySelector('#stMidi') as HTMLElement;
+      st.classList.remove('on'); st.textContent = 'No se pudo abrir el proyecto.';
     }
   });
 
