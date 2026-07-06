@@ -2,6 +2,7 @@ import { ensureAudio, getAudioContext } from '../audio/context';
 import * as synth from '../audio/synth';
 import { masterDest, masterFxIn, masterFxOut } from '../audio/masterBus';
 import { connectMidi } from '../midi/input';
+import { midiLearn } from '../midi/learn';
 import { mountKeyboard } from '../ui/keyboard';
 import { createRack, Rack } from '../fx/rack';
 import { mountRack } from '../ui/rack';
@@ -211,7 +212,7 @@ export function mountStudioView(root: HTMLElement): void {
       masterRack.restore(project.masterRack);
       channels = daw.channels.map(c => makeChannel(actx, c, masterDest()));
       routeKeyboardToSelected();
-      mountRack(root.querySelector('#masterRack') as HTMLElement, masterRack, 'Maestro', persist, openEqEditor);
+      mountRack(root.querySelector('#masterRack') as HTMLElement, masterRack, 'Maestro', persist, openEqEditor, 'master');
       hydrateSamples(project);
       await decodePending();
       renderAll();
@@ -494,14 +495,14 @@ export function mountStudioView(root: HTMLElement): void {
     for (const c of daw.channels) {
       const volEl = host.querySelector(`[data-vol="${c.id}"]`) as HTMLElement;
       const panEl = host.querySelector(`[data-pan="${c.id}"]`) as HTMLElement;
-      if (volEl) mountKnob(volEl, { min: 0, max: 1.2, value: c.volume, default: 0.8, size: 34, onChange: v => {
+      if (volEl) mountKnob(volEl, { min: 0, max: 1.2, value: c.volume, default: 0.8, size: 34, midiId: `vol:${c.id}`, onChange: v => {
         daw = updateChannel(daw, c.id, { volume: v }); channels.find(a => a.id === c.id)?.setVolume(v); persist();
       } });
-      if (panEl) mountKnob(panEl, { min: -1, max: 1, value: c.pan, default: 0, size: 34, onChange: v => {
+      if (panEl) mountKnob(panEl, { min: -1, max: 1, value: c.pan, default: 0, size: 34, midiId: `pan:${c.id}`, onChange: v => {
         daw = updateChannel(daw, c.id, { pan: v }); channels.find(a => a.id === c.id)?.setPan(v); persist();
       } });
       const humEl = host.querySelector(`[data-hum="${c.id}"]`) as HTMLElement;
-      if (humEl) mountKnob(humEl, { min: 0, max: 1, value: c.humanize ?? 0, default: 0, size: 34, onChange: v => {
+      if (humEl) mountKnob(humEl, { min: 0, max: 1, value: c.humanize ?? 0, default: 0, size: 34, midiId: `human:${c.id}`, onChange: v => {
         daw = updateChannel(daw, c.id, { humanize: v }); persist();
       } });
     }
@@ -511,7 +512,7 @@ export function mountStudioView(root: HTMLElement): void {
     const audio = channels.find(a => a.id === selectedId);
     const ch = findChannel(daw, selectedId);
     const n = daw.channels.findIndex(c => c.id === selectedId) + 1;
-    if (audio && ch) mountRack(host, audio.rack, 'Canal ' + n, persist, openEqEditor);
+    if (audio && ch) mountRack(host, audio.rack, 'Canal ' + n, persist, openEqEditor, selectedId);
     else host.innerHTML = '<div class="rack"><div class="rackHead"><b>Canal</b></div><p class="muted">Inicia el audio (pulsa una tecla o ▶) para sus efectos.</p></div>';
   }
   function openEqEditor(effect: Effect): void {
@@ -681,6 +682,7 @@ export function mountStudioView(root: HTMLElement): void {
     connectMidi({
       onNoteOn: (m, v) => playLive(m, v),
       onNoteOff: (m) => stopLive(m),
+      onControl: (cc, v01, _ch, port) => midiLearn.handleCC(cc, v01, port),
       onState: (names) => {   // chip verde con el nombre del teclado, o gris/rojo si no hay ninguno
         st.classList.toggle('on', names.length > 0);
         st.textContent = names.length ? names.join(' · ') : 'Ningún teclado';

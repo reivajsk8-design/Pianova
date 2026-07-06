@@ -13,7 +13,7 @@ function fmtVal(v: number, unit: string | undefined, step: number): string {
   return v.toFixed(dec) + (unit ? ' ' + unit : '');
 }
 
-export function mountRack(root: HTMLElement, rack: Rack, title: string, onChange: () => void, onEdit?: (effect: Effect) => void): void {
+export function mountRack(root: HTMLElement, rack: Rack, title: string, onChange: () => void, onEdit?: (effect: Effect) => void, midiPrefix?: string): void {
   const expanded = new Set<string>();   // efectos con todos los knobs a la vista (por id, en memoria de sesión)
 
   function render(): void {
@@ -71,6 +71,7 @@ export function mountRack(root: HTMLElement, rack: Rack, title: string, onChange
       const p = e.getParams().find(pp => pp.name === pname); if (!p) return;
       const valSpan = el.parentElement!.querySelector('.fxKnobVal') as HTMLElement;
       mountKnob(el, { min: p.min, max: p.max, value: e.getValues()[p.name], default: p.default, size: 32,
+        midiId: midiPrefix ? `fx:${midiPrefix}:${rack.list().findIndex(x => x.id === id)}:${p.name}` : undefined,
         onChange: (v) => {
           const q = Math.round(v / p.step) * p.step;
           e.setParam(p.name, q);
