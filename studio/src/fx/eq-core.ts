@@ -16,6 +16,11 @@ export interface EqApi {
   presetNames(): string[];
   analyser: AnalyserNode;
   magResponse(freqs: Float32Array): Float32Array;   // magnitud combinada de las bandas
+  mode(): 'stereo' | 'ms';
+  setMode(m: 'stereo' | 'ms'): void;
+  channelLabels(): string[];
+  activeChannel(): number;
+  setActiveChannel(i: number): void;
 }
 
 export const EQ_FMIN = 20, EQ_FMAX = 20000, EQ_GAIN_RANGE = 18, Q_MIN = 0.3, Q_MAX = 8;
@@ -43,28 +48,28 @@ export function presetBands(name: string): EqBand[] {
   return defaultBands().map((b, i) => ({ ...b, gain: g[i] ?? 0 }));
 }
 
-export function bandsToParams(bands: EqBand[]): Record<string, number> {
+export function bandsToParams(bands: EqBand[], prefix = 'b'): Record<string, number> {
   const p: Record<string, number> = {};
   bands.forEach((b, i) => {
-    p[`b${i}_freq`] = b.freq; p[`b${i}_gain`] = b.gain; p[`b${i}_q`] = b.q; p[`b${i}_on`] = b.on ? 1 : 0;
-    p[`b${i}_dyn_on`] = b.dyn.on ? 1 : 0; p[`b${i}_thr`] = b.dyn.threshold; p[`b${i}_range`] = b.dyn.range;
-    p[`b${i}_atk`] = b.dyn.attack; p[`b${i}_rel`] = b.dyn.release;
+    p[`${prefix}${i}_freq`] = b.freq; p[`${prefix}${i}_gain`] = b.gain; p[`${prefix}${i}_q`] = b.q; p[`${prefix}${i}_on`] = b.on ? 1 : 0;
+    p[`${prefix}${i}_dyn_on`] = b.dyn.on ? 1 : 0; p[`${prefix}${i}_thr`] = b.dyn.threshold; p[`${prefix}${i}_range`] = b.dyn.range;
+    p[`${prefix}${i}_atk`] = b.dyn.attack; p[`${prefix}${i}_rel`] = b.dyn.release;
   });
   return p;
 }
-export function bandsFromParams(params: Record<string, number>): EqBand[] {
+export function bandsFromParams(params: Record<string, number>, prefix = 'b'): EqBand[] {
   return defaultBands().map((b, i) => ({
     type: b.type,
-    freq: params[`b${i}_freq`] ?? b.freq,
-    gain: params[`b${i}_gain`] ?? b.gain,
-    q: params[`b${i}_q`] ?? b.q,
-    on: params[`b${i}_on`] !== undefined ? params[`b${i}_on`] === 1 : b.on,
+    freq: params[`${prefix}${i}_freq`] ?? b.freq,
+    gain: params[`${prefix}${i}_gain`] ?? b.gain,
+    q: params[`${prefix}${i}_q`] ?? b.q,
+    on: params[`${prefix}${i}_on`] !== undefined ? params[`${prefix}${i}_on`] === 1 : b.on,
     dyn: {
-      on: params[`b${i}_dyn_on`] !== undefined ? params[`b${i}_dyn_on`] === 1 : b.dyn.on,
-      threshold: params[`b${i}_thr`] ?? b.dyn.threshold,
-      range: params[`b${i}_range`] ?? b.dyn.range,
-      attack: params[`b${i}_atk`] ?? b.dyn.attack,
-      release: params[`b${i}_rel`] ?? b.dyn.release
+      on: params[`${prefix}${i}_dyn_on`] !== undefined ? params[`${prefix}${i}_dyn_on`] === 1 : b.dyn.on,
+      threshold: params[`${prefix}${i}_thr`] ?? b.dyn.threshold,
+      range: params[`${prefix}${i}_range`] ?? b.dyn.range,
+      attack: params[`${prefix}${i}_atk`] ?? b.dyn.attack,
+      release: params[`${prefix}${i}_rel`] ?? b.dyn.release
     }
   }));
 }

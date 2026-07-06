@@ -240,6 +240,8 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .eqBar select{background:#141a13;border:1px solid #2b3324;color:var(--pv-ink);border-radius:6px;padding:4px 8px;cursor:pointer}
 .eqHint{font-size:10px}
 .eqBands{display:flex;gap:4px;margin-left:auto}
+.eqChan{display:inline-flex;gap:4px}
+.eqChan .eqBtn{width:auto;padding:0 8px}
 .eqBtn{width:24px;height:22px;background:#141a13;border:1px solid #2b3324;color:var(--pv-muted);border-radius:5px;cursor:pointer;font-size:11px}
 .eqBtn.on{border-color:var(--pv-acc);color:#fff;box-shadow:0 0 6px var(--pv-acc-dim)}
 .eqCanvas{width:100%;height:300px;border:1px solid var(--pv-line);border-radius:8px;background:#0c110b;touch-action:none}

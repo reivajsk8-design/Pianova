@@ -80,6 +80,14 @@ testeados). En el editor, los botones 1–8 **seleccionan** la banda y aparece s
 + 4 knobs); la curva "respira" en vivo y los nodos con dinámica se ven en ámbar. Control-rate (sin worklet ni
 deps); proyectos v0.25 cargan con la dinámica apagada. Pendiente **E2b: mid/side**.
 
+**Estudio · EQ mid/side E2b (v0.27.0):** el EQ gráfico gana modo **Estéreo ↔ Mid/Side**. En M/S codifica
+**Mid=(L+R)/2** y **Side=(L−R)/2** (ChannelSplitter + gains), ecualiza cada uno con su **propia cadena de 8
+bandas** (EQ estática + dinámica completa) y decodifica **L=Mid+Side, R=Mid−Side** (gains + ChannelMerger). La
+cadena de un canal se factorizó en `fx/eq-chain.ts` (`makeEqChain`); el efecto compone 1 (estéreo) o 2 (mid+
+side) y **reconstruye** el enrutado al cambiar de modo. El editor gana un selector **Modo** + **Mid/Lados**; el
+resto opera sobre el canal activo (`analyser` como getter). Persistencia: modo `_ms` + params `b*` (mid) y `s*`
+(lados). Compat v0.26 → estéreo. Cierra el EQ pro (E1 gráfico + E2 dinámico + E2b mid/side).
+
 **Estudio · EQ gráfico paramétrico E1 (v0.25.0):** nuevo efecto de inserción **"EQ gráfico"** (canal o máster):
 cadena de **8 biquads** (lowshelf · 6 picos · highshelf) con **editor gráfico** en overlay — curva de respuesta,
 **espectro en tiempo real** (AnalyserNode) detrás, **8 nodos arrastrables** (arrastrar = frec./ganancia · rueda =

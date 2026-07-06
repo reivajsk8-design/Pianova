@@ -61,3 +61,18 @@ describe('eq-core dinámica', () => {
     expect(slow).toBeLessThan(fast);
   });
 });
+
+describe('eq-core prefijo de params', () => {
+  it('bandsToParams/bandsFromParams con prefijo "s": ida y vuelta e independencia', () => {
+    const b = defaultBands();
+    b[0] = { ...b[0], gain: 4 };
+    const ps = bandsToParams(b, 's');
+    expect(Object.keys(ps).every(k => k.startsWith('s'))).toBe(true);   // todas con prefijo s
+    expect(bandsFromParams(ps, 's')).toEqual(b);                        // ida y vuelta
+    expect(bandsFromParams(ps, 'b')[0].gain).toBe(0);                   // otro prefijo → por defecto
+  });
+  it('prefijo por defecto sigue siendo "b" (compatibilidad)', () => {
+    const b = defaultBands();
+    expect(Object.keys(bandsToParams(b)).every(k => k.startsWith('b'))).toBe(true);
+  });
+});
