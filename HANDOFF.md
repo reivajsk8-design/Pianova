@@ -73,6 +73,13 @@ fijo (`.fxCard` ~156px, knobs en rejilla 2×N); mover efectos ahora es **◀/▶
 (menos márgenes/padding; teclado 160→140px). Solo presentación (`app/studioView.ts` + `ui/rack.ts` +
 `ui/styles.css`); el motor y la lógica de efectos (añadir/bypass/mover/quitar/persistencia) no cambian.
 
+**Estudio · Piano-roll resalta la nota tocada (v0.24.0):** al tocar en vivo (MIDI, teclas del PC o ratón), la
+**fila de esa nota** en el piano-roll del canal seleccionado se **sombrea** (clase `.prRow.live`, resalte por
+`box-shadow`) mientras la mantienes; al soltar se apaga. Si la nota cae fuera de las ~2 octavas visibles, el
+piano-roll **auto-desplaza a su octava**. `ui/pianoRoll.ts` gana `setLiveNotes(notes, focus?)`; `studioView`
+mantiene `liveNotes` y lo cablea en `playLive`/`stopLive` (y al montar el piano-roll). Solo melódicos; sin
+cambios de motor.
+
 **Estudio · Longitud de pasos por canal (v0.23.0):** cada canal puede tener **16/32/48…** pasos en **páginas
 de 16** (＋16/−16 en la zona de PASOS, con pestañas de página), **solo en los canales elegidos**. La longitud
 es la del array de pasos del canal en ese patrón; helpers `channelLen`/`addStepsPage`/`removeStepsPage`

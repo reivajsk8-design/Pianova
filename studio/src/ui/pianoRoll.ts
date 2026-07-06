@@ -7,7 +7,10 @@ import { inScale, noteName } from '../daw/scales';
 const ROWS = 24;                    // ~2 octavas visibles
 const BLACK = new Set([1, 3, 6, 8, 10]);   // clases de nota negras
 
-export interface PianoRollUI { setPlayhead(step: number): void }
+export interface PianoRollUI {
+  setPlayhead(step: number): void;
+  setLiveNotes(notes: number[], focus?: number): void;   // resalta las filas de las notas tocadas en vivo
+}
 
 export function mountPianoRoll(
   root: HTMLElement,
@@ -19,6 +22,7 @@ export function mountPianoRoll(
   }
 ): PianoRollUI {
   let low = Math.max(0, Math.min(127 - ROWS, opts.lowMidi));
+  let live = new Set<number>();       // notas tocadas en vivo ahora (para sombrear su fila)
 
   function draw(): void {
     let rows = '';
@@ -33,7 +37,8 @@ export function mountPianoRoll(
         const on = !!(st && st.on && (st.note ?? 60) === midi);
         cells += `<div class="prCell${i % 4 === 0 ? ' beat' : ''}${on ? ' on' : ''}" data-i="${i}" data-m="${midi}"></div>`;
       }
-      rows += `<div class="prRow${cls}"><span class="prLabel">${noteName(midi)}</span><div class="prCells">${cells}</div></div>`;
+      const liveCls = live.has(midi) ? ' live' : '';
+      rows += `<div class="prRow${cls}${liveCls}" data-m="${midi}"><span class="prLabel">${noteName(midi)}</span><div class="prCells">${cells}</div></div>`;
     }
     root.innerHTML = `<div class="pr">
       <div class="prTools">
@@ -64,6 +69,17 @@ export function mountPianoRoll(
     setPlayhead(step: number): void {
       root.querySelectorAll<HTMLElement>('.prCell.play').forEach(c => c.classList.remove('play'));
       if (step >= 0) root.querySelectorAll<HTMLElement>(`.prCell[data-i="${step}"]`).forEach(c => c.classList.add('play'));
+    },
+    setLiveNotes(notes: number[], focus?: number): void {
+      live = new Set(notes);
+      // Si la nota recién pulsada (focus) queda fuera de la vista, desplaza a su octava y redibuja.
+      if (focus != null && (focus < low || focus > low + ROWS - 1)) {
+        low = Math.max(0, Math.min(127 - ROWS, 12 * Math.floor(focus / 12) - 12));
+        opts.onRange(low); draw(); return;
+      }
+      // Si no hay que desplazar, alterna el sombreado en las filas visibles (sin redibujar todo).
+      root.querySelectorAll<HTMLElement>('.prRow').forEach(rowEl =>
+        rowEl.classList.toggle('live', live.has(+(rowEl.dataset.m ?? '-1'))));
     }
   };
 }
