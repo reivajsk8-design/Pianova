@@ -39,6 +39,8 @@ import { mountEqEditor } from '../ui/eqEditor';
 import type { EqEditorHandle } from '../ui/eqEditor';
 import type { Effect } from '../fx/effect';
 import { BASE_SUBDIV, channelStepAt, channelSpan, SUBDIVS, SUBDIV_LABELS } from '../daw/grid';
+import { createFileLibrary, LibNode } from '../audio/fileLibrary';
+import { mountLibraryPanel } from '../ui/libraryPanel';
 
 const SEQ_VEL = 0.95;
 // Mínimo común múltiplo: la longitud maestra del secuenciador es el m.c.m. de las longitudes de los canales,
@@ -97,6 +99,8 @@ export function mountStudioView(root: HTMLElement): void {
         <div id="pvParams" class="pvParams"></div>
       </div>
       <div id="paneSamples" class="pvPanel">
+        <div id="libHost"></div>
+        <input id="libFolderInput" type="file" webkitdirectory hidden>
         <div id="sampleEditorHost"></div>
       </div>
       <div id="paneMixer" class="pvPanel">
@@ -407,15 +411,44 @@ export function mountStudioView(root: HTMLElement): void {
       }
     });
   }
-  async function importAudioToChannel(id: string, file: File): Promise<void> {
+  async function importArrayBufferToChannel(id: string, name: string, arr: ArrayBuffer): Promise<void> {
     audioOn(); await initAudio();
-    const arr = await file.arrayBuffer();
-    const sampleId = await importSample(file.name, arr);
+    const sampleId = await importSample(name, arr);
     const spec = defaultSlicerInstrument(sampleId, 60);
     daw = updateChannel(daw, id, { instrument: spec });
     channels.find(a => a.id === id)?.setInstrument(spec);
     persist(); renderSamples(); renderPads();
   }
+  async function importAudioToChannel(id: string, file: File): Promise<void> {
+    const arr = await file.arrayBuffer();
+    await importArrayBufferToChannel(id, file.name, arr);
+  }
+  const lib = createFileLibrary();
+  let previewSrc: AudioBufferSourceNode | null = null;
+  async function previewLibNode(node: LibNode): Promise<void> {
+    audioOn(); await initAudio();
+    const buf = await lib.readBuffer(node); if (!buf) return;
+    try { previewSrc?.stop(); } catch { /* ya parado */ }
+    const src = ensureAudio().createBufferSource(); src.buffer = buf; src.connect(masterDest()); src.start();
+    previewSrc = src;
+  }
+  async function assignLibNode(node: LibNode): Promise<void> {
+    const arr = await lib.readArrayBuffer(node); if (!arr) return;
+    await importArrayBufferToChannel(selectedId, node.name, arr);
+  }
+  const libUI = mountLibraryPanel(root.querySelector('#libHost') as HTMLElement, lib, {
+    onImportFolder: async () => {
+      if (lib.supported()) { audioOn(); if (await lib.pickFolder()) libUI.refresh(); }
+      else (root.querySelector('#libFolderInput') as HTMLInputElement).click();
+    },
+    onPreview: (node) => { void previewLibNode(node); },
+    onAssign: (node) => { void assignLibNode(node); }
+  });
+  (root.querySelector('#libFolderInput') as HTMLInputElement).addEventListener('change', e => {
+    const input = e.target as HTMLInputElement; const files = [...(input.files ?? [])]; input.value = '';
+    if (files.length) { lib.loadFromFiles(files); libUI.refresh(); }
+  });
+  void lib.restore().then(ok => { if (ok) libUI.refresh(); });   // reabre la carpeta si el permiso sigue concedido
   function bufferOf(id: string): AudioBuffer | null {
     const ch = findChannel(daw, id);
     if (ch?.instrument.kind !== 'slicer') return null;
