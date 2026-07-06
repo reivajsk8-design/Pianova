@@ -11,7 +11,9 @@ números estándar de interfaces de alta densidad. **Solo CSS**, sin tocar HTML,
 ## Decisiones tomadas (con el usuario)
 
 - **Solo CSS** (`ui/styles.css`), clases del Estudio. Sin cambios de comportamiento; reversible.
-- **Esquinas casi cuadradas: 2px** en controles, 3px en paneles (look hardware/tracker).
+- **Esquinas compactas: 4px** en controles/celdas/selects, 5px en paneles, 6px en el marco exterior (pro pero
+  amable; el usuario descartó el 2px por frío). **Esta política de radios SUPERSEDE los "→ 2 / → 3" de las
+  zonas de abajo:** donde ponga "radio → 2" léase 4px, y "radio → 3" léase 5px.
 - Es la **primera** de varias mejoras visuales; las siguientes (rack de efectos compacto, mapeo MIDI de knobs)
   van aparte.
 
@@ -19,7 +21,7 @@ números estándar de interfaces de alta densidad. **Solo CSS**, sin tocar HTML,
 
 - **Tipografía:** etiquetas y valores 10–11px; cabeceras de sección ≤ 13px; el título del Estudio 14px. **Valores
   numéricos en fuente monoespaciada** (BPM, dB, Hz, pasos, valores de knob) — señal de "instrumento de precisión".
-- **Radios:** 2px en botones/celdas/selects, 3px en paneles, 6px en el marco exterior. Nada de 8–12px.
+- **Radios:** 4px en botones/celdas/selects, 5px en paneles, 6px en el marco exterior. Nada de 8–12px.
 - **Espaciado:** padding 2–6px dentro de un módulo, 6–10px entre módulos; nada de gaps de 12–18px "de tarjeta".
 - **Bordes/sombra:** 1px sólido; el glow verde se reserva para lo encendido/seleccionado (se quitan brillos
   decorativos de más).
