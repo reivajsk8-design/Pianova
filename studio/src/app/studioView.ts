@@ -34,6 +34,8 @@ import { equalSlices, detectOnsets, marksToSlices, sliceIndexForNote, updateSlic
 import { playSlice } from '../audio/slicer';
 import { mountSampleEditor } from '../ui/sampleEditor';
 import type { SampleEditorHandle } from '../ui/sampleEditor';
+import { mountEqEditor, EqEditorHandle } from '../ui/eqEditor';
+import type { Effect } from '../fx/effect';
 
 const STEPS_PER_BEAT = 4;
 const SEQ_VEL = 0.95;
@@ -105,6 +107,12 @@ export function mountStudioView(root: HTMLElement): void {
       </div>
       <div id="stKeyboard"></div>
       <p class="muted">Toca con el ratón, las teclas <b>A S D F G H J K</b> / <b>W E T Y U</b>, o tu teclado MIDI.</p>
+      <div id="eqOverlay" class="eqOverlay" hidden>
+        <div class="eqModal">
+          <div class="eqModalHead"><b>EQ gráfico</b><span class="grow"></span><button id="eqClose" class="chBtn" title="Cerrar">✕</button></div>
+          <div id="eqHost"></div>
+        </div>
+      </div>
     </div>`;
 
   let channels: Channel[] = [];
@@ -116,6 +124,7 @@ export function mountStudioView(root: HTMLElement): void {
   let visRaf = 0;                               // rAF del bucle visual (0 = parado)
   const sliceHits: SliceHit[] = [];               // slices sonando (canal slicer seleccionado)
   let sampleHandle: SampleEditorHandle | null = null;
+  let eqHandle: EqEditorHandle | null = null;
 
   // El guardado en localStorage se difiere y se agrupa (400ms): `serializeProject` siempre
   // vuelca el almacén de samples en base64 (hasta ~2MB) y `persist()` se llama en cada
@@ -192,7 +201,7 @@ export function mountStudioView(root: HTMLElement): void {
       masterRack.restore(project.masterRack);
       channels = daw.channels.map(c => makeChannel(actx, c, masterDest()));
       routeKeyboardToSelected();
-      mountRack(root.querySelector('#masterRack') as HTMLElement, masterRack, 'Maestro', persist);
+      mountRack(root.querySelector('#masterRack') as HTMLElement, masterRack, 'Maestro', persist, openEqEditor);
       hydrateSamples(project);
       await decodePending();
       renderAll();
@@ -438,9 +447,23 @@ export function mountStudioView(root: HTMLElement): void {
     const audio = channels.find(a => a.id === selectedId);
     const ch = findChannel(daw, selectedId);
     const n = daw.channels.findIndex(c => c.id === selectedId) + 1;
-    if (audio && ch) mountRack(host, audio.rack, 'Canal ' + n, persist);
+    if (audio && ch) mountRack(host, audio.rack, 'Canal ' + n, persist, openEqEditor);
     else host.innerHTML = '<div class="rack"><div class="rackHead"><b>Canal</b></div><p class="muted">Inicia el audio (pulsa una tecla o ▶) para sus efectos.</p></div>';
   }
+  function openEqEditor(effect: Effect): void {
+    if (!effect.eq) return;
+    eqHandle?.close();
+    eqHandle = mountEqEditor(root.querySelector('#eqHost') as HTMLElement, effect.eq, persist);
+    (root.querySelector('#eqOverlay') as HTMLElement).hidden = false;
+  }
+  function closeEqEditor(): void {
+    (root.querySelector('#eqOverlay') as HTMLElement).hidden = true;
+    eqHandle?.close(); eqHandle = null;
+  }
+  (root.querySelector('#eqClose') as HTMLButtonElement).addEventListener('click', closeEqEditor);
+  (root.querySelector('#eqOverlay') as HTMLElement).addEventListener('click', e => { if (e.target === e.currentTarget) closeEqEditor(); });
+  window.addEventListener('keydown', e => { if (e.key === 'Escape' && !(root.querySelector('#eqOverlay') as HTMLElement).hidden) closeEqEditor(); });
+
   function renderAll(): void { renderTabs(); showPane(); renderPads(); renderSelected(); renderSamples(); renderMixer(); renderPatternBar(); renderSelectedRack(); }
   function selectChannel(id: string): void { selectedId = id; stepPage = 0; sliceHits.length = 0; routeKeyboardToSelected(); renderPads(); renderSelected(); renderSamples(); renderMixer(); renderSelectedRack(); }
   function applyAudible(): void { const aud = audibleIds(daw.channels); for (const a of channels) a.setAudible(aud.has(a.id)); }
