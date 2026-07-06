@@ -3,7 +3,7 @@ import {
   emptySteps, defaultChannel, defaultDaw, addChannel, removeChannel, updateChannel,
   toggleStep, audibleIds, findChannel, channelSteps, addPattern, removePattern, setCurrentPattern, setSong, setStep,
   defaultSynthxInstrument, defaultSlicerInstrument, newChannelId, syncChannelIdSeed,
-  channelLen, addStepsPage, removeStepsPage
+  channelLen, addStepsPage, removeStepsPage, effectiveLen, paintNote, duplicatePattern
 } from './model';
 import { SYNTHX_DEFAULT } from '../audio/synthx-dsp';
 
@@ -145,5 +145,50 @@ describe('longitud de pasos por canal', () => {
     expect(channelLen(e, id)).toBe(16);
     const e2 = removeStepsPage(e, id);                     // ya en 16 → se queda en 16
     expect(channelLen(e2, id)).toBe(16);
+  });
+});
+
+describe('longitud de nota', () => {
+  it('effectiveLen: len ausente = 1, respeta len válido y recorta al final', () => {
+    const s = emptySteps(8);
+    expect(effectiveLen(s, 3)).toBe(1);                 // sin len → 1
+    s[2] = { on: true, note: 60, len: 3 };
+    expect(effectiveLen(s, 2)).toBe(3);                 // len válido
+    s[6] = { on: true, note: 60, len: 5 };
+    expect(effectiveLen(s, 6)).toBe(2);                 // recorta a steps.length - i = 8 - 6
+  });
+  it('paintNote coloca con len, limpia lo cubierto, recorta al final y es inmutable', () => {
+    const d0 = defaultDaw();                            // 1 canal, 16 pasos
+    const id = d0.channels[0].id;
+    const d1 = paintNote(d0, id, 2, 4, 64);
+    const steps = d1.patterns[0].steps[id];
+    expect(steps[2]).toEqual({ on: true, note: 64, len: 4 });
+    expect(steps[3].on).toBe(false);                    // cubierto → limpio
+    expect(steps[5].on).toBe(false);
+    expect(steps[6].on).toBe(false);                    // fuera del span, seguía apagado
+    expect(d0.patterns[0].steps[id][2].on).toBe(false); // original intacto (inmutable)
+    const d2 = paintNote(d0, id, 14, 8, 60);            // len 8 desde el paso 14 → recorta a 2
+    expect(d2.patterns[0].steps[id][14].len).toBe(2);
+  });
+});
+
+describe('duplicatePattern', () => {
+  it('inserta tras el índice, copia profunda independiente y deja current en el nuevo', () => {
+    const d0 = defaultDaw();
+    const id = d0.channels[0].id;
+    const dP = paintNote(d0, id, 0, 2, 60);             // patrón 0 con una nota
+    const dup = duplicatePattern(dP, 0);
+    expect(dup.patterns.length).toBe(2);
+    expect(dup.current).toBe(1);                        // encima del nuevo
+    expect(dup.patterns[1].steps[id][0]).toEqual({ on: true, note: 60, len: 2 });
+    dup.patterns[1].steps[id][0].note = 72;            // mutar la copia…
+    expect(dup.patterns[0].steps[id][0].note).toBe(60); // …no afecta al original (copia profunda)
+  });
+  it('reindexa la canción y no hace nada si el índice está fuera de rango', () => {
+    let d = addPattern(defaultDaw());                   // 2 patrones (0,1)
+    d = setSong(d, [0, 1]);
+    const dup = duplicatePattern(d, 0);                 // inserta en pos 1 → el antiguo 1 pasa a 2
+    expect(dup.song).toEqual([0, 2]);
+    expect(duplicatePattern(d, 9)).toBe(d);             // fuera de rango → mismo objeto
   });
 });

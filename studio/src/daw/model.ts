@@ -5,7 +5,7 @@ import type { SynthxParams } from '../audio/synthx-dsp';
 import { SYNTHX_DEFAULT } from '../audio/synthx-dsp';
 import type { SliceDef } from './slicing';
 
-export interface Step { on: boolean; note?: number; vel?: number }
+export interface Step { on: boolean; note?: number; vel?: number; len?: number }
 export type InstrumentSpec =
   | { kind: 'synth'; preset: string }
   | { kind: 'drum'; voice: string }
@@ -151,6 +151,41 @@ export function setStep(daw: DawState, chId: string, i: number, step: Step): Daw
       return { steps: { ...p.steps, [chId]: steps } };
     })
   };
+}
+
+// Longitud real de la nota que empieza en `i`: su `len` (o 1) recortado al final del canal.
+export function effectiveLen(steps: Step[], i: number): number {
+  const raw = steps[i]?.len ?? 1;
+  return Math.max(1, Math.min(raw, steps.length - i));
+}
+
+// Coloca/alarga una nota en el patrón actual: fija el paso `start` (on+note+len recortado) y LIMPIA los pasos
+// cubiertos start+1 … start+len-1 (monofónico: "pintar gana"). Conserva `vel` si lo había. Inmutable.
+export function paintNote(daw: DawState, chId: string, start: number, len: number, note: number): DawState {
+  return {
+    ...daw,
+    patterns: daw.patterns.map((p, idx) => {
+      if (idx !== daw.current) return p;
+      const cur = p.steps[chId] ?? emptySteps(daw.steps);
+      const L = Math.max(1, Math.min(len, cur.length - start));
+      const steps = cur.slice();
+      steps[start] = { ...steps[start], on: true, note, len: L };
+      for (let k = start + 1; k < start + L; k++) steps[k] = { ...steps[k], on: false };
+      return { steps: { ...p.steps, [chId]: steps } };
+    })
+  };
+}
+
+// Duplica el patrón `idx`: inserta una COPIA PROFUNDA justo detrás y deja `current` en el nuevo. Los patrones
+// tras `idx` se desplazan +1, así que la canción reindexa (p > idx → p+1). Fuera de rango: devuelve `daw`.
+export function duplicatePattern(daw: DawState, idx: number): DawState {
+  if (idx < 0 || idx >= daw.patterns.length) return daw;
+  const copy: Record<string, Step[]> = {};
+  const src = daw.patterns[idx].steps;
+  for (const id of Object.keys(src)) copy[id] = src[id].map(s => ({ ...s }));
+  const patterns = [...daw.patterns.slice(0, idx + 1), { steps: copy }, ...daw.patterns.slice(idx + 1)];
+  const song = daw.song.map(p => (p > idx ? p + 1 : p));
+  return { ...daw, patterns, current: idx + 1, song };
 }
 
 // Solo/mute efectivo: si hay algún solo, suenan solo los soloed; si no, los no muteados.
