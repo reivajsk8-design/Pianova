@@ -104,6 +104,14 @@ Selector **Rejilla** junto a Longitud (zona PASOS); marcas de compás por subdiv
 y `stepgrid`). Cambiar la rejilla re-temporiza las notas del canal (no se remapean). Compat v0.29 → `subdiv` 4
 (idéntico).
 
+**Estudio · navegador de carpetas del sampler S4 núcleo (v0.31.0):** panel **📁 Librería** en la pestaña SAMPLES
+para explorar una carpeta del disco (File System Access `showDirectoryPicker`, con respaldo `webkitdirectory` en
+móvil), navegar subcarpetas, buscar, **escuchar** (▶, por el máster) y **asignar** un audio al canal (lo vuelve
+slicer, vía `importSample`). Escaneo perezoso (solo metadatos; decodifica bajo demanda con caché); el handle de
+carpeta se guarda en **IndexedDB** (base `estudio`) y se reabre si el permiso sigue concedido. `audio/fileLibrary.ts`
+(helpers puros testeados + API con estado) + `ui/libraryPanel.ts` + cableado en `app/studioView.ts`. Sin
+favoritos/recientes/arrastrar (posible ampliación). No cambia el motor ni el proyecto.
+
 **Estudio · EQ gráfico paramétrico E1 (v0.25.0):** nuevo efecto de inserción **"EQ gráfico"** (canal o máster):
 cadena de **8 biquads** (lowshelf · 6 picos · highshelf) con **editor gráfico** en overlay — curva de respuesta,
 **espectro en tiempo real** (AnalyserNode) detrás, **8 nodos arrastrables** (arrastrar = frec./ganancia · rueda =
