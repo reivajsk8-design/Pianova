@@ -13,7 +13,7 @@ export type InstrumentSpec =
   | { kind: 'slicer'; sampleId: string; base: number; slices: SliceDef[] };
 export interface ChannelState {
   id: string; name: string; instrument: InstrumentSpec;
-  volume: number; pan: number; muted: boolean; soloed: boolean; rack: RackState;
+  volume: number; pan: number; muted: boolean; soloed: boolean; rack: RackState; humanize?: number;
 }
 export interface PatternState { steps: Record<string, Step[]> }
 export interface DawState {
@@ -44,7 +44,7 @@ export function syncChannelIdSeed(channels: { id: string }[]): void {
 export function defaultChannel(preset = 'piano', id?: string): ChannelState {
   return {
     id: id ?? newChannelId(), name: 'Canal', instrument: { kind: 'synth', preset },
-    volume: 0.8, pan: 0, muted: false, soloed: false, rack: { effects: [] }
+    volume: 0.8, pan: 0, muted: false, soloed: false, rack: { effects: [] }, humanize: 0
   };
 }
 
