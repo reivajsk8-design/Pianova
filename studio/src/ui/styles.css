@@ -142,9 +142,12 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .pvInfo .pvISub{font-size:9px;color:var(--pv-muted);margin-top:2px}
 .pvWave{flex:1;height:38px;background:linear-gradient(90deg,transparent,rgba(45,255,106,.08));border-radius:4px;overflow:hidden}
 .pvWave svg{width:100%;height:100%}
-.pvTabs{display:flex;gap:6px;margin-bottom:8px}
-.pvTab{padding:5px 14px;border-radius:4px;font-size:11px;letter-spacing:.1em;border:1px solid #2b3324;color:var(--pv-muted);cursor:pointer;background:none}
-.pvTab.on{background:var(--pv-acc);color:#07120a;font-weight:700;border-color:var(--pv-acc);box-shadow:0 0 14px var(--pv-acc-dim)}
+/* Pestañas como control segmentado ancho (las 3 unidas, ocupan todo el ancho; activo relleno verde) */
+.pvTabs{display:flex;gap:0;margin-bottom:8px;border:1px solid #2b3324;border-radius:5px;overflow:hidden;background:#10130f}
+.pvTab{flex:1;padding:9px 10px;border:0;border-right:1px solid #2b3324;border-radius:0;font-size:12px;letter-spacing:.16em;font-weight:600;color:var(--pv-muted);cursor:pointer;background:none;text-align:center;transition:background .1s,color .1s}
+.pvTab:last-child{border-right:0}
+.pvTab:hover{color:var(--pv-ink);background:#141a13}
+.pvTab.on{background:var(--pv-acc);color:#07120a;font-weight:800;box-shadow:0 0 16px var(--pv-acc-dim) inset}
 .pvPanel{display:none}
 .pvPanel.on{display:block}
 .pvGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:6px}

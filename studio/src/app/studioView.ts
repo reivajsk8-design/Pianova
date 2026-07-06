@@ -515,7 +515,18 @@ export function mountStudioView(root: HTMLElement): void {
   }
   (root.querySelector('#eqClose') as HTMLButtonElement).addEventListener('click', closeEqEditor);
   (root.querySelector('#eqOverlay') as HTMLElement).addEventListener('click', e => { if (e.target === e.currentTarget) closeEqEditor(); });
-  window.addEventListener('keydown', e => { if (e.key === 'Escape' && !(root.querySelector('#eqOverlay') as HTMLElement).hidden) closeEqEditor(); });
+  window.addEventListener('keydown', e => {
+    const eqOpen = !(root.querySelector('#eqOverlay') as HTMLElement).hidden;
+    if (e.key === 'Escape' && eqOpen) { closeEqEditor(); return; }
+    // Atajos de pestaña 1/2/3 — salvo escribiendo en un campo, con el editor EQ abierto, o con modificadores
+    // (Ctrl+1/2/3 los usa el navegador para sus propias pestañas).
+    const el = document.activeElement as HTMLElement | null;
+    const typing = !!el && (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA');
+    if (!typing && !eqOpen && !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === '1' || e.key === '2' || e.key === '3')) {
+      tab = e.key === '1' ? 'pads' : e.key === '2' ? 'samples' : 'mixer';
+      renderTabs(); showPane();
+    }
+  });
 
   function renderAll(): void { renderTabs(); showPane(); renderPads(); renderSelected(); renderSamples(); renderMixer(); renderPatternBar(); renderSelectedRack(); }
   function selectChannel(id: string): void { selectedId = id; stepPage = 0; sliceHits.length = 0; routeKeyboardToSelected(); renderPads(); renderSelected(); renderSamples(); renderMixer(); renderSelectedRack(); }
