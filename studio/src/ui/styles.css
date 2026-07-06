@@ -265,3 +265,21 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .eqKnobs{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
 .eqKnobs .knobCell{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:10px;color:#c9d2c9}
 .eqBtn.sel{border-color:#fff;color:#fff}
+
+/* ---------- Navegador de carpetas (librería) ---------- */
+.libPanel{border:1px solid var(--pv-line);border-radius:8px;background:#0c110b;margin-bottom:8px;overflow:hidden}
+.libBar{display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid var(--pv-line);flex-wrap:wrap}
+.libBtn{background:#141a13;border:1px solid #2b3324;color:var(--pv-ink);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:11px}
+.libBtn:hover{border-color:var(--pv-acc)}
+.libRoot{font-size:11px;color:var(--pv-muted);max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.libSearch{margin-left:auto;background:#141a13;border:1px solid #2b3324;color:var(--pv-ink);border-radius:6px;padding:4px 8px;font-size:11px}
+.libList{max-height:220px;overflow:auto}
+.libRow{display:flex;align-items:center;gap:8px;padding:4px 8px;border-bottom:1px solid #141a12;font-size:12px}
+.libDir{cursor:pointer}
+.libDir:hover{background:rgba(45,255,106,.06)}
+.libIco{flex:0 0 auto}
+.libName{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--pv-ink)}
+.libAct{background:#141a13;border:1px solid #2b3324;color:var(--pv-muted);border-radius:5px;padding:2px 8px;cursor:pointer;font-size:11px}
+.libAct:hover{border-color:var(--pv-acc);color:#fff}
+.libAssign{color:var(--pv-acc)}
+.libEmpty{padding:14px;text-align:center;color:var(--pv-muted);font-size:12px}
