@@ -3,7 +3,8 @@ import {
   emptySteps, defaultChannel, defaultDaw, addChannel, removeChannel, updateChannel,
   toggleStep, audibleIds, findChannel, channelSteps, addPattern, removePattern, setCurrentPattern, setSong, setStep,
   defaultSynthxInstrument, defaultSlicerInstrument, newChannelId, syncChannelIdSeed,
-  channelLen, addStepsPage, removeStepsPage, effectiveLen, paintNote, duplicatePattern
+  channelLen, addStepsPage, removeStepsPage, effectiveLen, paintNote, duplicatePattern,
+  snapLen, MIN_LEN
 } from './model';
 import { SYNTHX_DEFAULT } from '../audio/synthx-dsp';
 
@@ -190,5 +191,44 @@ describe('duplicatePattern', () => {
     const dup = duplicatePattern(d, 0);                 // inserta en pos 1 → el antiguo 1 pasa a 2
     expect(dup.song).toEqual([0, 2]);
     expect(duplicatePattern(d, 9)).toBe(d);             // fuera de rango → mismo objeto
+  });
+});
+
+describe('longitud fraccionaria', () => {
+  it('snapLen redondea a 1/4', () => {
+    expect(snapLen(1.1)).toBe(1);
+    expect(snapLen(0.3)).toBe(0.25);
+    expect(snapLen(0.6)).toBe(0.5);
+    expect(snapLen(2.4)).toBe(2.5);      // 2.4/0.25 = 9.6 → 10 → 2.5
+    expect(MIN_LEN).toBe(0.25);
+  });
+  it('effectiveLen respeta la fracción, aplica el mínimo 0.25 y recorta al final', () => {
+    const s = emptySteps(8);
+    s[2] = { on: true, note: 60, len: 0.5 };
+    expect(effectiveLen(s, 2)).toBe(0.5);
+    s[3] = { on: true, note: 60, len: 0.1 };     // por debajo del mínimo
+    expect(effectiveLen(s, 3)).toBe(0.25);
+    s[7] = { on: true, note: 60, len: 5 };
+    expect(effectiveLen(s, 7)).toBe(1);           // recorta a 8 - 7
+    expect(effectiveLen(s, 0)).toBe(1);           // len ausente ⇒ 1
+  });
+  it('paintNote hace snap a 1/4, aplica el mínimo y NO limpia celdas si L < 1', () => {
+    const d0 = defaultDaw(); const id = d0.channels[0].id;
+    const d1 = paintNote(d0, id, 2, 0.3, 64);
+    expect(d1.patterns[0].steps[id][2]).toEqual({ on: true, note: 64, len: 0.25 });
+    expect(d1.patterns[0].steps[id][3].on).toBe(false);   // L < 1 → no limpia nada nuevo
+  });
+  it('paintNote fraccionario > 1 limpia solo los pasos enteros cubiertos', () => {
+    const d0 = defaultDaw(); const id = d0.channels[0].id;
+    let d = paintNote(d0, id, 3, 1, 60);
+    d = paintNote(d, id, 4, 1, 62);
+    d = paintNote(d, id, 5, 1, 64);
+    d = paintNote(d, id, 2, 2.5, 65);      // cubre k=3,4 (3 ≤ k < 4.5); no toca el 5
+    const steps = d.patterns[0].steps[id];
+    expect(steps[2].len).toBe(2.5);
+    expect(steps[3].on).toBe(false);
+    expect(steps[4].on).toBe(false);
+    expect(steps[5].on).toBe(true);        // 5 ≥ 4.5 → sobrevive
+    expect(steps[5].note).toBe(64);
   });
 });

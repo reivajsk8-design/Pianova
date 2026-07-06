@@ -22,9 +22,16 @@ export interface DawState {
 }
 
 export const DEFAULT_STEPS = 16;
+export const LEN_STEP = 0.25;   // rejilla de longitud de nota (1/4 de paso)
+export const MIN_LEN = 0.25;    // longitud mínima de una nota (1/4 de paso)
 
 export function emptySteps(n: number): Step[] {
   return Array.from({ length: n }, () => ({ on: false }));
+}
+
+// Redondea una longitud a la rejilla de 1/4 de paso.
+export function snapLen(len: number): number {
+  return Math.round(len / LEN_STEP) * LEN_STEP;
 }
 
 let _cid = 0;
@@ -156,7 +163,7 @@ export function setStep(daw: DawState, chId: string, i: number, step: Step): Daw
 // Longitud real de la nota que empieza en `i`: su `len` (o 1) recortado al final del canal.
 export function effectiveLen(steps: Step[], i: number): number {
   const raw = steps[i]?.len ?? 1;
-  return Math.max(1, Math.min(raw, steps.length - i));
+  return Math.max(MIN_LEN, Math.min(raw, steps.length - i));
 }
 
 // Coloca/alarga una nota en el patrón actual: fija el paso `start` (on+note+len recortado) y LIMPIA los pasos
@@ -167,7 +174,7 @@ export function paintNote(daw: DawState, chId: string, start: number, len: numbe
     patterns: daw.patterns.map((p, idx) => {
       if (idx !== daw.current) return p;
       const cur = p.steps[chId] ?? emptySteps(daw.steps);
-      const L = Math.max(1, Math.min(len, cur.length - start));
+      const L = Math.max(MIN_LEN, Math.min(snapLen(len), cur.length - start));
       const steps = cur.slice();
       steps[start] = { ...steps[start], on: true, note, len: L };
       for (let k = start + 1; k < start + L; k++) steps[k] = { ...steps[k], on: false };
