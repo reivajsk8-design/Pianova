@@ -38,7 +38,7 @@ import type { SampleEditorHandle } from '../ui/sampleEditor';
 import { mountEqEditor } from '../ui/eqEditor';
 import type { EqEditorHandle } from '../ui/eqEditor';
 import type { Effect } from '../fx/effect';
-import { BASE_SUBDIV, channelStepAt, channelSpan } from '../daw/grid';
+import { BASE_SUBDIV, channelStepAt, channelSpan, SUBDIVS, SUBDIV_LABELS } from '../daw/grid';
 
 const SEQ_VEL = 0.95;
 // Mínimo común múltiplo: la longitud maestra del secuenciador es el m.c.m. de las longitudes de los canales,
@@ -298,15 +298,21 @@ export function mountStudioView(root: HTMLElement): void {
       ? '<span class="pvPages">Pág:' + Array.from({ length: pages }, (_, p) =>
           `<button class="pvPage${p === stepPage ? ' on' : ''}" data-page="${p}">${p + 1}</button>`).join('') + '</span>'
       : '';
+    const sub = ch?.subdiv ?? 4;
+    const subOpts = SUBDIVS.map(s => `<option value="${s}"${s === sub ? ' selected' : ''}>${SUBDIV_LABELS[s]}</option>`).join('');
     lenHost.innerHTML = `<span>Longitud</span>`
       + `<button class="pvLenBtn" data-lenminus title="Quitar 16 pasos">−16</button>`
       + `<span class="pvLenN">${len} pasos</span>`
-      + `<button class="pvLenBtn" data-lenplus title="Añadir 16 pasos">＋16</button>${pageTabs}`;
+      + `<button class="pvLenBtn" data-lenplus title="Añadir 16 pasos">＋16</button>${pageTabs}`
+      + `<span class="pvLenSep"></span><span>Rejilla</span><select id="pvSubdiv" title="Resolución de este canal">${subOpts}</select>`;
     (lenHost.querySelector('[data-lenplus]') as HTMLButtonElement).addEventListener('click', () => {
       daw = addStepsPage(daw, selectedId); persist(); renderSelected();
     });
     (lenHost.querySelector('[data-lenminus]') as HTMLButtonElement).addEventListener('click', () => {
       daw = removeStepsPage(daw, selectedId); persist(); renderSelected();
+    });
+    (lenHost.querySelector('#pvSubdiv') as HTMLSelectElement).addEventListener('change', e => {
+      daw = updateChannel(daw, selectedId, { subdiv: +(e.target as HTMLSelectElement).value }); persist(); renderSelected();
     });
     lenHost.querySelectorAll<HTMLButtonElement>('.pvPage').forEach(b =>
       b.addEventListener('click', () => { stepPage = +(b.dataset.page ?? '0'); renderSelected(); }));
@@ -324,7 +330,7 @@ export function mountStudioView(root: HTMLElement): void {
         daw = { ...daw, scaleType: (e.target as HTMLSelectElement).value }; persist(); renderSelected();
       });
       const pr = mountPianoRoll(stepsHost, {
-        total: PAGE, lowMidi: prLow, scaleRoot: daw.scaleRoot, scaleType: daw.scaleType,
+        total: PAGE, lowMidi: prLow, scaleRoot: daw.scaleRoot, scaleType: daw.scaleType, beatEvery: ch?.subdiv ?? 4,
         getStep: (i) => channelSteps(daw, selectedId)[off + i],
         onPaint: (start, len, midi) => { daw = paintNote(daw, selectedId, off + start, len, midi); persist(); },
         onClear: (headIndex) => { daw = setStep(daw, selectedId, off + headIndex, { on: false }); persist(); },
@@ -335,7 +341,7 @@ export function mountStudioView(root: HTMLElement): void {
     } else {
       scaleHost.innerHTML = '';
       const g = mountStepGrid(stepsHost, {
-        total: PAGE,
+        total: PAGE, beatEvery: ch?.subdiv ?? 4,
         isOn: (i) => channelSteps(daw, selectedId)[off + i]?.on ?? false,
         onToggle: (i) => { daw = toggleStep(daw, selectedId, off + i); persist(); }
       });
