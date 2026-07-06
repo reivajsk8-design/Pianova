@@ -18,7 +18,7 @@ export interface Channel {
   setVolume(v: number): void;
   setPan(p: number): void;
   setAudible(a: boolean): void;
-  trigger(note: number, vel: number, when: number): void;
+  trigger(note: number, vel: number, when: number, gate?: number): void;
   serializeRack(): RackState;
   dispose(): void;
 }
@@ -43,15 +43,15 @@ export function makeChannel(actx: AudioContext, state: ChannelState, masterIn: A
     setVolume(v) { volume = v; applyGain(); },
     setPan(p) { panner.pan.value = p; },
     setAudible(a) { audible = a; applyGain(); },
-    trigger(note, vel, when) {
+    trigger(note, vel, when, gate) {
       if (instrument.kind === 'drum') triggerDrum(actx, instrumentBus, instrument.voice as DrumVoice, when, vel);
-      else if (instrument.kind === 'synthx') triggerSynthx(actx, instrument.params, note, vel, when, 0.12, instrumentBus);
+      else if (instrument.kind === 'synthx') triggerSynthx(actx, instrument.params, note, vel, when, gate ?? 0.12, instrumentBus);
       else if (instrument.kind === 'slicer') {
         const s = getSample(instrument.sampleId);
         const idx = sliceIndexForNote(instrument.base, instrument.slices.length, note);
-        if (s && s.buffer && idx >= 0) playSlice(instrumentBus, s.buffer, instrument.slices[idx], when, vel);
+        if (s && s.buffer && idx >= 0) playSlice(instrumentBus, s.buffer, instrument.slices[idx], when, vel, gate);
       }
-      else synth.triggerPreset(instrument.preset, note, vel, when, 0.12, instrumentBus);
+      else synth.triggerPreset(instrument.preset, note, vel, when, gate ?? 0.12, instrumentBus);
     },
     serializeRack: () => rack.serialize(),
     dispose() {
