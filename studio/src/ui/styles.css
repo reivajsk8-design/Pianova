@@ -26,7 +26,10 @@ main { padding:24px 18px; }
 .rack { flex:1; min-width:280px; background:var(--panel); border:1px solid var(--line); border-radius:5px; padding:12px; }
 .rackHead { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
 .fxAdd { font:inherit; background:var(--bg); color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:6px 9px; }
-.rackList { display:flex; flex-flow:row nowrap; gap:10px; overflow-x:auto; padding-bottom:6px; }
+.rackList { display:flex; flex-flow:row nowrap; align-items:flex-start; gap:10px; overflow-x:auto; padding-bottom:6px; }
+/* LED de bypass del efecto (verde = activo, apagado = bypass) */
+.fxLed { width:12px; height:12px; border-radius:50%; border:1px solid #2b3324; background:#141a13; cursor:pointer; padding:0; flex:0 0 auto; }
+.fxLed.on { background:var(--pv-acc); border-color:var(--pv-acc); box-shadow:0 0 6px var(--pv-acc-dim); }
 .fxCard { flex:0 0 138px; width:138px; border:1px solid var(--line); border-radius:4px; padding:8px; background:var(--bg); }
 .fxHead { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
 .fxHead b { flex:1; }

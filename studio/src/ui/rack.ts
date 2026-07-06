@@ -14,11 +14,18 @@ function fmtVal(v: number, unit: string | undefined, step: number): string {
 }
 
 export function mountRack(root: HTMLElement, rack: Rack, title: string, onChange: () => void, onEdit?: (effect: Effect) => void): void {
+  const expanded = new Set<string>();   // efectos con todos los knobs a la vista (por id, en memoria de sesión)
+
   function render(): void {
     const cards = rack.list().map(e => {
       const def = EFFECTS[e.type];
       const vals = e.getValues();
-      const params = e.getParams().map(p =>
+      const all = e.getParams();
+      // Compacto: solo los 2 primeros parámetros; el resto se despliega con ⚙ (en la misma tarjeta).
+      const isExp = expanded.has(e.id);
+      const shown = isExp ? all : all.slice(0, 2);
+      const canExpand = all.length > 2;
+      const params = shown.map(p =>
         `<div class="fxKnob">
           <div class="knob" data-id="${e.id}" data-p="${p.name}" title="${p.label}"></div>
           <span class="fxKnobLab">${p.label}</span>
@@ -27,13 +34,17 @@ export function mountRack(root: HTMLElement, rack: Rack, title: string, onChange
       const body = e.eq
         ? `<div class="fxEditRow"><button class="smpBtn fxEditBtn" data-edit="${e.id}">✎ Editar EQ</button></div>`
         : `<div class="fxParams">${params}</div>`;
+      const moreBtn = canExpand
+        ? `<button class="chBtn fxMore" data-exp="${e.id}" title="${isExp ? 'Plegar parámetros' : 'Más parámetros'}">${isExp ? '▴' : '⚙'}</button>`
+        : '';
       return `<div class="fxCard${e.isBypassed() ? ' byp' : ''}">
         <div class="fxHead">
           <b>${def ? def.label : e.type}</b>
           <span class="grow"></span>
-          <label class="fxByp"><input type="checkbox" data-byp="${e.id}" ${e.isBypassed() ? 'checked' : ''}> Bypass</label>
+          <button class="fxLed${e.isBypassed() ? '' : ' on'}" data-byp="${e.id}" title="Activar / desactivar (bypass)"></button>
           <button class="chBtn" data-up="${e.id}" title="Mover a la izquierda">◀</button>
           <button class="chBtn" data-down="${e.id}" title="Mover a la derecha">▶</button>
+          ${moreBtn}
           <button class="chBtn" data-del="${e.id}" title="Quitar">✕</button>
         </div>
         ${body}</div>`;
@@ -72,8 +83,16 @@ export function mountRack(root: HTMLElement, rack: Rack, title: string, onChange
       const sel = ev.target as HTMLSelectElement; const type = sel.value; sel.value = '';
       if (type) { rack.add(type); onChange(); render(); }
     });
-    root.querySelectorAll<HTMLInputElement>('input[data-byp]').forEach(cb => {
-      cb.addEventListener('change', () => { rack.bypass(cb.dataset.byp!, cb.checked); onChange(); render(); });
+    root.querySelectorAll<HTMLButtonElement>('button[data-byp]').forEach(b => {
+      b.addEventListener('click', () => {
+        const e = rack.list().find(x => x.id === b.dataset.byp); if (!e) return;
+        rack.bypass(e.id, !e.isBypassed()); onChange(); render();
+      });
+    });
+    root.querySelectorAll<HTMLButtonElement>('button[data-exp]').forEach(b => {
+      b.addEventListener('click', () => {   // desplegar/plegar los demás knobs del efecto (solo visual)
+        const id = b.dataset.exp!; expanded.has(id) ? expanded.delete(id) : expanded.add(id); render();
+      });
     });
     root.querySelectorAll<HTMLButtonElement>('button[data-up]').forEach(b =>
       b.addEventListener('click', () => { rack.move(b.dataset.up!, -1); onChange(); render(); }));
