@@ -35,7 +35,12 @@ export function openMidiMenu(id: string, x: number, y: number, onChanged: () => 
 // (Guardado con `typeof document` porque los tests unitarios de knob.ts corren sin DOM/jsdom
 // y este módulo se importa transitivamente; en el navegador `document` siempre existe.)
 if (typeof document !== 'undefined') {
-  document.addEventListener('pointerdown', e => { if (menuEl && !menuEl.contains(e.target as Node)) closeMenu(); });
+  document.addEventListener('pointerdown', e => {
+    if (menuEl && !menuEl.contains(e.target as Node)) closeMenu();
+    // Si hay un aprendizaje armado y el usuario toca fuera (no mueve un mando), cancela (como Esc): así el
+    // próximo knob físico que gire NO se reasigna por error.
+    else if (!menuEl && midiLearn.armedId()) { midiLearn.cancel(); hideToast(); }
+  });
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     if (midiLearn.armedId()) { midiLearn.cancel(); hideToast(); }
