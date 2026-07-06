@@ -94,6 +94,15 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .knobCell { display:flex; flex-direction:column; align-items:center; gap:2px; }
 .knobCell span { color:var(--muted); font-size:9px; letter-spacing:.04em; text-transform:uppercase; }
 
+/* Knob mapeado a MIDI: puntito verde arriba-derecha; resalte al estar aprendiendo */
+.knob.mapped::after{content:'';position:absolute;top:1px;right:1px;width:6px;height:6px;border-radius:50%;background:#2dff6a;box-shadow:0 0 5px rgba(45,255,106,.6)}
+/* Menú MIDI + aviso (fuera de .pvView → colores literales) */
+.midiMenu{position:fixed;z-index:80;background:#10130f;border:1px solid #2b3324;border-radius:5px;box-shadow:0 8px 24px rgba(0,0,0,.6);display:flex;flex-direction:column;min-width:150px;overflow:hidden}
+.midiMenu button{background:none;border:0;color:#c9d2c9;text-align:left;padding:8px 12px;font-size:12px;cursor:pointer}
+.midiMenu button:hover{background:rgba(45,255,106,.12)}
+.midiToast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:90;background:#10130f;border:1px solid #2dff6a;color:#c9d2c9;border-radius:5px;padding:8px 14px;font-size:12px;opacity:0;pointer-events:none;transition:opacity .15s}
+.midiToast.on{opacity:1}
+
 /* ---------- Sección de efectos (cadena horizontal, siempre visible) ---------- */
 .fxSection { display:flex; flex-direction:column; gap:8px; margin:10px 0; }
 .fxSection .rack { min-width:0; padding:6px 8px; }

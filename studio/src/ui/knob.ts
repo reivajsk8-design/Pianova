@@ -1,5 +1,7 @@
 // Knob giratorio (mando de DAW): se ajusta arrastrando arriba/abajo; doble-clic resetea al valor por
 // defecto. Táctil (pointer events). El indicador gira de -135° (mín) a +135° (máx), barrido de 270°.
+import { midiLearn } from '../midi/learn';
+import { openMidiMenu } from './midiMenu';
 
 // Ángulo del indicador para un valor (puro/testeable).
 export function valueToAngle(value: number, min: number, max: number): number {
@@ -8,7 +10,7 @@ export function valueToAngle(value: number, min: number, max: number): number {
 }
 
 export interface KnobOpts {
-  min: number; max: number; value: number; default?: number; size?: number;
+  min: number; max: number; value: number; default?: number; size?: number; midiId?: string;
   onChange: (v: number) => void;
 }
 export interface KnobUI { setValue(v: number): void }
@@ -45,6 +47,25 @@ export function mountKnob(root: HTMLElement, opts: KnobOpts): KnobUI {
   root.addEventListener('dblclick', () => {
     if (opts.default !== undefined) { setValue(opts.default); opts.onChange(value); }
   });
+
+  if (opts.midiId) {
+    const id = opts.midiId;
+    // El mando físico mueve el knob y aplica el valor (absoluto 0–127 → rango del parámetro).
+    midiLearn.register(id, (v01) => { value = clamp(opts.min + v01 * range); apply(); opts.onChange(value); });
+    const refreshDot = (): void => { root.classList.toggle('mapped', midiLearn.hasBinding(id)); };
+    refreshDot();
+    root.addEventListener('contextmenu', e => { e.preventDefault(); openMidiMenu(id, e.clientX, e.clientY, refreshDot); });
+    // Long-press en táctil: abre el menú si mantienes sin arrastrar ~500 ms.
+    let lpTimer: number | null = null;
+    const cancelLp = (): void => { if (lpTimer != null) { clearTimeout(lpTimer); lpTimer = null; } };
+    root.addEventListener('pointerdown', e => {
+      if (e.pointerType !== 'touch') return;
+      lpTimer = window.setTimeout(() => { dragging = false; openMidiMenu(id, e.clientX, e.clientY, refreshDot); }, 500);
+    });
+    root.addEventListener('pointermove', cancelLp);
+    root.addEventListener('pointerup', cancelLp);
+    root.addEventListener('pointercancel', cancelLp);
+  }
 
   return { setValue };
 }
