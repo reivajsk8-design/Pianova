@@ -9,6 +9,7 @@ import '../fx/effects';
 import { ensureWorklets } from '../fx/worklets';
 import { makeTransport } from '../audio/transport';
 import { makeSequencer, swingOffset } from '../daw/sequencer';
+import { humanizeHit } from '../daw/humanize';
 import { mountTransport } from '../ui/transport';
 import { mountStepGrid } from '../ui/stepgrid';
 import { mountPianoRoll } from '../ui/pianoRoll';
@@ -239,11 +240,13 @@ export function mountStudioView(root: HTMLElement): void {
         if (!st || !st.on) continue;
         const audio = channels.find(a => a.id === c.id);
         const secPerStep = (60 / transport.bpm) / STEPS_PER_BEAT;
-        const vel = st.vel ?? SEQ_VEL;
-        const at = when + swingOffset(i, daw.swing, secPerStep);
+        let vel = st.vel ?? SEQ_VEL;
+        let at = when + swingOffset(i, daw.swing, secPerStep);
+        const hz = c.humanize ?? 0;
+        if (hz > 0) { const h = humanizeHit(hz, Math.random); at += h.dt; vel = Math.max(0.05, Math.min(1, vel + h.dvel)); }
         const gate = c.instrument.kind === 'drum' ? undefined : effectiveLen(arr, j) * secPerStep;
         if (audio) audio.trigger(st.note ?? 60, vel, at, gate);
-        padHits.set(c.id, { t: at, vel });                  // destello del pad, sincronizado al sonido
+        padHits.set(c.id, { t: at, vel });                  // destello del pad, sincronizado al sonido (ya humanizado)
         if (c.id === selectedId && c.instrument.kind === 'slicer') {
           const idx = sliceIndexForNote(c.instrument.base, c.instrument.slices.length, st.note ?? 60);
           const sl = c.instrument.slices[idx];
