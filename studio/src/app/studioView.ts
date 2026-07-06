@@ -38,8 +38,8 @@ import type { SampleEditorHandle } from '../ui/sampleEditor';
 import { mountEqEditor } from '../ui/eqEditor';
 import type { EqEditorHandle } from '../ui/eqEditor';
 import type { Effect } from '../fx/effect';
+import { BASE_SUBDIV, channelStepAt, channelSpan } from '../daw/grid';
 
-const STEPS_PER_BEAT = 4;
 const SEQ_VEL = 0.95;
 // Mínimo común múltiplo: la longitud maestra del secuenciador es el m.c.m. de las longitudes de los canales,
 // así CADA canal divide a la maestra → ninguno se trunca y el cabezal (paso % longitud) queda exacto.
@@ -179,7 +179,8 @@ export function mountStudioView(root: HTMLElement): void {
   }
   function recordStep(m: number, v: number): void {
     const len = channelLen(daw, selectedId);
-    const step = ((Math.round(transport.beatNow() * STEPS_PER_BEAT) % len) + len) % len;
+    const sub = findChannel(daw, selectedId)?.subdiv ?? 4;
+    const step = ((Math.round(transport.beatNow() * sub) % len) + len) % len;
     daw = setStep(daw, selectedId, step, { on: true, note: m, vel: v });
     persist(); renderSelected();
   }
@@ -214,14 +215,17 @@ export function mountStudioView(root: HTMLElement): void {
 
   const transport = makeTransport(() => getAudioContext()?.currentTime ?? 0);
   const seq = makeSequencer(transport, {
-    stepsPerBeat: STEPS_PER_BEAT,
+    stepsPerBeat: BASE_SUBDIV,
     getTotalSteps: () => {
       const pIdx = (songMode && daw.song.length) ? playPattern : daw.current;
       const pat = daw.patterns[pIdx];
-      if (!pat) return daw.steps;
-      let m = daw.steps;
-      for (const c of daw.channels) { const L = pat.steps[c.id]?.length ?? 0; if (L > 0) m = lcm2(m, L); }
-      return m;   // m.c.m.: p. ej. 16+32 → 32; 32+48 → 96 (todos encajan sin truncar)
+      if (!pat) return BASE_SUBDIV * 4;
+      let m = 1;
+      for (const c of daw.channels) {
+        const L = pat.steps[c.id]?.length ?? 0;
+        if (L > 0) m = lcm2(m, channelSpan(L, c.subdiv ?? 4));   // tramo del canal en ticks base
+      }
+      return m > 1 ? m : BASE_SUBDIV * 4;                         // fallback: un compás
     },
     onStep: (i, when) => {
       if (i === 0) {
@@ -235,18 +239,20 @@ export function mountStudioView(root: HTMLElement): void {
         if (!audibles.has(c.id)) continue;
         const arr = pat.steps[c.id];
         if (!arr || !arr.length) continue;
-        const j = i % arr.length;                          // cada canal repite a su longitud
-        const st = arr[j];
+        const sub = c.subdiv ?? 4;
+        const k = channelStepAt(i, sub, arr.length);         // paso del canal en este tick base (o null)
+        if (k === null) continue;
+        const st = arr[k];
         if (!st || !st.on) continue;
         const audio = channels.find(a => a.id === c.id);
-        const secPerStep = (60 / transport.bpm) / STEPS_PER_BEAT;
+        const secPerStep = (60 / transport.bpm) / sub;        // duración de un paso de ESTE canal
         let vel = st.vel ?? SEQ_VEL;
-        let at = when + swingOffset(i, daw.swing, secPerStep);
+        let at = when + swingOffset(k, daw.swing, secPerStep);
         const hz = c.humanize ?? 0;
         if (hz > 0) { const h = humanizeHit(hz, Math.random); at += h.dt; vel = Math.max(0.05, Math.min(1, vel + h.dvel)); }
-        const gate = c.instrument.kind === 'drum' ? undefined : effectiveLen(arr, j) * secPerStep;
+        const gate = c.instrument.kind === 'drum' ? undefined : effectiveLen(arr, k) * secPerStep;
         if (audio) audio.trigger(st.note ?? 60, vel, at, gate);
-        padHits.set(c.id, { t: at, vel });                  // destello del pad, sincronizado al sonido (ya humanizado)
+        padHits.set(c.id, { t: at, vel });                    // destello del pad, sincronizado al sonido
         if (c.id === selectedId && c.instrument.kind === 'slicer') {
           const idx = sliceIndexForNote(c.instrument.base, c.instrument.slices.length, st.note ?? 60);
           const sl = c.instrument.slices[idx];
@@ -572,7 +578,8 @@ export function mountStudioView(root: HTMLElement): void {
     const playing = seq.isPlaying();
     if (playing) {
       const len = channelLen(daw, selectedId);
-      const s = ((Math.floor(transport.beatNow() * STEPS_PER_BEAT) % len) + len) % len;
+      const sub = findChannel(daw, selectedId)?.subdiv ?? 4;
+      const s = ((Math.floor(transport.beatNow() * sub) % len) + len) % len;
       selGrid?.setPlayhead(Math.floor(s / PAGE) === stepPage ? (s % PAGE) : -1);   // solo si suena esta página
     }
     for (const [id, h] of padHits) if (now - h.t >= PAD_FADE) padHits.delete(id);            // poda pads
