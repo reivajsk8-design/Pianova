@@ -17,7 +17,15 @@ describe('parseMidiMessage', () => {
     const r = parseMidiMessage(new Uint8Array([0x99, 38, 100]));   // 0x90 | canal 9 (=canal 10)
     expect(r.type).toBe('other'); expect(r.channel).toBe(10);
   });
-  it('CC u otros = other', () => {
-    expect(parseMidiMessage(new Uint8Array([0xB0, 7, 100])).type).toBe('other');
+  it('CC es ahora cc (no other)', () => {
+    expect(parseMidiMessage(new Uint8Array([0xB0, 7, 100])).type).toBe('cc');
+  });
+  it('control change (0xB0) → type cc, controlador y valor', () => {
+    const r = parseMidiMessage(new Uint8Array([0xB0, 21, 64]));
+    expect(r.type).toBe('cc'); expect(r.midi).toBe(21); expect(r.vel).toBeCloseTo(64 / 127, 5); expect(r.channel).toBe(1);
+  });
+  it('un CC en canal 10 (0xB9) NO se filtra: sigue siendo cc', () => {
+    const r = parseMidiMessage(new Uint8Array([0xB9, 7, 100]));
+    expect(r.type).toBe('cc'); expect(r.midi).toBe(7); expect(r.channel).toBe(10);
   });
 });

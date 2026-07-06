@@ -28,7 +28,7 @@ export function mountTransport(
     opts.onBpm(Math.max(40, Math.min(240, +(e.target as HTMLInputElement).value || 120)));
   });
   mountKnob(root.querySelector('#tbSwing') as HTMLElement, {
-    min: 0, max: 0.7, value: opts.getSwing(), default: 0, size: 34, onChange: opts.onSwing
+    min: 0, max: 0.7, value: opts.getSwing(), default: 0, size: 34, midiId: 'swing', onChange: opts.onSwing
   });
   return { setPlaying, setRecording };
 }
