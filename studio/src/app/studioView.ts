@@ -24,7 +24,7 @@ import {
   DawState, ChannelState, InstrumentSpec, defaultChannel, addChannel, removeChannel,
   updateChannel, toggleStep, setStep, findChannel, audibleIds, channelSteps, effectiveLen,
   addPattern, removePattern, setCurrentPattern, setSong, defaultSynthxInstrument, defaultSlicerInstrument,
-  syncChannelIdSeed, defaultDaw, channelLen, addStepsPage, removeStepsPage
+  syncChannelIdSeed, defaultDaw, channelLen, addStepsPage, removeStepsPage, paintNote
 } from '../daw/model';
 import { loadStore, saveStore, downloadProject, readProjectFile, ProjectState, hydrateSamples } from './store';
 import * as synthx from '../audio/synthx';
@@ -317,11 +317,8 @@ export function mountStudioView(root: HTMLElement): void {
       const pr = mountPianoRoll(stepsHost, {
         total: PAGE, lowMidi: prLow, scaleRoot: daw.scaleRoot, scaleType: daw.scaleType,
         getStep: (i) => channelSteps(daw, selectedId)[off + i],
-        onSetNote: (i, midi) => {
-          const cur = channelSteps(daw, selectedId)[off + i];
-          daw = setStep(daw, selectedId, off + i, midi == null ? { on: false } : { on: true, note: midi, vel: cur?.vel });
-          persist();
-        },
+        onPaint: (start, len, midi) => { daw = paintNote(daw, selectedId, off + start, len, midi); persist(); },
+        onClear: (headIndex) => { daw = setStep(daw, selectedId, off + headIndex, { on: false }); persist(); },
         onRange: (lo) => { prLow = lo; }
       });
       selGrid = { setPlayhead: pr.setPlayhead };
