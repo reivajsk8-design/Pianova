@@ -209,6 +209,9 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .prRow.black{background:#0a0f09}
 .prRow.inscale{background:rgba(45,255,106,.06)}
 .prRow.black.inscale{background:rgba(45,255,106,.05)}
+/* Fila de una nota tocada en vivo: resalte por box-shadow (gana sobre cualquier fondo) + etiqueta blanca. */
+.prRow.live{box-shadow:inset 3px 0 0 0 var(--pv-acc),inset 0 0 0 999px rgba(45,255,106,.16)}
+.prRow.live .prLabel{color:#fff}
 .prLabel{flex:0 0 44px;font-size:9px;color:var(--pv-muted);display:flex;align-items:center;padding-left:6px;border-right:1px solid var(--pv-line)}
 .prCells{display:grid;flex:1;grid-auto-flow:column;grid-auto-columns:1fr}
 .prCell{border-right:1px solid #141a12;border-bottom:1px solid #141a12;cursor:pointer}

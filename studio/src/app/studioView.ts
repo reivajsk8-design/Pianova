@@ -57,6 +57,8 @@ export function mountStudioView(root: HTMLElement): void {
   let prLow = 48;   // octava base visible del piano-roll (Do3), recordada entre re-montajes
   const PAGE = 16;    // una página = 16 pasos
   let stepPage = 0;   // página visible del canal seleccionado
+  const liveNotes = new Set<number>();   // notas tocadas en vivo (para sombrearlas en el piano-roll)
+  let prLive: ((notes: number[], focus?: number) => void) | null = null;
 
   root.innerHTML = `
     <div class="pvView">
@@ -161,6 +163,7 @@ export function mountStudioView(root: HTMLElement): void {
     } else { routeKeyboardToSelected(); synth.noteOn(m, v); }
     const nowT = getAudioContext()?.currentTime;
     if (nowT !== undefined) { padHits.set(selectedId, { t: nowT, vel: v }); ensureVisualLoop(); }
+    liveNotes.add(m); prLive?.([...liveNotes], m);   // sombrea la fila de la nota tocada (auto-desplaza si hace falta)
     if (recording && seq.isPlaying()) recordStep(m, v);
   }
   function recordStep(m: number, v: number): void {
@@ -178,6 +181,7 @@ export function mountStudioView(root: HTMLElement): void {
     // voz para ese midi, así que es seguro llamarlos siempre. Los slices/batería son one-shot.
     synth.noteOff(m);
     synthx.noteOffSynthx(m);
+    liveNotes.delete(m); prLive?.([...liveNotes]);   // quita el sombreado de la fila al soltar
   }
 
   function initAudio(): Promise<void> {
@@ -308,6 +312,7 @@ export function mountStudioView(root: HTMLElement): void {
         onRange: (lo) => { prLow = lo; }
       });
       selGrid = { setPlayhead: pr.setPlayhead };
+      prLive = pr.setLiveNotes; prLive([...liveNotes]);   // muestra las notas ya pulsadas al (re)montar
     } else {
       scaleHost.innerHTML = '';
       const g = mountStepGrid(stepsHost, {
@@ -316,6 +321,7 @@ export function mountStudioView(root: HTMLElement): void {
         onToggle: (i) => { daw = toggleStep(daw, selectedId, off + i); persist(); }
       });
       selGrid = { setPlayhead: g.setPlayhead };
+      prLive = null;   // batería: no hay piano-roll que sombrear
     }
     // parámetros del canal seleccionado
     const host = root.querySelector('#pvParams') as HTMLElement;
