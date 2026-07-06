@@ -16,7 +16,7 @@ export interface PianoRollUI {
 export function mountPianoRoll(
   root: HTMLElement,
   opts: {
-    total: number; lowMidi: number; scaleRoot: number; scaleType: string;
+    total: number; lowMidi: number; scaleRoot: number; scaleType: string; beatEvery?: number;
     getStep: (i: number) => Step | undefined;
     onPaint: (start: number, len: number, midi: number) => void;   // colocar/alargar
     onClear: (headIndex: number) => void;                          // borrar la nota cuyo head está aquí
@@ -41,7 +41,7 @@ export function mountPianoRoll(
         coverUntil = i + len - 1; coverHead = i; cls = ' on head'; head = i;
       } else if (i <= coverUntil) { cls = ' cont'; head = coverHead; }
       const hAttr = head >= 0 ? ` data-head="${head}"` : '';
-      cells += `<div class="prCell${i % 4 === 0 ? ' beat' : ''}${cls}" data-i="${i}" data-m="${midi}"${hAttr}></div>`;
+      cells += `<div class="prCell${i % (opts.beatEvery ?? 4) === 0 ? ' beat' : ''}${cls}" data-i="${i}" data-m="${midi}"${hAttr}></div>`;
     }
     return cells;
   }

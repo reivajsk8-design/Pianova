@@ -3,7 +3,7 @@ export interface StepGridUI { render(): void; setPlayhead(step: number): void }
 
 export function mountStepGrid(
   root: HTMLElement,
-  opts: { total: number; isOn: (i: number) => boolean; onToggle: (i: number) => void }
+  opts: { total: number; beatEvery?: number; isOn: (i: number) => boolean; onToggle: (i: number) => void }
 ): StepGridUI {
   let cells: HTMLButtonElement[] = [];
   function render(): void {
@@ -12,7 +12,7 @@ export function mountStepGrid(
     cells = [];
     for (let i = 0; i < opts.total; i++) {
       const c = document.createElement('button');
-      c.className = 'stepCell' + (i % 4 === 0 ? ' beat' : '') + (opts.isOn(i) ? ' on' : '');
+      c.className = 'stepCell' + (i % (opts.beatEvery ?? 4) === 0 ? ' beat' : '') + (opts.isOn(i) ? ' on' : '');
       c.addEventListener('click', () => { opts.onToggle(i); c.classList.toggle('on', opts.isOn(i)); });
       row.appendChild(c); cells.push(c);
     }

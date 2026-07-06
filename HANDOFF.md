@@ -96,6 +96,14 @@ la cantidad y recalculado por disparo (más humano). No destructivo (no toca las
 puro `daw/humanize.ts` `humanizeHit(amount,rnd)`; `ChannelState.humanize` persistido; aplicado en `onStep` con
 `Math.random`; knob en `ui/channelstrip.ts`. Compat v0.28 → `humanize` 0.
 
+**Estudio · resolución (rejilla) por canal (v0.30.0):** cada canal tiene su propia resolución (1/8, 1/16, 1/32)
+sobre un reloj base a 1/32 (`BASE_SUBDIV=8`). `ChannelState.subdiv` (2/4/8; ausente ⇒ 4); helpers puros
+`daw/grid.ts` (`baseFactor`/`channelStepAt`/`channelSpan`). El secuenciador corre al reloj base y cada canal se
+dispara en los ticks que le tocan, con su swing/longitud de nota/cabezal; `getTotalSteps` = LCM de `channelSpan`.
+Selector **Rejilla** junto a Longitud (zona PASOS); marcas de compás por subdivisión (`beatEvery` en `pianoRoll`
+y `stepgrid`). Cambiar la rejilla re-temporiza las notas del canal (no se remapean). Compat v0.29 → `subdiv` 4
+(idéntico).
+
 **Estudio · EQ gráfico paramétrico E1 (v0.25.0):** nuevo efecto de inserción **"EQ gráfico"** (canal o máster):
 cadena de **8 biquads** (lowshelf · 6 picos · highshelf) con **editor gráfico** en overlay — curva de respuesta,
 **espectro en tiempo real** (AnalyserNode) detrás, **8 nodos arrastrables** (arrastrar = frec./ganancia · rueda =
