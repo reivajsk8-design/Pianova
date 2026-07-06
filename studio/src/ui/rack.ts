@@ -1,6 +1,6 @@
 // UI del rack: tarjetas de efecto (bypass/reordenar/quitar + parámetros como knobs) y menú "Añadir efecto".
 import { Rack } from '../fx/rack';
-import { EFFECTS, Family } from '../fx/effect';
+import { EFFECTS, Family, Effect } from '../fx/effect';
 import { mountKnob } from './knob';
 
 const FAMILY_LABEL: Record<Family, string> = {
@@ -13,7 +13,7 @@ function fmtVal(v: number, unit: string | undefined, step: number): string {
   return v.toFixed(dec) + (unit ? ' ' + unit : '');
 }
 
-export function mountRack(root: HTMLElement, rack: Rack, title: string, onChange: () => void): void {
+export function mountRack(root: HTMLElement, rack: Rack, title: string, onChange: () => void, onEdit?: (effect: Effect) => void): void {
   function render(): void {
     const cards = rack.list().map(e => {
       const def = EFFECTS[e.type];
@@ -24,6 +24,9 @@ export function mountRack(root: HTMLElement, rack: Rack, title: string, onChange
           <span class="fxKnobLab">${p.label}</span>
           <span class="fxKnobVal">${fmtVal(vals[p.name], p.unit, p.step)}</span>
         </div>`).join('');
+      const body = e.eq
+        ? `<div class="fxEditRow"><button class="smpBtn fxEditBtn" data-edit="${e.id}">✎ Editar EQ</button></div>`
+        : `<div class="fxParams">${params}</div>`;
       return `<div class="fxCard${e.isBypassed() ? ' byp' : ''}">
         <div class="fxHead">
           <b>${def ? def.label : e.type}</b>
@@ -33,8 +36,7 @@ export function mountRack(root: HTMLElement, rack: Rack, title: string, onChange
           <button class="chBtn" data-down="${e.id}" title="Mover a la derecha">▶</button>
           <button class="chBtn" data-del="${e.id}" title="Quitar">✕</button>
         </div>
-        <div class="fxParams">${params}</div>
-      </div>`;
+        ${body}</div>`;
     }).join('');
 
     const groups: Partial<Record<Family, string[]>> = {};
@@ -79,6 +81,8 @@ export function mountRack(root: HTMLElement, rack: Rack, title: string, onChange
       b.addEventListener('click', () => { rack.move(b.dataset.down!, 1); onChange(); render(); }));
     root.querySelectorAll<HTMLButtonElement>('button[data-del]').forEach(b =>
       b.addEventListener('click', () => { rack.remove(b.dataset.del!); onChange(); render(); }));
+    root.querySelectorAll<HTMLButtonElement>('button[data-edit]').forEach(b =>
+      b.addEventListener('click', () => { const e = rack.list().find(x => x.id === b.dataset.edit); if (e) onEdit?.(e); }));
   }
 
   rack.onChange(render);

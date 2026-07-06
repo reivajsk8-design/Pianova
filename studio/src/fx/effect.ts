@@ -1,5 +1,7 @@
 // Marco común de efectos: interfaz, registro y helper para efectos nativos.
 
+import type { EqApi } from './eq-core';
+
 export type Family = 'delay' | 'mod' | 'dyn' | 'color' | 'tone' | 'util';
 
 export interface ParamSpec {
@@ -19,6 +21,7 @@ export interface Effect {
   bypass(on: boolean): void;
   serialize(): EffectState;
   dispose(): void;
+  eq?: EqApi;   // solo el EQ gráfico lo define; el rack lo usa para mostrar su editor a medida
 }
 
 export type EffectFactory = (actx: AudioContext, state?: EffectState) => Effect;
