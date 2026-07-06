@@ -220,6 +220,7 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .prCell.play{background:rgba(255,255,255,.10)}
 .prCell.on.play{background:var(--pv-acc);outline:1px solid #fff;outline-offset:-1px}
 .prCell.cont{background:var(--pv-acc);box-shadow:0 0 6px var(--pv-acc-dim) inset;opacity:.85}
+.prCell.cont.play{background:var(--pv-acc);outline:1px solid #fff;outline-offset:-1px}
 .prCell.on.head,.prCell.cont{border-right-color:transparent}   /* unir la barra (sin línea interior) */
 .prCell.pvsel{background:rgba(45,255,106,.4)}                   /* vista previa al arrastrar */
 /* Barra de escala encima del piano-roll */

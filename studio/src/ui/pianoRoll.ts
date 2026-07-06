@@ -105,7 +105,7 @@ export function mountPianoRoll(
       if (!d.moved) {
         if (d.head != null) opts.onClear(d.head);         // tocar una nota (cabeza o cuerpo) → borrar
         else opts.onPaint(d.startI, 1, d.startM);          // tocar hueco → nota de 1 paso
-      } else opts.onPaint(d.startI, d.end - d.startI + 1, d.startM);   // arrastre → nota de ese largo
+      } else { const s = d.head ?? d.startI; opts.onPaint(s, d.end - s + 1, d.startM); }   // arrastre → alarga desde la cabeza
       draw();
     };
     grid.addEventListener('pointerup', finish);
