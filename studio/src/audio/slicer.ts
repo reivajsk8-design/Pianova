@@ -17,16 +17,19 @@ function reversed(actx: AudioContext, buffer: AudioBuffer): AudioBuffer {
   return out;
 }
 
-export function playSlice(dest: AudioNode | null, buffer: AudioBuffer, slice: SliceDef, when: number, vel: number): void {
+export function playSlice(dest: AudioNode | null, buffer: AudioBuffer, slice: SliceDef, when: number, vel: number, maxDur?: number): void {
   const actx = ensureAudio();
   const out = dest ?? masterDest();
-  const dur = Math.max(0.005, slice.end - slice.start);
+  const full = Math.max(0.005, slice.end - slice.start);
+  const cut = maxDur != null && maxDur < full;                 // ¿recortado por la longitud de la nota?
+  const dur = cut ? Math.max(0.005, maxDur as number) : full;
   const useBuf = slice.reverse ? reversed(actx, buffer) : buffer;
   const offset = slice.reverse ? Math.max(0, buffer.duration - slice.end) : slice.start;
   const src = actx.createBufferSource(); src.buffer = useBuf;
   const g = actx.createGain();
   const peak = Math.max(0.0002, slice.gain * Math.max(0.05, vel));
-  const fi = Math.min(slice.fadeIn, dur / 2), fo = Math.min(slice.fadeOut, dur / 2);
+  const fi = Math.min(slice.fadeIn, dur / 2);
+  const fo = cut ? Math.min(0.01, dur / 4) : Math.min(slice.fadeOut, dur / 2);   // recorte → fade corto anti-clic
   const t = when;
   g.gain.setValueAtTime(fi > 0 ? 0.0001 : peak, t);
   if (fi > 0) g.gain.linearRampToValueAtTime(peak, t + fi);

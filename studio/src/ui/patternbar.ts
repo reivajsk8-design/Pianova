@@ -11,6 +11,7 @@ export function patternBarHTML(daw: DawState, songMode: boolean, playingSong: nu
   return `<div class="patBar">
     <span class="patLab">Patrón</span>${pats}
     <button class="patIcon" data-patadd title="Añadir patrón">＋</button>
+    <button class="patIcon" data-patdup title="Duplicar patrón actual">⧉</button>
     <button class="patIcon" data-patdel title="Quitar patrón actual">✕</button>
     <span class="patSep"></span>
     <button class="songToggle${songMode ? ' on' : ''}" data-songtoggle title="Modo canción">🔗 Canción</button>

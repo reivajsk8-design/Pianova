@@ -22,9 +22,9 @@ import { makeChannel, Channel } from '../daw/channel';
 import { padLevel, activeSlices, type PadHit, type SliceHit } from '../ui/hitViz';
 import {
   DawState, ChannelState, InstrumentSpec, defaultChannel, addChannel, removeChannel,
-  updateChannel, toggleStep, setStep, findChannel, audibleIds, channelSteps,
-  addPattern, removePattern, setCurrentPattern, setSong, defaultSynthxInstrument, defaultSlicerInstrument,
-  syncChannelIdSeed, defaultDaw, channelLen, addStepsPage, removeStepsPage
+  updateChannel, toggleStep, setStep, findChannel, audibleIds, channelSteps, effectiveLen,
+  addPattern, duplicatePattern, removePattern, setCurrentPattern, setSong, defaultSynthxInstrument, defaultSlicerInstrument,
+  syncChannelIdSeed, defaultDaw, channelLen, addStepsPage, removeStepsPage, paintNote
 } from '../daw/model';
 import { loadStore, saveStore, downloadProject, readProjectFile, ProjectState, hydrateSamples } from './store';
 import * as synthx from '../audio/synthx';
@@ -233,13 +233,16 @@ export function mountStudioView(root: HTMLElement): void {
       for (const c of daw.channels) {
         if (!audibles.has(c.id)) continue;
         const arr = pat.steps[c.id];
-        const st = (arr && arr.length) ? arr[i % arr.length] : undefined;   // cada canal repite a su longitud
+        if (!arr || !arr.length) continue;
+        const j = i % arr.length;                          // cada canal repite a su longitud
+        const st = arr[j];
         if (!st || !st.on) continue;
         const audio = channels.find(a => a.id === c.id);
         const secPerStep = (60 / transport.bpm) / STEPS_PER_BEAT;
         const vel = st.vel ?? SEQ_VEL;
         const at = when + swingOffset(i, daw.swing, secPerStep);
-        if (audio) audio.trigger(st.note ?? 60, vel, at);
+        const gate = c.instrument.kind === 'drum' ? undefined : effectiveLen(arr, j) * secPerStep;
+        if (audio) audio.trigger(st.note ?? 60, vel, at, gate);
         padHits.set(c.id, { t: at, vel });                  // destello del pad, sincronizado al sonido
         if (c.id === selectedId && c.instrument.kind === 'slicer') {
           const idx = sliceIndexForNote(c.instrument.base, c.instrument.slices.length, st.note ?? 60);
@@ -314,11 +317,8 @@ export function mountStudioView(root: HTMLElement): void {
       const pr = mountPianoRoll(stepsHost, {
         total: PAGE, lowMidi: prLow, scaleRoot: daw.scaleRoot, scaleType: daw.scaleType,
         getStep: (i) => channelSteps(daw, selectedId)[off + i],
-        onSetNote: (i, midi) => {
-          const cur = channelSteps(daw, selectedId)[off + i];
-          daw = setStep(daw, selectedId, off + i, midi == null ? { on: false } : { on: true, note: midi, vel: cur?.vel });
-          persist();
-        },
+        onPaint: (start, len, midi) => { daw = paintNote(daw, selectedId, off + start, len, midi); persist(); },
+        onClear: (headIndex) => { daw = setStep(daw, selectedId, off + headIndex, { on: false }); persist(); },
         onRange: (lo) => { prLow = lo; }
       });
       selGrid = { setPlayhead: pr.setPlayhead };
@@ -533,6 +533,7 @@ export function mountStudioView(root: HTMLElement): void {
     const pat = t.getAttribute('data-pat');
     if (pat) { daw = setCurrentPattern(daw, +pat); persist(); renderSelected(); renderPatternBar(); return; }
     if (t.hasAttribute('data-patadd')) { daw = addPattern(daw); persist(); renderSelected(); renderPatternBar(); return; }
+    if (t.hasAttribute('data-patdup')) { daw = duplicatePattern(daw, daw.current); persist(); renderSelected(); renderPatternBar(); return; }
     if (t.hasAttribute('data-patdel')) { daw = removePattern(daw, daw.current); persist(); renderSelected(); renderPatternBar(); return; }
     if (t.hasAttribute('data-songtoggle')) { songMode = !songMode; renderPatternBar(); return; }
     if (t.hasAttribute('data-songadd')) { daw = setSong(daw, [...daw.song, daw.current]); persist(); renderPatternBar(); return; }
