@@ -18,16 +18,16 @@ main { padding:24px 18px; }
 .kb-black { position:absolute; top:0; width:calc((100% / var(--whites)) * 0.6); height:62%; background:#1b1f29; border:1px solid #000; border-radius:0 0 5px 5px; z-index:2; }
 .kb-black.on { background:var(--amber); }
 .studioBar { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
-.fld { display:flex; align-items:center; gap:8px; color:var(--muted); font-size:13px; }
-.fld select { font:inherit; background:var(--panel); color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:6px 9px; }
+.fld { display:flex; align-items:center; gap:8px; color:var(--muted); font-size:11px; }
+.fld select { font:inherit; background:var(--panel); color:var(--ink); border:1px solid var(--line); border-radius:4px; padding:5px 9px; }
 .muted { color:var(--muted); font-size:13px; }
 .projBtns { display:flex; gap:8px; }
 .racks { display:flex; gap:18px; flex-wrap:wrap; margin-top:18px; }
-.rack { flex:1; min-width:280px; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px; }
+.rack { flex:1; min-width:280px; background:var(--panel); border:1px solid var(--line); border-radius:5px; padding:12px; }
 .rackHead { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
 .fxAdd { font:inherit; background:var(--bg); color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:6px 9px; }
 .rackList { display:flex; flex-flow:row nowrap; gap:10px; overflow-x:auto; padding-bottom:6px; }
-.fxCard { flex:0 0 156px; width:156px; border:1px solid var(--line); border-radius:10px; padding:10px; background:var(--bg); }
+.fxCard { flex:0 0 138px; width:138px; border:1px solid var(--line); border-radius:4px; padding:8px; background:var(--bg); }
 .fxHead { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
 .fxHead b { flex:1; }
 .fxHead button { padding:4px 9px; }
@@ -36,25 +36,25 @@ main { padding:24px 18px; }
 .fxParam { display:grid; grid-template-columns:110px 1fr 64px; align-items:center; gap:8px; color:var(--muted); font-size:12px; }
 .fxParam input[type="range"] { width:100%; }
 .fxVal { text-align:right; }
-.tbar { display:flex; align-items:center; gap:14px; margin:18px 0 10px; }
-.tbPlay { width:44px; height:44px; border-radius:50%; font-size:16px; background:var(--amber); color:#1a1306; border:0; }
+.tbar { display:flex; align-items:center; gap:10px; margin:8px 0; }
+.tbPlay { width:38px; height:38px; border-radius:50%; font-size:15px; background:var(--amber); color:#1a1306; border:0; }
 .tbPlay.on { background:#e0533a; color:#fff; }
-.tbar input[type="number"] { width:66px; font:inherit; background:var(--panel); color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:6px 8px; }
+.tbar input[type="number"] { width:60px; font:inherit; font-family:var(--pv-mono,ui-monospace,monospace); background:var(--panel); color:var(--ink); border:1px solid var(--line); border-radius:4px; padding:5px 8px; }
 .stepRow { display:flex; gap:5px; flex-wrap:wrap; }
 .stepCell { width:28px; height:30px; border-radius:6px; background:linear-gradient(#1b1f29,#13161d); border:1px solid var(--line); cursor:pointer; padding:0; transition:background .08s ease, box-shadow .08s ease; box-shadow:inset 0 1px 0 rgba(255,255,255,.04); }
 .stepCell.beat:not(:first-child) { margin-left:11px; }   /* agrupa los tiempos de 4 en 4 */
 .stepCell:hover { border-color:#4a5163; }
 .stepCell.on { background:var(--amber); border-color:var(--amber); box-shadow:0 0 6px rgba(242,163,60,.35); }
 .stepCell.play { outline:2px solid #fff; outline-offset:1px; }
-.chStrip { width:268px; flex:0 0 auto; display:flex; align-items:center; gap:12px; }
-.chMain { flex:1; min-width:0; display:flex; flex-direction:column; gap:6px; }
-.chStrip.sel { outline:2px solid var(--amber); outline-offset:3px; border-radius:8px; }
-.chHead { display:flex; align-items:center; gap:8px; }
-.chSel { width:30px; height:30px; flex:0 0 auto; border-radius:7px; background:var(--bg); color:var(--ink); border:1px solid var(--line); font-weight:600; }
+.chStrip { width:252px; flex:0 0 auto; display:flex; align-items:center; gap:10px; }
+.chMain { flex:1; min-width:0; display:flex; flex-direction:column; gap:5px; }
+.chStrip.sel { outline:2px solid var(--amber); outline-offset:3px; border-radius:5px; }
+.chHead { display:flex; align-items:center; gap:6px; }
+.chSel { width:28px; height:28px; flex:0 0 auto; border-radius:4px; background:var(--bg); color:var(--ink); border:1px solid var(--line); font-weight:600; }
 .chStrip.sel .chSel { background:var(--amber); color:#1a1306; border-color:var(--amber); }
-.chInst { flex:1; min-width:0; font:inherit; background:var(--bg); color:var(--ink); border:1px solid var(--line); border-radius:7px; padding:6px 8px; }
-.chBtns { display:flex; gap:6px; }
-.chBtn { width:34px; height:28px; padding:0; border-radius:7px; background:var(--bg); color:var(--muted); border:1px solid var(--line); }
+.chInst { flex:1; min-width:0; font:inherit; background:var(--bg); color:var(--ink); border:1px solid var(--line); border-radius:4px; padding:5px 8px; }
+.chBtns { display:flex; gap:5px; }
+.chBtn { width:32px; height:26px; padding:0; border-radius:4px; background:var(--bg); color:var(--muted); border:1px solid var(--line); }
 .chBtn:hover { border-color:#4a5163; color:var(--ink); }
 .chBtn.on { background:#e0533a; color:#fff; border-color:#e0533a; }
 .chBtn.onS { background:var(--amber); color:#1a1306; border-color:var(--amber); }
@@ -63,18 +63,18 @@ main { padding:24px 18px; }
 .chMix input[type="range"] { flex:1; min-width:0; }
 .addCh { margin:8px 0; }
 .racks .rack { min-width:260px; }
-.patBar { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:10px 0; }
-.patLab { color:var(--muted); font-size:12px; margin-right:4px; }
-.patBtn { width:30px; height:30px; border-radius:7px; background:var(--panel); color:var(--ink); border:1px solid var(--line); }
+.patBar { display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin:8px 0; }
+.patLab { color:var(--muted); font-size:11px; margin-right:4px; }
+.patBtn { width:26px; height:26px; border-radius:4px; background:var(--panel); color:var(--ink); border:1px solid var(--line); }
 .patBtn.on { background:var(--amber); color:#1a1306; border-color:var(--amber); }
-.patIcon { height:30px; padding:0 8px; border-radius:7px; background:var(--panel); color:var(--muted); border:1px solid var(--line); }
-.patSep { width:1px; height:22px; background:var(--line); margin:0 6px; }
-.songToggle { height:30px; padding:0 10px; border-radius:7px; background:var(--panel); color:var(--ink); border:1px solid var(--line); }
+.patIcon { height:26px; padding:0 8px; border-radius:4px; background:var(--panel); color:var(--muted); border:1px solid var(--line); }
+.patSep { width:1px; height:20px; background:var(--line); margin:0 6px; }
+.songToggle { height:26px; padding:0 10px; border-radius:4px; background:var(--panel); color:var(--ink); border:1px solid var(--line); }
 .songToggle.on { background:var(--amber); color:#1a1306; border-color:var(--amber); }
 .songSeq { display:inline-flex; gap:4px; align-items:center; flex-wrap:wrap; }
-.songChip { min-width:22px; text-align:center; padding:2px 6px; border-radius:6px; background:var(--bg); border:1px solid var(--line); color:var(--muted); font-size:12px; }
+.songChip { min-width:20px; text-align:center; padding:2px 6px; border-radius:4px; background:var(--bg); border:1px solid var(--line); color:var(--muted); font-size:11px; font-family:var(--pv-mono,ui-monospace,monospace); }
 .songChip.play { background:var(--amber); color:#1a1306; border-color:var(--amber); }
-.tbRec { width:44px; height:44px; border-radius:50%; font-size:16px; background:var(--panel); color:#e0533a; border:1px solid var(--line); }
+.tbRec { width:38px; height:38px; border-radius:50%; font-size:15px; background:var(--panel); color:#e0533a; border:1px solid var(--line); }
 .tbRec.on { background:#e0533a; color:#fff; border-color:#e0533a; }
 
 /* ---------- Deslizadores a medida (look pro, tema oscuro) ---------- */
@@ -88,14 +88,14 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .knob { position:relative; border-radius:50%; background:radial-gradient(circle at 50% 32%, #2c3344, #14171f); border:1px solid var(--line); box-shadow:0 2px 4px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06); cursor:ns-resize; touch-action:none; flex:0 0 auto; }
 .knob:hover { border-color:#4a5163; }
 .knobInd { position:absolute; left:50%; top:13%; width:3px; height:37%; margin-left:-1.5px; background:var(--amber); border-radius:2px; transform-origin:50% 100%; box-shadow:0 0 5px rgba(242,163,60,.55); }
-.knobCell { display:flex; flex-direction:column; align-items:center; gap:3px; }
-.knobCell span { color:var(--muted); font-size:10px; letter-spacing:.04em; text-transform:uppercase; }
+.knobCell { display:flex; flex-direction:column; align-items:center; gap:2px; }
+.knobCell span { color:var(--muted); font-size:9px; letter-spacing:.04em; text-transform:uppercase; }
 
 /* ---------- Sección de efectos (cadena horizontal, siempre visible) ---------- */
 .fxSection { display:flex; flex-direction:column; gap:8px; margin:10px 0; }
-.fxSection .rack { min-width:0; padding:8px 10px; }
+.fxSection .rack { min-width:0; padding:6px 8px; }
 .fxSection .rackHead { margin-bottom:6px; }
-.fxSection .fxCard { padding:7px 8px; }
+.fxSection .fxCard { padding:6px 8px; }
 /* Cabecera compacta del módulo: el nombre ocupa su línea y los controles (bypass + ◀▶✕)
    envuelven debajo, para que no se salgan del cuadro estrecho del efecto. */
 .fxSection .fxHead { flex-wrap:wrap; gap:4px 6px; }
@@ -106,16 +106,16 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .fxSection .fxKnobLab, .fxSection .fxKnobVal { font-size:9px; }
 
 /* ---------- Efectos compactos (parámetros como knobs) ---------- */
-.fxCard { padding:9px 11px; }
+.fxCard { padding:6px 8px; }
 .fxCard.byp { opacity:.5; }
-.fxHead { gap:6px; margin-bottom:8px; }
-.fxHead b { flex:0 0 auto; }
-.fxHead .chBtn { width:28px; height:26px; }
+.fxHead { gap:6px; margin-bottom:6px; }
+.fxHead b { flex:0 0 auto; font-size:11px; }
+.fxHead .chBtn { width:26px; height:24px; }
 .fxByp { white-space:nowrap; }
-.fxParams { display:flex; flex-flow:row wrap; justify-content:center; gap:8px; }
-.fxKnob { display:flex; flex-direction:column; align-items:center; gap:2px; width:54px; }
-.fxKnobLab { color:var(--muted); font-size:10px; text-align:center; line-height:1.1; }
-.fxKnobVal { color:var(--ink); font-size:10px; }
+.fxParams { display:flex; flex-flow:row wrap; justify-content:center; gap:7px; }
+.fxKnob { display:flex; flex-direction:column; align-items:center; gap:2px; width:48px; }
+.fxKnobLab { color:var(--muted); font-size:9px; text-align:center; line-height:1.1; }
+.fxKnobVal { color:var(--ink); font-size:9px; font-family:var(--pv-mono,ui-monospace,monospace); }
 
 /* --- Editor del sinte editable --- */
 .synthEd { padding: 6px 4px; }
@@ -129,58 +129,59 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 
 /* ==================== PIANOVA STUDIO (rediseño STORM · verde neón) ==================== */
 .pvView{--pv-bg:#0a0d0a;--pv-panel:#10130f;--pv-line:#23291f;--pv-acc:#2dff6a;--pv-acc-dim:rgba(45,255,106,.35);--pv-ink:#c9d2c9;--pv-muted:#8a958a;
-  background:var(--pv-bg);color:var(--pv-ink);padding:14px;border-radius:10px}
-.pvBar{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--pv-line);padding-bottom:8px;margin-bottom:8px}
-.pvTitle{color:var(--pv-acc);font-weight:800;letter-spacing:.14em;font-size:16px;text-shadow:0 0 12px var(--pv-acc-dim)}
-.pvHdrBtns{margin-left:auto;display:flex;gap:8px;align-items:center}
-.pvHdrBtns button{background:#161a14;border:1px solid #38402f;color:#e8eee8;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer}
+  --pv-mono:ui-monospace,'JetBrains Mono','Roboto Mono','Consolas',monospace;
+  background:var(--pv-bg);color:var(--pv-ink);padding:10px;border-radius:6px}
+.pvBar{display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--pv-line);padding-bottom:6px;margin-bottom:6px}
+.pvTitle{color:var(--pv-acc);font-weight:800;letter-spacing:.14em;font-size:14px;text-shadow:0 0 12px var(--pv-acc-dim)}
+.pvHdrBtns{margin-left:auto;display:flex;gap:6px;align-items:center}
+.pvHdrBtns button{background:#161a14;border:1px solid #38402f;color:#e8eee8;padding:4px 9px;border-radius:4px;font-size:11px;cursor:pointer}
 .pvHdrBtns button:hover{border-color:var(--pv-acc)}
-.pvTop{display:flex;gap:16px;margin-bottom:8px;flex-wrap:wrap}
-.pvInfo{flex:1;min-width:220px;background:var(--pv-panel);border:1px solid var(--pv-line);border-radius:8px;padding:10px 14px;display:flex;gap:16px;align-items:center}
-.pvInfo .pvIName{color:var(--pv-acc);font-weight:700;letter-spacing:.08em;font-size:12px}
-.pvInfo .pvISub{font-size:10px;color:var(--pv-muted);margin-top:4px}
-.pvWave{flex:1;height:52px;background:linear-gradient(90deg,transparent,rgba(45,255,106,.08));border-radius:4px;overflow:hidden}
+.pvTop{display:flex;gap:10px;margin-bottom:6px;flex-wrap:wrap}
+.pvInfo{flex:1;min-width:180px;background:var(--pv-panel);border:1px solid var(--pv-line);border-radius:5px;padding:6px 10px;display:flex;gap:12px;align-items:center}
+.pvInfo .pvIName{color:var(--pv-acc);font-weight:700;letter-spacing:.08em;font-size:11px}
+.pvInfo .pvISub{font-size:9px;color:var(--pv-muted);margin-top:2px}
+.pvWave{flex:1;height:38px;background:linear-gradient(90deg,transparent,rgba(45,255,106,.08));border-radius:4px;overflow:hidden}
 .pvWave svg{width:100%;height:100%}
-.pvTabs{display:flex;gap:8px;margin-bottom:12px}
-.pvTab{padding:6px 20px;border-radius:6px;font-size:12px;letter-spacing:.1em;border:1px solid #2b3324;color:var(--pv-muted);cursor:pointer;background:none}
+.pvTabs{display:flex;gap:6px;margin-bottom:8px}
+.pvTab{padding:5px 14px;border-radius:4px;font-size:11px;letter-spacing:.1em;border:1px solid #2b3324;color:var(--pv-muted);cursor:pointer;background:none}
 .pvTab.on{background:var(--pv-acc);color:#07120a;font-weight:700;border-color:var(--pv-acc);box-shadow:0 0 14px var(--pv-acc-dim)}
 .pvPanel{display:none}
 .pvPanel.on{display:block}
-.pvGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px}
-.pvPad{background:#141a13;border:1px solid #2b3324;border-radius:8px;min-height:56px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#b7c1b7;letter-spacing:.04em;text-align:center;padding:6px;cursor:pointer;position:relative}
+.pvGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:6px}
+.pvPad{background:#141a13;border:1px solid #2b3324;border-radius:4px;min-height:44px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#b7c1b7;letter-spacing:.04em;text-align:center;padding:5px;cursor:pointer;position:relative}
 /* Destello reactivo del pad: capa de glow cuya opacidad la fija el bucle visual (--hit 0..1) */
-.pvPad::after{content:'';position:absolute;inset:-1px;border-radius:8px;pointer-events:none;box-shadow:0 0 16px 2px var(--pv-acc);opacity:var(--hit,0)}
+.pvPad::after{content:'';position:absolute;inset:-1px;border-radius:4px;pointer-events:none;box-shadow:0 0 16px 2px var(--pv-acc);opacity:var(--hit,0)}
 .pvPad:hover{border-color:#3d5a44;background:#18211a}
 .pvPad.sel,.pvPad.sel:hover{border:2px solid var(--pv-acc);background:#141a13;color:#fff;box-shadow:0 0 14px var(--pv-acc-dim) inset}
 .pvPad.add{color:#5a6656;border-style:dashed}
-.pvLbl{font-size:10px;letter-spacing:.14em;color:var(--pv-acc);margin:0 0 6px}
-.pvSteps{margin-bottom:10px}
-.pvSteps .stepRow{display:grid;grid-template-columns:repeat(16,1fr);gap:5px}
-.pvSteps .stepCell{height:30px;border-radius:5px;background:#161c14;border:1px solid #2b3324;cursor:pointer}
+.pvLbl{font-size:10px;letter-spacing:.14em;color:var(--pv-acc);margin:0 0 4px}
+.pvSteps{margin-bottom:8px}
+.pvSteps .stepRow{display:grid;grid-template-columns:repeat(16,1fr);gap:4px}
+.pvSteps .stepCell{height:26px;border-radius:4px;background:#161c14;border:1px solid #2b3324;cursor:pointer}
 .pvSteps .stepCell.beat{border-color:#44503c}
 .pvSteps .stepCell.on{background:var(--pv-acc);border-color:var(--pv-acc);box-shadow:0 0 8px var(--pv-acc-dim)}
 .pvSteps .stepCell.play{outline:2px solid #fff;outline-offset:1px}
-.pvParams{background:var(--pv-panel);border:1px solid var(--pv-line);border-radius:8px;padding:8px 10px}
-.pvParamsHead{display:flex;align-items:center;gap:12px;margin-bottom:10px}
-.pvSoon{background:var(--pv-panel);border:1px dashed #38402f;border-radius:8px;padding:40px;text-align:center;color:var(--pv-muted)}
+.pvParams{background:var(--pv-panel);border:1px solid var(--pv-line);border-radius:5px;padding:6px 9px}
+.pvParamsHead{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.pvSoon{background:var(--pv-panel);border:1px dashed #38402f;border-radius:5px;padding:28px;text-align:center;color:var(--pv-muted)}
 .pvSoon b{color:var(--pv-acc)}
-.pvMixer{display:flex;flex-direction:column;gap:8px}
+.pvMixer{display:flex;flex-direction:column;gap:6px}
 /* Fila SONIDO del panel de PADS (selector de sonido del canal seleccionado) */
-.pvSoundRow{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.pvSoundRow{display:flex;align-items:center;gap:10px;margin-bottom:6px}
 .pvSoundRow .pvLbl{margin:0}
-.pvSoundRow select{background:#141a13;border:1px solid #2b3324;color:var(--pv-ink);border-radius:6px;padding:6px 10px;min-width:220px;cursor:pointer}
+.pvSoundRow select{background:#141a13;border:1px solid #2b3324;color:var(--pv-ink);border-radius:4px;padding:5px 9px;min-width:200px;cursor:pointer}
 .pvSoundRow select:hover{border-color:var(--pv-acc)}
 /* Cajón de efectos compacto (para no tapar el secuenciador) */
 
 /* --- Editor del sampler (pestaña SAMPLES) --- */
 .smpEd{padding:6px 2px}
-.smpBar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px}
-.smpBtn{background:#141a13;border:1px solid #2b3324;color:#c9d2c9;border-radius:6px;padding:6px 10px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.smpBar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
+.smpBtn{background:#141a13;border:1px solid #2b3324;color:#c9d2c9;border-radius:4px;padding:5px 9px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .smpBtn:hover{border-color:#2dff6a}
-.smpBtn select,.smpBtn button{background:#0e130d;border:1px solid #2b3324;color:#c9d2c9;border-radius:5px;padding:3px 7px;cursor:pointer}
-.smpWave{width:100%;height:120px;border:1px solid #23291f;border-radius:8px;display:block;margin-bottom:10px;background:#0c110b}
+.smpBtn select,.smpBtn button{background:#0e130d;border:1px solid #2b3324;color:#c9d2c9;border-radius:4px;padding:3px 7px;cursor:pointer}
+.smpWave{width:100%;height:104px;border:1px solid #23291f;border-radius:5px;display:block;margin-bottom:8px;background:#0c110b}
 .smpList{display:flex;flex-wrap:wrap;gap:6px}
-.smpSlice{background:#141a13;border:1px solid #2b3324;color:#cdd2c9;border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer}
+.smpSlice{background:#141a13;border:1px solid #2b3324;color:#cdd2c9;border-radius:4px;padding:5px 9px;font-size:11px;cursor:pointer}
 .smpSlice:hover{border-color:#2dff6a;color:#fff}
 
 /* Editor del sampler: pista de ayuda + cursor sobre la onda */
@@ -190,7 +191,7 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 /* Panel de edición del slice seleccionado (S3) */
 .smpSlice.sel{border-color:#2dff6a;color:#fff;box-shadow:0 0 8px rgba(45,255,106,.35)}
 .smpSlicePanel:empty{display:none}
-.smpSlicePanel{margin-top:10px;background:#10130f;border:1px solid #23291f;border-radius:8px;padding:10px 12px}
+.smpSlicePanel{margin-top:8px;background:#10130f;border:1px solid #23291f;border-radius:5px;padding:8px 10px}
 .smpSliceHead{font-size:10px;letter-spacing:.12em;color:#2dff6a;margin-bottom:8px}
 .smpKnobs{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
 .smpKnobs .knobCell{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:10px;color:#c9d2c9}
@@ -200,7 +201,7 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .smpSlice.playing{border-color:#eaffe9;color:#fff;box-shadow:0 0 10px rgba(45,255,106,.55)}
 
 /* ---------- Mini piano-roll por canal ---------- */
-.pr{border:1px solid var(--pv-line);border-radius:8px;overflow:hidden;background:#0c110b}
+.pr{border:1px solid var(--pv-line);border-radius:5px;overflow:hidden;background:#0c110b}
 .prTools{display:flex;align-items:center;gap:8px;padding:4px 6px;border-bottom:1px solid var(--pv-line)}
 .prTools .chBtn{width:26px;height:22px;padding:0}
 .prHint{font-size:10px}
@@ -228,40 +229,40 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 /* Barra de escala encima del piano-roll */
 .pvScale{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:11px;color:var(--pv-muted)}
 .pvScale:empty{display:none}
-.pvScale select{background:#141a13;border:1px solid #2b3324;color:var(--pv-ink);border-radius:6px;padding:4px 8px;cursor:pointer}
+.pvScale select{background:#141a13;border:1px solid #2b3324;color:var(--pv-ink);border-radius:4px;padding:4px 8px;cursor:pointer}
 .pvScale select:hover{border-color:var(--pv-acc)}
 
 /* Barra de longitud de pasos + páginas */
 .pvLenBar{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:11px;color:var(--pv-muted);flex-wrap:wrap}
-.pvLenBtn{background:#141a13;border:1px solid #2b3324;color:var(--pv-ink);border-radius:6px;padding:2px 8px;cursor:pointer;font-size:12px}
+.pvLenBtn{background:#141a13;border:1px solid #2b3324;color:var(--pv-ink);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:12px}
 .pvLenBtn:hover{border-color:var(--pv-acc)}
-.pvLenN{color:var(--pv-ink)}
+.pvLenN{color:var(--pv-ink);font-family:var(--pv-mono,ui-monospace,monospace)}
 .pvPages{display:flex;align-items:center;gap:4px;margin-left:8px}
-.pvPage{background:#141a13;border:1px solid #2b3324;color:var(--pv-muted);border-radius:5px;padding:2px 8px;cursor:pointer;font-size:11px}
+.pvPage{background:#141a13;border:1px solid #2b3324;color:var(--pv-muted);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px}
 .pvPage.on{border-color:var(--pv-acc);color:#fff;box-shadow:0 0 6px var(--pv-acc-dim)}
 .pvLenSep{width:1px;height:16px;background:var(--pv-line);margin:0 4px}
 
 /* ---------- Editor gráfico de EQ ---------- */
 .eqEd{display:flex;flex-direction:column;gap:8px}
 .eqBar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--pv-muted)}
-.eqBar select{background:#141a13;border:1px solid #2b3324;color:var(--pv-ink);border-radius:6px;padding:4px 8px;cursor:pointer}
+.eqBar select{background:#141a13;border:1px solid #2b3324;color:var(--pv-ink);border-radius:4px;padding:4px 8px;cursor:pointer}
 .eqHint{font-size:10px}
 .eqBands{display:flex;gap:4px;margin-left:auto}
 .eqChan{display:inline-flex;gap:4px}
 .eqChan .eqBtn{width:auto;padding:0 8px}
-.eqBtn{width:24px;height:22px;background:#141a13;border:1px solid #2b3324;color:var(--pv-muted);border-radius:5px;cursor:pointer;font-size:11px}
+.eqBtn{width:24px;height:22px;background:#141a13;border:1px solid #2b3324;color:var(--pv-muted);border-radius:4px;cursor:pointer;font-size:11px}
 .eqBtn.on{border-color:var(--pv-acc);color:#fff;box-shadow:0 0 6px var(--pv-acc-dim)}
-.eqCanvas{width:100%;height:300px;border:1px solid var(--pv-line);border-radius:8px;background:#0c110b;touch-action:none}
+.eqCanvas{width:100%;height:300px;border:1px solid var(--pv-line);border-radius:5px;background:#0c110b;touch-action:none}
 
 /* ---------- Overlay del editor de EQ ---------- */
 .eqOverlay{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);padding:16px}
 .eqOverlay[hidden]{display:none}
-.eqModal{width:min(820px,96vw);background:#10130f;border:1px solid #2b3324;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.6);padding:12px}
+.eqModal{width:min(820px,96vw);background:#10130f;border:1px solid #2b3324;border-radius:6px;box-shadow:0 20px 60px rgba(0,0,0,.6);padding:12px}
 .eqModalHead{display:flex;align-items:center;gap:10px;margin-bottom:8px}
 .eqModalHead b{color:var(--pv-acc);letter-spacing:.06em}
 
 /* Panel de dinámica de la banda seleccionada (EQ) */
-.eqDyn{background:#10130f;border:1px solid #23291f;border-radius:8px;padding:8px 10px;margin-top:8px}
+.eqDyn{background:#10130f;border:1px solid #23291f;border-radius:5px;padding:8px 10px;margin-top:8px}
 .eqDynHead{display:flex;align-items:center;gap:14px;font-size:11px;letter-spacing:.1em;color:var(--pv-acc);margin-bottom:8px}
 .eqChk{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--pv-ink);letter-spacing:0}
 .eqKnobs{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
@@ -269,19 +270,19 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .eqBtn.sel{border-color:#fff;color:#fff}
 
 /* ---------- Navegador de carpetas (librería) ---------- */
-.libPanel{border:1px solid var(--pv-line);border-radius:8px;background:#0c110b;margin-bottom:8px;overflow:hidden}
+.libPanel{border:1px solid var(--pv-line);border-radius:5px;background:#0c110b;margin-bottom:8px;overflow:hidden}
 .libBar{display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid var(--pv-line);flex-wrap:wrap}
-.libBtn{background:#141a13;border:1px solid #2b3324;color:var(--pv-ink);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:11px}
+.libBtn{background:#141a13;border:1px solid #2b3324;color:var(--pv-ink);border-radius:4px;padding:4px 8px;cursor:pointer;font-size:11px}
 .libBtn:hover{border-color:var(--pv-acc)}
 .libRoot{font-size:11px;color:var(--pv-muted);max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.libSearch{margin-left:auto;background:#141a13;border:1px solid #2b3324;color:var(--pv-ink);border-radius:6px;padding:4px 8px;font-size:11px}
+.libSearch{margin-left:auto;background:#141a13;border:1px solid #2b3324;color:var(--pv-ink);border-radius:4px;padding:4px 8px;font-size:11px}
 .libList{max-height:220px;overflow:auto}
 .libRow{display:flex;align-items:center;gap:8px;padding:4px 8px;border-bottom:1px solid #141a12;font-size:12px}
 .libDir{cursor:pointer}
 .libDir:hover{background:rgba(45,255,106,.06)}
 .libIco{flex:0 0 auto}
 .libName{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--pv-ink)}
-.libAct{background:#141a13;border:1px solid #2b3324;color:var(--pv-muted);border-radius:5px;padding:2px 8px;cursor:pointer;font-size:11px}
+.libAct{background:#141a13;border:1px solid #2b3324;color:var(--pv-muted);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px}
 .libAct:hover{border-color:var(--pv-acc);color:#fff}
 .libAssign{color:var(--pv-acc)}
 .libEmpty{padding:14px;text-align:center;color:var(--pv-muted);font-size:12px}
