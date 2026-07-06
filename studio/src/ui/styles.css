@@ -161,8 +161,16 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .pvPad.sel,.pvPad.sel:hover{border:2px solid var(--pv-acc);background:#141a13;color:#fff;box-shadow:0 0 14px var(--pv-acc-dim) inset}
 .pvPad.add{color:#5a6656;border-style:dashed}
 .pvLbl{font-size:10px;letter-spacing:.14em;color:var(--pv-acc);margin:0 0 4px}
-.pvFold{display:inline-block;width:12px;color:var(--pv-acc);font-size:9px}   /* flecha plegar/desplegar del piano-roll */
-#stepsLbl:hover{color:#fff}
+/* Barra de controles del panel PADS: SONIDO + plegar + Longitud/Rejilla + Escala, todo en una fila (envuelve) */
+.pvCtlBar{display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap;margin-bottom:8px}
+.pvCtlBar .pvLbl{margin:0}
+.pvCtlBar #pvSound{display:inline-flex}
+.pvCtlBar #pvSound select{flex:0 0 auto;min-width:180px;background:#141a13;border:1px solid #2b3324;color:var(--pv-ink);border-radius:4px;padding:5px 9px;cursor:pointer}
+.pvCtlBar #pvSound select:hover{border-color:var(--pv-acc)}
+.pvCtlBar .pvLenBar,.pvCtlBar .pvScale{margin-bottom:0}
+.pvFoldBtn{background:#141a13;border:1px solid #2b3324;color:var(--pv-ink);border-radius:4px;padding:4px 9px;cursor:pointer;font-size:11px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.pvFoldBtn:hover{border-color:var(--pv-acc)}
+.pvFold{color:var(--pv-acc);font-size:9px}   /* flecha plegar/desplegar del piano-roll */
 .pvSteps{margin-bottom:8px}
 .pvSteps .stepRow{display:grid;grid-template-columns:repeat(16,1fr);gap:4px}
 .pvSteps .stepCell{height:26px;border-radius:4px;background:#161c14;border:1px solid #2b3324;cursor:pointer}
