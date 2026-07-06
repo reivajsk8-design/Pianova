@@ -63,6 +63,7 @@ export function mountStudioView(root: HTMLElement): void {
   let prLow = 48;   // octava base visible del piano-roll (Do3), recordada entre re-montajes
   const PAGE = 16;    // una página = 16 pasos
   let stepPage = 0;   // página visible del canal seleccionado
+  let stepsCollapsed = false;   // piano-roll plegado (para compactar la vista cuando ya tienes la melodía)
   const liveNotes = new Set<number>();   // notas tocadas en vivo (para sombrearlas en el piano-roll)
   let prLive: ((notes: number[], focus?: number) => void) | null = null;
 
@@ -285,11 +286,21 @@ export function mountStudioView(root: HTMLElement): void {
     const n = daw.channels.findIndex(c => c.id === selectedId) + 1;
     (root.querySelector('#pvIName') as HTMLElement).textContent = ch ? `CANAL ${n} · ${ch.name}` : '—';
     (root.querySelector('#pvISub') as HTMLElement).textContent = ch ? tipoLabel(ch) : '';
-    (root.querySelector('#stepsLbl') as HTMLElement).textContent = `PASOS · CANAL ${n}`;
+    // Cabecera PASOS clicable: pliega/despliega el piano-roll (▾ abierto / ▸ plegado) para compactar la vista.
+    const stepsLbl = root.querySelector('#stepsLbl') as HTMLElement;
+    stepsLbl.innerHTML = `<span class="pvFold">${stepsCollapsed ? '▸' : '▾'}</span> PASOS · CANAL ${n}`;
+    stepsLbl.style.cursor = 'pointer';
+    stepsLbl.title = 'Plegar / desplegar el piano-roll';
+    stepsLbl.onclick = () => {
+      stepsCollapsed = !stepsCollapsed;
+      (root.querySelector('#pvSteps') as HTMLElement).style.display = stepsCollapsed ? 'none' : '';
+      (stepsLbl.querySelector('.pvFold') as HTMLElement).textContent = stepsCollapsed ? '▸' : '▾';
+    };
     // selector de sonido del canal seleccionado (aquí mismo, sin ir al MIXER)
     (root.querySelector('#pvSound') as HTMLElement).innerHTML = ch ? instrumentSelectHTML(ch) : '';
     // PASOS: piano-roll para canales melódicos; fila on/off para batería. Longitud por canal, en páginas de 16.
     const stepsHost = root.querySelector('#pvSteps') as HTMLElement;
+    stepsHost.style.display = stepsCollapsed ? 'none' : '';   // respeta el estado plegado al re-render
     const scaleHost = root.querySelector('#pvScale') as HTMLElement;
     const lenHost = root.querySelector('#pvLenBar') as HTMLElement;
     const melodic = !!ch && ch.instrument.kind !== 'drum';

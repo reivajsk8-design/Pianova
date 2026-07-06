@@ -161,6 +161,8 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .pvPad.sel,.pvPad.sel:hover{border:2px solid var(--pv-acc);background:#141a13;color:#fff;box-shadow:0 0 14px var(--pv-acc-dim) inset}
 .pvPad.add{color:#5a6656;border-style:dashed}
 .pvLbl{font-size:10px;letter-spacing:.14em;color:var(--pv-acc);margin:0 0 4px}
+.pvFold{display:inline-block;width:12px;color:var(--pv-acc);font-size:9px}   /* flecha plegar/desplegar del piano-roll */
+#stepsLbl:hover{color:#fff}
 .pvSteps{margin-bottom:8px}
 .pvSteps .stepRow{display:grid;grid-template-columns:repeat(16,1fr);gap:4px}
 .pvSteps .stepCell{height:26px;border-radius:4px;background:#161c14;border:1px solid #2b3324;cursor:pointer}
