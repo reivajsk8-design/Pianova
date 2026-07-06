@@ -15,6 +15,8 @@ export function mountEqEditor(root: HTMLElement, eq: EqApi, onChange: () => void
     <div class="eqBar">
       <select id="eqPreset"><option value="">Presets…</option>${presetOpts}</select>
       <button id="eqFlat" class="smpBtn">Plano</button>
+      <select id="eqMode"><option value="stereo">Estéreo</option><option value="ms">Mid/Side</option></select>
+      <span id="eqChan" class="eqChan"></span>
       <span class="eqHint muted">arrastra un punto (frec./ganancia) · rueda = Q · botones = seleccionar banda</span>
       <span id="eqBands" class="eqBands"></span>
     </div>
@@ -61,6 +63,22 @@ export function mountEqEditor(root: HTMLElement, eq: EqApi, onChange: () => void
 
   bandButtons();
   renderDyn();
+
+  function renderModeChan(): void {
+    (root.querySelector('#eqMode') as HTMLSelectElement).value = eq.mode();
+    const chan = root.querySelector('#eqChan') as HTMLElement;
+    const labels = eq.channelLabels();
+    chan.innerHTML = eq.mode() === 'ms'
+      ? labels.map((l, i) => `<button class="eqBtn${i === eq.activeChannel() ? ' sel' : ''}" data-ch="${i}">${l}</button>`).join('')
+      : '';
+    chan.querySelectorAll<HTMLButtonElement>('[data-ch]').forEach(btn =>
+      btn.addEventListener('click', () => { eq.setActiveChannel(+(btn.dataset.ch ?? '0')); sel = 0; renderModeChan(); bandButtons(); renderDyn(); }));
+  }
+  (root.querySelector('#eqMode') as HTMLSelectElement).addEventListener('change', e => {
+    eq.setMode((e.target as HTMLSelectElement).value as 'stereo' | 'ms'); onChange();
+    sel = 0; renderModeChan(); bandButtons(); renderDyn();
+  });
+  renderModeChan();
 
   const freqs = new Float32Array(256);
   for (let i = 0; i < 256; i++) freqs[i] = xToFreq(i / 255 * W, W);
