@@ -41,6 +41,7 @@ export function channelStripHTML(ch: ChannelState, index: number, selected: bool
     <div class="chMix">
       <div class="knobCell" title="Volumen (arrastra ↕ · doble-clic resetea)"><div class="knob" data-vol="${ch.id}"></div><span>Vol</span></div>
       <div class="knobCell" title="Paneo (arrastra ↕ · doble-clic centra)"><div class="knob" data-pan="${ch.id}"></div><span>Pan</span></div>
+      <div class="knobCell" title="Humanizar (arrastra ↕ · doble-clic a 0): desvía un poco tiempo e intensidad"><div class="knob" data-hum="${ch.id}"></div><span>Human</span></div>
     </div>
   </div>`;
 }

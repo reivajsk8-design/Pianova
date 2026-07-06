@@ -90,6 +90,12 @@ resto opera sobre el canal activo (`analyser` como getter). Persistencia: modo `
 
 **Estudio · longitud de nota + duplicar patrón (v0.28.0):** cada nota del piano-roll puede durar varios pasos. `Step` gana `len` (pasos; ausente ⇒ 1); el secuenciador usa una puerta variable **gate = len × segundos_por_paso** en vez de la fija 0,12 s (`channel.trigger`/`playSlice` la aceptan; batería one-shot, slicer recorta con fade). En el piano-roll se **pinta arrastrando** (clic = 1 paso, arrastrar ▸ = barra, clic en la nota = borrar; pointer events, monofónico) — `daw/model.ts` `effectiveLen`/`paintNote`, `ui/pianoRoll.ts`. Nuevo botón **⧉ Duplicar patrón** (`duplicatePattern`, copia profunda + reindexa la canción). Compat v0.27 → `len` 1 (mismo sonido).
 
+**Estudio · humanizar por canal (v0.29.0):** mando **Human** (0–100 %) en cada tira del MIXER que, al
+reproducir, desvía un poco el **tiempo** (±20 ms) y la **intensidad/velocity** (±0,25) de cada nota, escalado por
+la cantidad y recalculado por disparo (más humano). No destructivo (no toca las notas; a 0 suena exacto). Helper
+puro `daw/humanize.ts` `humanizeHit(amount,rnd)`; `ChannelState.humanize` persistido; aplicado en `onStep` con
+`Math.random`; knob en `ui/channelstrip.ts`. Compat v0.28 → `humanize` 0.
+
 **Estudio · EQ gráfico paramétrico E1 (v0.25.0):** nuevo efecto de inserción **"EQ gráfico"** (canal o máster):
 cadena de **8 biquads** (lowshelf · 6 picos · highshelf) con **editor gráfico** en overlay — curva de respuesta,
 **espectro en tiempo real** (AnalyserNode) detrás, **8 nodos arrastrables** (arrastrar = frec./ganancia · rueda =
