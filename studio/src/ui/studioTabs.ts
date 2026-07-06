@@ -3,7 +3,7 @@
 export type StudioTab = 'pads' | 'samples' | 'mixer';
 
 export function studioTabsHTML(active: StudioTab): string {
-  const tab = (id: StudioTab, label: string) =>
-    `<button class="pvTab${active === id ? ' on' : ''}" data-tab="${id}">${label}</button>`;
-  return `<div class="pvTabs">${tab('pads', 'PADS')}${tab('samples', 'SAMPLES')}${tab('mixer', 'MIXER')}</div>`;
+  const tab = (id: StudioTab, label: string, key: number) =>
+    `<button class="pvTab${active === id ? ' on' : ''}" data-tab="${id}" title="Atajo: tecla ${key}">${label}</button>`;
+  return `<div class="pvTabs">${tab('pads', 'PADS', 1)}${tab('samples', 'SAMPLES', 2)}${tab('mixer', 'MIXER', 3)}</div>`;
 }
