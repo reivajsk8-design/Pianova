@@ -73,6 +73,13 @@ fijo (`.fxCard` ~156px, knobs en rejilla 2×N); mover efectos ahora es **◀/▶
 (menos márgenes/padding; teclado 160→140px). Solo presentación (`app/studioView.ts` + `ui/rack.ts` +
 `ui/styles.css`); el motor y la lógica de efectos (añadir/bypass/mover/quitar/persistencia) no cambian.
 
+**Estudio · EQ dinámico por banda E2 (v0.26.0):** el EQ gráfico gana **dinámica por banda** (estilo F6): cada
+banda tiene un **detector** (paso-banda→analyser) y un bucle de control (~60 Hz) que suma un **offset de
+ganancia** según **umbral/rango/ataque/liberación** (`EqDyn` en `fx/eq-core.ts`; `dynTarget`/`envCoef`
+testeados). En el editor, los botones 1–8 **seleccionan** la banda y aparece su panel (**Activa** + **Dinámico**
++ 4 knobs); la curva "respira" en vivo y los nodos con dinámica se ven en ámbar. Control-rate (sin worklet ni
+deps); proyectos v0.25 cargan con la dinámica apagada. Pendiente **E2b: mid/side**.
+
 **Estudio · EQ gráfico paramétrico E1 (v0.25.0):** nuevo efecto de inserción **"EQ gráfico"** (canal o máster):
 cadena de **8 biquads** (lowshelf · 6 picos · highshelf) con **editor gráfico** en overlay — curva de respuesta,
 **espectro en tiempo real** (AnalyserNode) detrás, **8 nodos arrastrables** (arrastrar = frec./ganancia · rueda =
