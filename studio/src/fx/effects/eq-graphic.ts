@@ -84,7 +84,12 @@ function createEqEffect(actx: AudioContext, state?: EffectState): Effect {
       const tot = new Float32Array(N).fill(1);
       for (const n of nodes) { n.getFrequencyResponse(freqs as Float32Array<ArrayBuffer>, mag, ph); for (let i = 0; i < N; i++) tot[i] *= mag[i]; }
       return tot;
-    }
+    },
+    mode: () => 'stereo',
+    setMode: () => { /* implementado en E2b */ },
+    channelLabels: () => ['Estéreo'],
+    activeChannel: () => 0,
+    setActiveChannel: () => { /* implementado en E2b */ }
   };
 
   return {
