@@ -112,7 +112,7 @@ export function mountEqEditor(root: HTMLElement, eq: EqApi, onChange: () => void
     if (i < 0) return; e.preventDefault();
     const q = eq.getBands()[i].q;
     eq.setBand(i, { q: Math.max(Q_MIN, Math.min(Q_MAX, q * (e.deltaY > 0 ? 0.9 : 1.1))) });
-    sel = i; onChange(); bandButtons();
+    sel = i; onChange(); bandButtons(); renderDyn();   // la rueda también cambia de banda: refresca el panel
   }, { passive: false });
 
   (root.querySelector('#eqPreset') as HTMLSelectElement).addEventListener('change', ev => {
