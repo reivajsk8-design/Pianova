@@ -46,6 +46,9 @@ export function mountLibraryPanel(
     });
     (root.querySelector('#libSearch') as HTMLInputElement).addEventListener('input', e => {
       query = (e.target as HTMLInputElement).value; render();
+      // El render recrea el <input>; devuelve el foco y el cursor al final para poder seguir escribiendo.
+      const s = root.querySelector('#libSearch') as HTMLInputElement | null;
+      if (s) { s.focus(); const n = s.value.length; s.setSelectionRange(n, n); }
     });
     root.querySelectorAll<HTMLElement>('[data-dir]').forEach(el => el.addEventListener('click', () => {
       const node = findNode(lib.tree(), el.dataset.dir ?? ''); if (node) { lib.setCurrent(node); query = ''; render(); }
