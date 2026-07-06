@@ -2,6 +2,7 @@
 import type { RackState } from '../fx/rack-core';
 import { DawState, ChannelState, Step, defaultDaw, defaultChannel, emptySteps } from '../daw/model';
 import { normalizeParams } from '../audio/synthx-dsp';
+import { safeSub } from '../daw/grid';
 import { serializeSamples, restoreSamples, clearSamples } from '../audio/sampleStore';
 
 export const PROJECT_VERSION = 3;
@@ -25,10 +26,12 @@ function rackOf(v: unknown): RackState {
 
 // Normaliza el instrumento de un canal (rellena/acota los params de synthx; deja synth/drum igual).
 function normalizeChannel(c: ChannelState): ChannelState {
+  // Sanea la subdivisión si viene corrupta (JSON editado a mano): cualquier valor presente no soportado → 4.
+  const subdiv = c.subdiv === undefined ? undefined : safeSub(c.subdiv);
   if (c.instrument && c.instrument.kind === 'synthx') {
-    return { ...c, instrument: { kind: 'synthx', params: normalizeParams(c.instrument.params) } };
+    return { ...c, subdiv, instrument: { kind: 'synthx', params: normalizeParams(c.instrument.params) } };
   }
-  return c;
+  return { ...c, subdiv };
 }
 
 // Acepta un DawState v3 ya formado (con valores por defecto si faltan campos).

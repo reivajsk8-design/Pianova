@@ -7,7 +7,8 @@ export const SUBDIVS = [2, 4, 8] as const;    // 1/8, 1/16, 1/32
 export const SUBDIV_LABELS: Record<number, string> = { 2: '1/8', 4: '1/16', 8: '1/32' };
 
 // Subdivisión válida (2/4/8); cualquier otra cosa se trata como 4 (1/16).
-function safeSub(subdiv: number): number {
+// Subdivisión válida (2/4/8); cualquier otra cosa se trata como 4 (1/16).
+export function safeSub(subdiv: number): number {
   return subdiv === 2 || subdiv === 4 || subdiv === 8 ? subdiv : 4;
 }
 
