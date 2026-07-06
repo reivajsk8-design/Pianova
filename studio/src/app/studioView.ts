@@ -34,7 +34,8 @@ import { equalSlices, detectOnsets, marksToSlices, sliceIndexForNote, updateSlic
 import { playSlice } from '../audio/slicer';
 import { mountSampleEditor } from '../ui/sampleEditor';
 import type { SampleEditorHandle } from '../ui/sampleEditor';
-import { mountEqEditor, EqEditorHandle } from '../ui/eqEditor';
+import { mountEqEditor } from '../ui/eqEditor';
+import type { EqEditorHandle } from '../ui/eqEditor';
 import type { Effect } from '../fx/effect';
 
 const STEPS_PER_BEAT = 4;
