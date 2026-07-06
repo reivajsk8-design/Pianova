@@ -27,8 +27,10 @@ export function mountPianoRoll(
 ): PianoRollUI {
   let low = Math.max(0, Math.min(127 - ROWS, opts.lowMidi));
   let live = new Set<number>();
-  // Arrastre en curso: cabeza ancla, fila, si empezó sobre una nota, x inicial, largo actual, si hubo arrastre.
-  let ds: { anchor: number; startM: number; onNote: boolean; downX: number; len: number; moved: boolean; cellsEl: HTMLElement } | null = null;
+  // Arrastre en curso: cabeza ancla, fila, si empezó sobre una nota, x/posición iniciales, largo inicial y
+  // actual, si hubo arrastre. `len0`/`downPos` permiten redimensionar de forma RELATIVA (el borde sigue al
+  // dedo sin saltar aunque agarres la nota por el centro).
+  let ds: { anchor: number; startM: number; onNote: boolean; downX: number; downPos: number; len0: number; len: number; moved: boolean; cellsEl: HTMLElement } | null = null;
 
   // Largo efectivo (clamp mín/fin) de la nota que empieza en la celda `i`.
   const barLen = (st: Step, i: number): number => Math.max(MIN_LEN, Math.min(st.len ?? 1, opts.total - i));
@@ -111,11 +113,13 @@ export function mountPianoRoll(
       const m = +(cellEl.dataset.m ?? '60');
       const cellsEl = cellEl.parentElement as HTMLElement;
       const c = +(cellEl.dataset.i ?? '0');
-      const head = headAt(m, posAt(cellsEl, e.clientX));
+      const downPos = posAt(cellsEl, e.clientX);
+      const head = headAt(m, downPos);
       const hs = head != null ? opts.getStep(head) : undefined;
+      const len0 = hs ? barLen(hs, head as number) : 1;
       ds = {
-        anchor: head ?? c, startM: m, onNote: head != null, downX: e.clientX,
-        len: hs ? barLen(hs, head as number) : 1, moved: false, cellsEl
+        anchor: head ?? c, startM: m, onNote: head != null, downX: e.clientX, downPos,
+        len0, len: len0, moved: false, cellsEl
       };
       try { grid.setPointerCapture(e.pointerId); } catch { /* ya */ }
     });
@@ -123,7 +127,10 @@ export function mountPianoRoll(
       if (!ds) return;
       if (!ds.moved && Math.abs(e.clientX - ds.downX) < 4) return;   // umbral: distingue clic de arrastre
       ds.moved = true;
-      ds.len = Math.max(MIN_LEN, Math.min(snapLen(posAt(ds.cellsEl, e.clientX) - ds.anchor), opts.total - ds.anchor));
+      const posX = posAt(ds.cellsEl, e.clientX);
+      // Sobre una nota: redimensiona relativo (el borde sigue al dedo, sin salto). En hueco: nota desde el ancla.
+      const rawLen = ds.onNote ? ds.len0 + (posX - ds.downPos) : (posX - ds.anchor);
+      ds.len = Math.max(MIN_LEN, Math.min(snapLen(rawLen), opts.total - ds.anchor));
       showPreview(ds.startM, ds.anchor, ds.len);
     });
     const finish = (e: PointerEvent): void => {
