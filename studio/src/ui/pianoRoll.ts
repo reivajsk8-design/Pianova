@@ -1,8 +1,10 @@
 // studio/src/ui/pianoRoll.ts
-// Mini piano-roll por canal: filas = notas (~2 octavas), columnas = pasos. Monofónico por paso, con LONGITUD:
-// una nota empieza en un paso y ocupa `len` pasos (se dibuja como barra). Clic simple = nota de 1 paso;
-// pinchar y arrastrar a la derecha = alargar; clic sobre una nota = borrarla. Resalta la escala (informativo).
+// Mini piano-roll por canal: filas = notas (~2 octavas), columnas = pasos. Monofónico por paso, con LONGITUD
+// FRACCIONARIA: una nota empieza en un paso y dura `len` pasos (múltiplos de 1/4), y se dibuja como BARRA
+// proporcional sobre las celdas. Clic = nota de 1 paso; arrastrar el borde alarga o ACORTA (mín. 1/4); clic
+// sobre una nota la borra. Resalta la escala (informativo).
 import type { Step } from '../daw/model';
+import { MIN_LEN, snapLen } from '../daw/model';
 import { inScale, noteName } from '../daw/scales';
 
 const ROWS = 24;                            // ~2 octavas visibles
@@ -18,32 +20,52 @@ export function mountPianoRoll(
   opts: {
     total: number; lowMidi: number; scaleRoot: number; scaleType: string; beatEvery?: number;
     getStep: (i: number) => Step | undefined;
-    onPaint: (start: number, len: number, midi: number) => void;   // colocar/alargar
+    onPaint: (start: number, len: number, midi: number) => void;   // colocar/alargar/acortar
     onClear: (headIndex: number) => void;                          // borrar la nota cuyo head está aquí
     onRange: (lowMidi: number) => void;
   }
 ): PianoRollUI {
   let low = Math.max(0, Math.min(127 - ROWS, opts.lowMidi));
   let live = new Set<number>();
-  // Arrastre en curso: paso de inicio, nota de la fila, head bajo el inicio (o null), paso final, si hubo arrastre.
-  let ds: { startI: number; startM: number; head: number | null; end: number; moved: boolean } | null = null;
+  // Arrastre en curso: cabeza ancla, fila, si empezó sobre una nota, x inicial, largo actual, si hubo arrastre.
+  let ds: { anchor: number; startM: number; onNote: boolean; downX: number; len: number; moved: boolean; cellsEl: HTMLElement } | null = null;
 
-  // Celdas de la fila `midi`: cabeza (.on.head) + cuerpo cubierto (.cont). data-head apunta al paso de la cabeza.
+  // Largo efectivo (clamp mín/fin) de la nota que empieza en la celda `i`.
+  const barLen = (st: Step, i: number): number => Math.max(MIN_LEN, Math.min(st.len ?? 1, opts.total - i));
+
   function rowCells(midi: number): string {
-    let cells = '', coverUntil = -1, coverHead = -1;
+    let cells = '';
     for (let i = 0; i < opts.total; i++) {
-      const st = opts.getStep(i);
-      const isHead = !!(st && st.on && (st.note ?? 60) === midi);
-      let cls = '';
-      let head = -1;
-      if (isHead) {
-        const len = Math.max(1, Math.min(st!.len ?? 1, opts.total - i));
-        coverUntil = i + len - 1; coverHead = i; cls = ' on head'; head = i;
-      } else if (i <= coverUntil) { cls = ' cont'; head = coverHead; }
-      const hAttr = head >= 0 ? ` data-head="${head}"` : '';
-      cells += `<div class="prCell${i % (opts.beatEvery ?? 4) === 0 ? ' beat' : ''}${cls}" data-i="${i}" data-m="${midi}"${hAttr}></div>`;
+      cells += `<div class="prCell${i % (opts.beatEvery ?? 4) === 0 ? ' beat' : ''}" data-i="${i}" data-m="${midi}"></div>`;
     }
     return cells;
+  }
+  // Barras de nota de la fila (capa superpuesta, no interactiva): left/width en % del ancho de la fila.
+  function noteBars(midi: number): string {
+    let bars = '';
+    for (let i = 0; i < opts.total; i++) {
+      const st = opts.getStep(i);
+      if (st && st.on && (st.note ?? 60) === midi) {
+        const len = barLen(st, i);
+        bars += `<div class="prNote" style="left:${i / opts.total * 100}%;width:${len / opts.total * 100}%"></div>`;
+      }
+    }
+    return bars;
+  }
+
+  // Posición fraccionaria (en pasos) del puntero dentro de una fila de celdas.
+  function posAt(cellsEl: HTMLElement, clientX: number): number {
+    const r = cellsEl.getBoundingClientRect();
+    const p = (clientX - r.left) / (r.width / opts.total);
+    return Math.max(0, Math.min(opts.total, p));
+  }
+  // Cabeza (celda con nota de la fila `midi`) que cubre la posición fraccionaria `posX`, o null.
+  function headAt(midi: number, posX: number): number | null {
+    for (let i = 0; i < opts.total; i++) {
+      const st = opts.getStep(i);
+      if (st && st.on && (st.note ?? 60) === midi && posX >= i && posX < i + barLen(st, i)) return i;
+    }
+    return null;
   }
 
   function draw(): void {
@@ -53,13 +75,13 @@ export function mountPianoRoll(
       const cls = (BLACK.has(((midi % 12) + 12) % 12) ? ' black' : '') +
                   ((opts.scaleType !== 'chromatic' && inScale(midi, opts.scaleRoot, opts.scaleType)) ? ' inscale' : '');
       const liveCls = live.has(midi) ? ' live' : '';
-      rows += `<div class="prRow${cls}${liveCls}" data-m="${midi}"><span class="prLabel">${noteName(midi)}</span><div class="prCells">${rowCells(midi)}</div></div>`;
+      rows += `<div class="prRow${cls}${liveCls}" data-m="${midi}"><span class="prLabel">${noteName(midi)}</span><div class="prCells">${rowCells(midi)}${noteBars(midi)}</div></div>`;
     }
     root.innerHTML = `<div class="pr">
       <div class="prTools">
         <button class="chBtn" id="prUp" title="Subir una octava">▲</button>
         <button class="chBtn" id="prDown" title="Bajar una octava">▼</button>
-        <span class="prHint muted">clic = nota de 1 paso · arrastra ▸ para alargar · clic en la nota para borrar</span>
+        <span class="prHint muted">clic = nota de 1 paso · arrastra el borde para alargar o acortar · clic en la nota para borrar</span>
       </div>
       <div class="prGrid">${rows}</div>
     </div>`;
@@ -72,40 +94,45 @@ export function mountPianoRoll(
     });
 
     const grid = root.querySelector('.prGrid') as HTMLElement;
-    const clearPreview = (): void => grid.querySelectorAll('.prCell.pvsel').forEach(c => c.classList.remove('pvsel'));
-    const showPreview = (m: number, from: number, to: number): void => {
+    const clearPreview = (): void => grid.querySelectorAll('.prNote.preview').forEach(el => el.remove());
+    const showPreview = (m: number, anchor: number, len: number): void => {
       clearPreview();
-      grid.querySelectorAll<HTMLElement>(`.prCell[data-m="${m}"]`).forEach(c => {
-        const i = +(c.dataset.i ?? '-1'); if (i >= from && i <= to) c.classList.add('pvsel');
-      });
-    };
-    const cellAt = (x: number, y: number): HTMLElement | null => {
-      const el = document.elementFromPoint(x, y) as HTMLElement | null;
-      return (el && el.closest('.prCell')) as HTMLElement | null;
+      const cells = grid.querySelector(`.prRow[data-m="${m}"] .prCells`) as HTMLElement | null;
+      if (!cells) return;
+      const bar = document.createElement('div');
+      bar.className = 'prNote preview';
+      bar.style.left = anchor / opts.total * 100 + '%';
+      bar.style.width = len / opts.total * 100 + '%';
+      cells.appendChild(bar);
     };
 
     grid.addEventListener('pointerdown', e => {
-      const cell = (e.target as HTMLElement).closest('.prCell') as HTMLElement | null; if (!cell) return;
-      const i = +(cell.dataset.i ?? '0'), m = +(cell.dataset.m ?? '60');
-      ds = { startI: i, startM: m, head: cell.dataset.head != null ? +cell.dataset.head : null, end: i, moved: false };
+      const cellEl = (e.target as HTMLElement).closest('.prCell') as HTMLElement | null; if (!cellEl) return;
+      const m = +(cellEl.dataset.m ?? '60');
+      const cellsEl = cellEl.parentElement as HTMLElement;
+      const c = +(cellEl.dataset.i ?? '0');
+      const head = headAt(m, posAt(cellsEl, e.clientX));
+      const hs = head != null ? opts.getStep(head) : undefined;
+      ds = {
+        anchor: head ?? c, startM: m, onNote: head != null, downX: e.clientX,
+        len: hs ? barLen(hs, head as number) : 1, moved: false, cellsEl
+      };
       try { grid.setPointerCapture(e.pointerId); } catch { /* ya */ }
-      showPreview(m, i, i);
     });
     grid.addEventListener('pointermove', e => {
       if (!ds) return;
-      const cell = cellAt(e.clientX, e.clientY);
-      if (!cell || +(cell.dataset.m ?? '-1') !== ds.startM) return;
-      const i = +(cell.dataset.i ?? '0');
-      if (i > ds.startI) { ds.end = i; ds.moved = true; }
-      showPreview(ds.startM, ds.startI, Math.max(ds.startI, ds.end));
+      if (!ds.moved && Math.abs(e.clientX - ds.downX) < 4) return;   // umbral: distingue clic de arrastre
+      ds.moved = true;
+      ds.len = Math.max(MIN_LEN, Math.min(snapLen(posAt(ds.cellsEl, e.clientX) - ds.anchor), opts.total - ds.anchor));
+      showPreview(ds.startM, ds.anchor, ds.len);
     });
     const finish = (e: PointerEvent): void => {
       if (!ds) return; const d = ds; ds = null; clearPreview();
       try { grid.releasePointerCapture(e.pointerId); } catch { /* ya */ }
       if (!d.moved) {
-        if (d.head != null) opts.onClear(d.head);         // tocar una nota (cabeza o cuerpo) → borrar
-        else opts.onPaint(d.startI, 1, d.startM);          // tocar hueco → nota de 1 paso
-      } else { const s = d.head ?? d.startI; opts.onPaint(s, d.end - s + 1, d.startM); }   // arrastre → alarga desde la cabeza
+        if (d.onNote) opts.onClear(d.anchor);              // clic en nota → borrar
+        else opts.onPaint(d.anchor, 1, d.startM);           // clic en hueco → nota de 1 paso
+      } else opts.onPaint(d.anchor, d.len, d.startM);        // arrastre → alarga/acorta desde la cabeza
       draw();
     };
     grid.addEventListener('pointerup', finish);

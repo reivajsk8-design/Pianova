@@ -213,12 +213,14 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .prRow.live{box-shadow:inset 3px 0 0 0 var(--pv-acc),inset 0 0 0 999px rgba(45,255,106,.16)}
 .prRow.live .prLabel{color:#fff}
 .prLabel{flex:0 0 44px;font-size:9px;color:var(--pv-muted);display:flex;align-items:center;padding-left:6px;border-right:1px solid var(--pv-line)}
-.prCells{display:grid;flex:1;grid-auto-flow:column;grid-auto-columns:1fr}
+.prCells{display:grid;flex:1;grid-auto-flow:column;grid-auto-columns:1fr;position:relative}
 .prCell{border-right:1px solid #141a12;border-bottom:1px solid #141a12;cursor:pointer}
 .prCell.beat{border-left:1px solid #2b3324}
 .prCell.on{background:var(--pv-acc);box-shadow:0 0 6px var(--pv-acc-dim) inset}
 .prCell.play{background:rgba(255,255,255,.10)}
 .prCell.on.play{background:var(--pv-acc);outline:1px solid #fff;outline-offset:-1px}
+.prNote{position:absolute;top:1px;bottom:1px;background:var(--pv-acc);box-shadow:0 0 6px var(--pv-acc-dim) inset;border-radius:3px;pointer-events:none}
+.prNote.preview{opacity:.55}
 .prCell.cont{background:var(--pv-acc);box-shadow:0 0 6px var(--pv-acc-dim) inset;opacity:.85}
 .prCell.cont.play{background:var(--pv-acc);outline:1px solid #fff;outline-offset:-1px}
 .prCell.on.head,.prCell.cont{border-right-color:transparent}   /* unir la barra (sin línea interior) */
