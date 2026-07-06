@@ -18,3 +18,4 @@ import './equalizer';
 import './equalizer-bw';
 import './pitch';
 import './pink-noise';
+import './eq-graphic';
