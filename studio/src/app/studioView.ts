@@ -23,7 +23,7 @@ import { padLevel, activeSlices, type PadHit, type SliceHit } from '../ui/hitViz
 import {
   DawState, ChannelState, InstrumentSpec, defaultChannel, addChannel, removeChannel,
   updateChannel, toggleStep, setStep, findChannel, audibleIds, channelSteps, effectiveLen,
-  addPattern, removePattern, setCurrentPattern, setSong, defaultSynthxInstrument, defaultSlicerInstrument,
+  addPattern, duplicatePattern, removePattern, setCurrentPattern, setSong, defaultSynthxInstrument, defaultSlicerInstrument,
   syncChannelIdSeed, defaultDaw, channelLen, addStepsPage, removeStepsPage, paintNote
 } from '../daw/model';
 import { loadStore, saveStore, downloadProject, readProjectFile, ProjectState, hydrateSamples } from './store';
@@ -533,6 +533,7 @@ export function mountStudioView(root: HTMLElement): void {
     const pat = t.getAttribute('data-pat');
     if (pat) { daw = setCurrentPattern(daw, +pat); persist(); renderSelected(); renderPatternBar(); return; }
     if (t.hasAttribute('data-patadd')) { daw = addPattern(daw); persist(); renderSelected(); renderPatternBar(); return; }
+    if (t.hasAttribute('data-patdup')) { daw = duplicatePattern(daw, daw.current); persist(); renderSelected(); renderPatternBar(); return; }
     if (t.hasAttribute('data-patdel')) { daw = removePattern(daw, daw.current); persist(); renderSelected(); renderPatternBar(); return; }
     if (t.hasAttribute('data-songtoggle')) { songMode = !songMode; renderPatternBar(); return; }
     if (t.hasAttribute('data-songadd')) { daw = setSong(daw, [...daw.song, daw.current]); persist(); renderPatternBar(); return; }
