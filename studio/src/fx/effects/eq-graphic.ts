@@ -4,7 +4,7 @@
 import { registerEffect, Effect, EffectState } from '../effect';
 import { ramp } from '../param';
 import {
-  EqApi, EqBand, BAND_TYPES, defaultBands, bandsFromParams, bandsToParams, presetBands, presetNames
+  EqApi, EqBand, EqDyn, BAND_TYPES, defaultBands, bandsFromParams, bandsToParams, presetBands, presetNames
 } from '../eq-core';
 
 let _idc = 0;
@@ -38,6 +38,7 @@ function createEqEffect(actx: AudioContext, state?: EffectState): Effect {
   const eq: EqApi = {
     getBands: () => bands.map(b => ({ ...b })),
     setBand: (i, patch) => { bands[i] = { ...bands[i], ...patch }; applyBand(i); },
+    setDyn: (i, patch) => { bands[i] = { ...bands[i], dyn: { ...bands[i].dyn, ...patch } }; },
     reset: () => { bands = defaultBands(); bands.forEach((_, i) => applyBand(i)); },
     applyPreset: (name) => { bands = presetBands(name); bands.forEach((_, i) => applyBand(i)); },
     presetNames,

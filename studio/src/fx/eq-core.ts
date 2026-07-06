@@ -3,12 +3,14 @@
 // y matemática del canvas (frecuencia log / ganancia dB). Sin DOM ni Web Audio → testeable.
 
 export type EqBandType = 'lowshelf' | 'peaking' | 'highshelf';
-export interface EqBand { type: EqBandType; freq: number; gain: number; q: number; on: boolean }
+export interface EqDyn { on: boolean; threshold: number; range: number; attack: number; release: number }
+export interface EqBand { type: EqBandType; freq: number; gain: number; q: number; on: boolean; dyn: EqDyn }
 
 // API que el efecto EQ expone para su editor a medida.
 export interface EqApi {
   getBands(): EqBand[];
   setBand(i: number, patch: Partial<EqBand>): void;
+  setDyn(i: number, patch: Partial<EqDyn>): void;
   reset(): void;
   applyPreset(name: string): void;
   presetNames(): string[];
@@ -31,8 +33,9 @@ export const EQ_PRESETS: Record<string, number[]> = {
   'Loudness':  [4, 2, 0, -1, 0, 1, 3, 4]
 };
 
+export function defaultDyn(): EqDyn { return { on: false, threshold: -24, range: -6, attack: 20, release: 150 }; }
 export function defaultBands(): EqBand[] {
-  return BAND_TYPES.map((t, i) => ({ type: t, freq: DEFAULT_FREQS[i], gain: 0, q: 1, on: true }));
+  return BAND_TYPES.map((t, i) => ({ type: t, freq: DEFAULT_FREQS[i], gain: 0, q: 1, on: true, dyn: defaultDyn() }));
 }
 export function presetNames(): string[] { return Object.keys(EQ_PRESETS); }
 export function presetBands(name: string): EqBand[] {
@@ -42,7 +45,11 @@ export function presetBands(name: string): EqBand[] {
 
 export function bandsToParams(bands: EqBand[]): Record<string, number> {
   const p: Record<string, number> = {};
-  bands.forEach((b, i) => { p[`b${i}_freq`] = b.freq; p[`b${i}_gain`] = b.gain; p[`b${i}_q`] = b.q; p[`b${i}_on`] = b.on ? 1 : 0; });
+  bands.forEach((b, i) => {
+    p[`b${i}_freq`] = b.freq; p[`b${i}_gain`] = b.gain; p[`b${i}_q`] = b.q; p[`b${i}_on`] = b.on ? 1 : 0;
+    p[`b${i}_dyn_on`] = b.dyn.on ? 1 : 0; p[`b${i}_thr`] = b.dyn.threshold; p[`b${i}_range`] = b.dyn.range;
+    p[`b${i}_atk`] = b.dyn.attack; p[`b${i}_rel`] = b.dyn.release;
+  });
   return p;
 }
 export function bandsFromParams(params: Record<string, number>): EqBand[] {
@@ -51,7 +58,14 @@ export function bandsFromParams(params: Record<string, number>): EqBand[] {
     freq: params[`b${i}_freq`] ?? b.freq,
     gain: params[`b${i}_gain`] ?? b.gain,
     q: params[`b${i}_q`] ?? b.q,
-    on: params[`b${i}_on`] !== undefined ? params[`b${i}_on`] === 1 : b.on
+    on: params[`b${i}_on`] !== undefined ? params[`b${i}_on`] === 1 : b.on,
+    dyn: {
+      on: params[`b${i}_dyn_on`] !== undefined ? params[`b${i}_dyn_on`] === 1 : b.dyn.on,
+      threshold: params[`b${i}_thr`] ?? b.dyn.threshold,
+      range: params[`b${i}_range`] ?? b.dyn.range,
+      attack: params[`b${i}_atk`] ?? b.dyn.attack,
+      release: params[`b${i}_rel`] ?? b.dyn.release
+    }
   }));
 }
 
@@ -71,4 +85,16 @@ export function bandAt(bands: EqBand[], px: number, py: number, w: number, h: nu
     if (d < bd) { bd = d; best = i; }
   });
   return best;
+}
+
+// Desplazamiento de ganancia objetivo (dB) de una banda dinámica: 0 si el nivel no supera el umbral,
+// si no proporcional (0..1 a lo largo de `knee` dB) hasta `range` (negativo = corta, positivo = sube).
+export function dynTarget(levelDb: number, threshold: number, range: number, knee = 18): number {
+  const over = levelDb - threshold;
+  if (over <= 0) return 0;
+  return range * Math.min(1, over / knee);
+}
+// Coeficiente de envolvente por tick (0..1): 1 - e^(-dt/tau). Menor tau ⇒ mayor coef (más rápido).
+export function envCoef(tauMs: number, dtMs: number): number {
+  return 1 - Math.exp(-dtMs / Math.max(1, tauMs));
 }
