@@ -444,6 +444,10 @@ export function mountStudioView(root: HTMLElement): void {
       if (panEl) mountKnob(panEl, { min: -1, max: 1, value: c.pan, default: 0, size: 34, onChange: v => {
         daw = updateChannel(daw, c.id, { pan: v }); channels.find(a => a.id === c.id)?.setPan(v); persist();
       } });
+      const humEl = host.querySelector(`[data-hum="${c.id}"]`) as HTMLElement;
+      if (humEl) mountKnob(humEl, { min: 0, max: 1, value: c.humanize ?? 0, default: 0, size: 34, onChange: v => {
+        daw = updateChannel(daw, c.id, { humanize: v }); persist();
+      } });
     }
   }
   function renderSelectedRack(): void {
