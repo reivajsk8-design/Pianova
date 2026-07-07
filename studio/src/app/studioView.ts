@@ -599,7 +599,8 @@ export function mountStudioView(root: HTMLElement): void {
       if (daw.channels.length <= 1) return;
       const audio = channels.find(a => a.id === del); if (audio) { audio.dispose(); channels = channels.filter(a => a.id !== del); }
       daw = removeChannel(daw, del);
-      for (const pre of ['vol', 'pan', 'human']) modEngine.unregister(`${pre}:${del}`);
+      for (const pre of ['vol', 'pan', 'human']) modEngine.forget(`${pre}:${del}`);
+      modEngine.forgetPrefix(`fx:${del}:`);
       if (selectedId === del) selectedId = daw.channels[0].id;
       routeKeyboardToSelected(); applyAudible(); persist(); renderPads(); renderSelected(); renderMixer(); renderSelectedRack(); return;
     }
@@ -662,7 +663,7 @@ export function mountStudioView(root: HTMLElement): void {
   }
   function visualTick(): void {
     const now = getAudioContext()?.currentTime ?? 0;
-    if (modEngine.isActive()) modEngine.tick(now);
+    if (modEngine.isActive() || modEngine.hasResidual()) modEngine.tick(now);
     const playing = seq.isPlaying();
     if (playing) {
       const len = channelLen(daw, selectedId);
@@ -674,7 +675,7 @@ export function mountStudioView(root: HTMLElement): void {
     for (let k = sliceHits.length - 1; k >= 0; k--) if (now - sliceHits[k].t >= sliceHits[k].dur) sliceHits.splice(k, 1);   // poda slices
     paintPads(now);
     sampleHandle?.setActiveSlices(activeSlices(sliceHits, now));
-    if (playing || padHits.size || sliceHits.length || modEngine.isActive()) visRaf = requestAnimationFrame(visualTick);
+    if (playing || padHits.size || sliceHits.length || modEngine.isActive() || modEngine.hasResidual()) visRaf = requestAnimationFrame(visualTick);
     else { visRaf = 0; clearPads(); sampleHandle?.setActiveSlices([]); }
   }
   function ensureVisualLoop(): void { if (!visRaf) visRaf = requestAnimationFrame(visualTick); }

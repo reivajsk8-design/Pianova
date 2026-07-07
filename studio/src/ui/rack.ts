@@ -78,7 +78,7 @@ export function mountRack(root: HTMLElement, rack: Rack, title: string, onChange
           valSpan.textContent = fmtVal(q, p.unit, p.step);
           onChange();
         },
-        onModulate: (v) => { e.setParam(p.name, Math.round(v / p.step) * p.step); },   // solo audio, sin persistir
+        onModulate: (v) => { e.modulateParam(p.name, Math.round(v / p.step) * p.step); },   // solo audio, sin guardar
         onModChanged: onChange,                                                         // persistir asignación
       });
     });

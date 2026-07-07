@@ -65,13 +65,22 @@ export const modEngine = {
   setLfo(i: number, patch: Partial<LfoConfig>): void { if (lfos[i]) { lfos[i] = { ...lfos[i], ...patch }; wake?.(); } },
   getAssign(id: string): Assignment | undefined { const a = assign[id]; return a ? { ...a } : undefined; },
   assign(id: string, lfo: number, depth: number): void { assign[id] = { lfo, depth: clamp(depth, 0, 1) }; wake?.(); },
-  unassign(id: string): void { delete assign[id]; },
+  unassign(id: string): void { delete assign[id]; wake?.(); },
+  // Limpia destino runtime Y asignación de un id concreto (p.ej. al borrar un canal).
+  forget(id: string): void { targets.delete(id); delete assign[id]; },
+  // Limpia todos los destinos/asignaciones cuyo id empiece por `prefix` (p.ej. `fx:${chId}:`).
+  forgetPrefix(prefix: string): void {
+    for (const k of Array.from(targets.keys())) if (k.startsWith(prefix)) targets.delete(k);
+    for (const k of Object.keys(assign)) if (k.startsWith(prefix)) delete assign[k];
+  },
   setBpm(v: number): void { bpm = v; },
   setWake(fn: () => void): void { wake = fn; },
   isActive(): boolean {
     for (const id of Object.keys(assign)) { const a = assign[id]; if (lfos[a.lfo]?.on && targets.has(id)) return true; }
     return false;
   },
+  // true mientras queda algún destino por restaurar a su base (frame extra tras apagar/desasignar el último LFO).
+  hasResidual(): boolean { return activePrev.size > 0; },
   tick(timeSec: number): void {
     const nowActive = new Set<string>();
     for (const id of Object.keys(assign)) {

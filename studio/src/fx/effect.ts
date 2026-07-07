@@ -15,6 +15,7 @@ export interface Effect {
   input: AudioNode;
   output: AudioNode;
   setParam(name: string, value: number): void;
+  modulateParam(name: string, value: number): void;   // aplica al audio SIN guardar (para el LFO)
   getParams(): ParamSpec[];
   getValues(): Record<string, number>;
   isBypassed(): boolean;
@@ -70,6 +71,7 @@ export function makeEffect(
   return {
     id, type, input, output,
     setParam,
+    modulateParam: (name: string, value: number) => apply(name, value),
     getParams: () => params,
     getValues: () => ({ ...values }),
     isBypassed: () => bypassed,

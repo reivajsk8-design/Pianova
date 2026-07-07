@@ -88,6 +88,7 @@ function createEqEffect(actx: AudioContext, state?: EffectState): Effect {
   return {
     id: 'eq-graphic-' + (++_idc), type: 'eq-graphic', input, output,
     setParam: () => { /* el EQ se edita por su editor gráfico */ },
+    modulateParam: () => { /* el EQ no se modula por knob */ },
     getParams: () => [],
     getValues: () => serializeParams(),
     isBypassed: () => bypassed,
