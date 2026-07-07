@@ -4,7 +4,7 @@ import { mountKeyboard } from '../ui/keyboard';
 import { connectMidi } from '../midi/input';
 import { ensureAudio, getAudioContext } from '../audio/context';
 import { masterDest } from '../audio/masterBus';
-import { noteOn, noteOff, allNotesOff, setPreset, setSynthOut, triggerPreset } from '../audio/synth';
+import { noteOn, noteOff, allNotesOff, setPreset, setSynthOut, triggerPreset, getPresetNames } from '../audio/synth';
 import { noteName } from '../daw/scales';
 import { SONGS, songRange, songsByLevel, type LearnSong } from '../learn/song';
 import { makePractice, targetNote, judge, type PracticeState } from '../learn/practice';
@@ -44,6 +44,10 @@ export function mountLearnView(root: HTMLElement): void {
   let range = keyboardRange(song);
   let midiReady = false;
   let imported = loadImported();
+  let instrument = 'piano';
+  let wasHidden = true;                 // para re-medir el lienzo al mostrarse la pestaña
+  const LEARN_GAIN = 0.3;               // atenuación de Aprender antes del maestro (evita la distorsión)
+  let learnBus: GainNode | null = null;
 
   root.innerHTML = `
     <div class="lnWrap">
@@ -51,6 +55,7 @@ export function mountLearnView(root: HTMLElement): void {
         <label class="fld">Modo <select id="lnMode"><option value="practice">Practicar</option><option value="listen">Escuchar</option></select></label>
         <label class="fld">Nivel <select id="lnLevel"><option value="1">Fácil</option><option value="2">Medio</option><option value="3">Difícil</option><option value="imp">Importadas</option></select></label>
         <label class="fld">Canción <select id="lnSong"></select></label>
+        <label class="fld">Instrumento <select id="lnInst"></select></label>
         <button id="lnOpenMid" title="Importar un archivo .mid">📂 .mid</button>
         <input id="lnMidFile" type="file" accept=".mid,.midi" hidden>
         <button id="lnStart">▶ Empezar</button>
@@ -70,6 +75,7 @@ export function mountLearnView(root: HTMLElement): void {
   const connEl = root.querySelector('#lnConn') as HTMLElement;
   const songSel = root.querySelector('#lnSong') as HTMLSelectElement;
   const levelSel = root.querySelector('#lnLevel') as HTMLSelectElement;
+  const instSel = root.querySelector('#lnInst') as HTMLSelectElement;
   const msgEl = root.querySelector('#lnMsg') as HTMLElement;
   const midFile = root.querySelector('#lnMidFile') as HTMLInputElement;
 
@@ -99,7 +105,20 @@ export function mountLearnView(root: HTMLElement): void {
     if (m != null) (kbHost.querySelector(`[data-midi="${m}"]`) as HTMLElement | null)?.classList.add('target');
   }
 
+  function ensureLearnBus(): GainNode {
+    if (!learnBus) {
+      const actx = ensureAudio();
+      learnBus = actx.createGain();
+      learnBus.gain.value = LEARN_GAIN;
+      learnBus.connect(masterDest());
+    }
+    return learnBus;
+  }
+  // Enruta el synth por el bus de Aprender con el instrumento elegido (para tocar en vivo).
+  function learnRoute(): void { setSynthOut(ensureLearnBus()); setPreset(instrument); }
+
   function handlePlay(m: number, v: number): void {
+    learnRoute();
     noteOn(m, v); litKey(m, true);
     if (mode === 'practice' && running) {
       const r = judge(practice, m);
@@ -140,7 +159,8 @@ export function mountLearnView(root: HTMLElement): void {
   }
 
   function frame(ts: number): void {
-    if (root.hidden) { lastTs = 0; requestAnimationFrame(frame); return; }
+    if (root.hidden) { lastTs = 0; wasHidden = true; requestAnimationFrame(frame); return; }
+    if (wasHidden) { wasHidden = false; resize(); }
     const dt = lastTs ? (ts - lastTs) / 1000 : 0; lastTs = ts;
     if (running) {
       const bps = song.bpm / 60;
@@ -158,7 +178,7 @@ export function mountLearnView(root: HTMLElement): void {
         const actx = getAudioContext();
         for (const n of song.notes) {
           if (n.startBeat > prev && n.startBeat <= songBeat) {
-            triggerPreset('piano', n.midi, 0.85, actx ? actx.currentTime : 0, n.dur / bps, masterDest());
+            triggerPreset(instrument, n.midi, 0.85, actx ? actx.currentTime : 0, n.dur / bps, ensureLearnBus());
             litKey(n.midi, true);
             lightTimers.push(window.setTimeout(() => litKey(n.midi, false), (n.dur / bps) * 1000));
           }
@@ -179,7 +199,7 @@ export function mountLearnView(root: HTMLElement): void {
     targetKey(undefined); draw();
   }
   function start(): void {
-    ensureAudio(); setPreset('piano'); setSynthOut(masterDest());
+    ensureAudio(); learnRoute();
     if (!midiReady) {
       midiReady = true;
       connectMidi({
@@ -206,6 +226,9 @@ export function mountLearnView(root: HTMLElement): void {
     song = songsForLevel().find(s => s.id === songSel.value) ?? song;
     range = keyboardRange(song); buildKeyboard(); resize(); reset();
   });
+  instSel.innerHTML = getPresetNames().map(([k, label]) => `<option value="${k}">${label}</option>`).join('');
+  instSel.value = instrument;
+  instSel.addEventListener('change', () => { instrument = instSel.value; });
   (root.querySelector('#lnOpenMid') as HTMLButtonElement).addEventListener('click', () => midFile.click());
   midFile.addEventListener('change', async () => {
     const file = midFile.files && midFile.files[0]; if (!file) return;
