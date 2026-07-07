@@ -77,6 +77,25 @@ export const SONGS: LearnSong[] = [
       q(76, 2), q(72), q(74), q(76), q(78), q(79),
       q(67, 2), q(67, 2),
     ]) },
+  { id: 'pantera-rosa', name: 'La Pantera Rosa', bpm: 110, level: 3,
+    // Mi menor. Parte A (tema) ×2 + Parte B (puente). Gracia corta → nota larga (estilo swing).
+    notes: seq([
+      // Parte A — 1ª vez: Re#→Mi Fa#→Sol (×2) · Do→Si · Mi→Sol · Si · La# · La-Sol-Mi-Re-Mi
+      q(63, 0.5), q(64, 1), q(66, 0.5), q(67, 1),
+      q(63, 0.5), q(64, 1), q(66, 0.5), q(67, 1),
+      q(72, 0.5), q(71, 1), q(64, 0.5), q(67, 1), q(71, 1), q(70, 2),
+      q(69), q(67), q(64), q(62), q(64, 2),
+      // Parte A — 2ª vez: … Si · Re(agudo) · Do-Si-Sol-Mi-Mi
+      q(63, 0.5), q(64, 1), q(66, 0.5), q(67, 1),
+      q(63, 0.5), q(64, 1), q(66, 0.5), q(67, 1),
+      q(72, 0.5), q(71, 1), q(64, 0.5), q(67, 1), q(71, 1), q(74, 2),
+      q(72), q(71), q(67), q(64), q(64, 2),
+      // Parte B — puente: Si-La-Sol-Mi · Re-Do-Si · Si-La-Sol-Mi · La-Sol-Fa#-Mi-Re#-Mi
+      q(71), q(69), q(67), q(64),
+      q(74), q(72), q(71, 2),
+      q(71), q(69), q(67), q(64),
+      q(69), q(67), q(66), q(64), q(63), q(64, 2),
+    ]) },
 ];
 
 // Rango de teclas de la canción (grave/agudo). Si está vacía, un octava alrededor de Do central.
