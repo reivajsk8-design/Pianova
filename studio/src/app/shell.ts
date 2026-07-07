@@ -1,6 +1,7 @@
 import { ensureAudio } from '../audio/context';
 import { testTone } from '../audio/masterBus';
 import { mountStudioView } from './studioView';
+import { mountLearnView } from './learnView';
 
 // Monta la barra superior (Estudio / Aprender) + arranque de audio. Vistas vacías por ahora.
 export function mountShell(root: HTMLElement): void {
@@ -17,11 +18,12 @@ export function mountShell(root: HTMLElement): void {
     </header>
     <main>
       <section id="viewStudio" class="view">DAW / groovebox — próximamente.</section>
-      <section id="viewLearn" class="view" hidden>Aprender instrumentos — próximamente.</section>
+      <section id="viewLearn" class="view" hidden></section>
     </main>`;
   const studio = root.querySelector('#viewStudio') as HTMLElement;
   const learn = root.querySelector('#viewLearn') as HTMLElement;
   mountStudioView(studio);
+  mountLearnView(learn);
   root.querySelectorAll<HTMLButtonElement>('.tab').forEach(btn => {
     btn.addEventListener('click', () => {
       root.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b === btn));

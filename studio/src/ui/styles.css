@@ -340,3 +340,14 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .modRow button{font-size:11px;background:#11151c;color:#c9d2c9;border:1px solid #23291f;border-radius:3px;padding:2px 6px;cursor:pointer}
 .modRow button.on{background:#2dff6a;color:#04120a;border-color:#2dff6a}
 .modDepth{display:flex;flex-direction:column;gap:2px;font-size:11px;color:#c9d2c9}
+
+/* --- Vista Aprender (F4a) --- */
+.lnWrap{padding:12px 18px;color:var(--ink)}
+.lnBar{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:10px}
+.lnConn{margin-left:auto;font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:4px 8px}
+.lnStage{max-width:720px}
+.lnLane{display:block;width:100%;height:260px;background:#0b0d12;border:1px solid var(--line);border-radius:8px 8px 0 0}
+.lnKb{width:100%}
+.lnKb .kb{max-width:none;margin:0}
+.kb-key.target{background:#2dff6a !important;box-shadow:0 0 12px rgba(45,255,106,.7)}
+.kb-black.target{background:#2dff6a !important}
