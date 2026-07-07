@@ -160,7 +160,7 @@ export function mountLearnView(root: HTMLElement): void {
 
   function frame(ts: number): void {
     if (root.hidden) { lastTs = 0; wasHidden = true; requestAnimationFrame(frame); return; }
-    if (wasHidden) { wasHidden = false; resize(); }
+    if (wasHidden) { wasHidden = false; resize(); ensureMidi(); }   // teclado físico listo al entrar en Aprender
     const dt = lastTs ? (ts - lastTs) / 1000 : 0; lastTs = ts;
     if (running) {
       const bps = song.bpm / 60;
@@ -198,16 +198,19 @@ export function mountLearnView(root: HTMLElement): void {
     songBeat = 0; prevBeat = -1; practice = makePractice(song.notes); running = false;
     targetKey(undefined); draw();
   }
+  // Suscribe el teclado MIDI (Arturia, etc.) a la vista Aprender. Idempotente. Se llama al MOSTRARSE la pestaña
+  // (para que el teclado físico funcione nada más entrar, como el de pantalla) y también al pulsar Empezar.
+  function ensureMidi(): void {
+    if (midiReady) return;
+    midiReady = true;
+    connectMidi({
+      onNoteOn: (m, v) => { if (root.hidden) return; handlePlay(m, v); },
+      onNoteOff: (m) => handleRelease(m),
+      onState: (names) => { connEl.textContent = 'MIDI: ' + (names.length ? names.join(', ') : '—'); },
+    }).catch(() => { connEl.textContent = 'MIDI: no disponible'; });
+  }
   function start(): void {
-    ensureAudio(); learnRoute();
-    if (!midiReady) {
-      midiReady = true;
-      connectMidi({
-        onNoteOn: (m, v) => { if (root.hidden) return; handlePlay(m, v); },
-        onNoteOff: (m) => handleRelease(m),
-        onState: (names) => { connEl.textContent = 'MIDI: ' + (names.length ? names.join(', ') : '—'); },
-      }).catch(() => { connEl.textContent = 'MIDI: no disponible'; });
-    }
+    ensureAudio(); learnRoute(); ensureMidi();
     reset(); running = true; lastTs = 0;
     if (mode === 'practice') targetKey(targetNote(practice)?.midi);
   }
