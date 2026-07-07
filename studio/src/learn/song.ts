@@ -56,6 +56,13 @@ export const SONGS: LearnSong[] = [
       q(67, 1.5), q(69, 0.5), q(67), q(64, 3),
       q(74, 2), q(74), q(71, 3), q(72, 2), q(72), q(67, 3),
     ]) },
+  { id: 'bingo', name: 'Bingo', bpm: 100, level: 2,
+    // Sol Sol Sol Re Mi Mi Re Sol Sol La Si Sol · Si Si Do Do Do La Si Si Si Sol Sol · La La · Fa# Mi Re Mi Fa# Fa# Fa#
+    notes: seq([
+      q(67), q(67), q(67), q(62), q(64), q(64), q(62), q(67), q(67), q(69), q(71), q(67),
+      q(71), q(71), q(72), q(72), q(72), q(69), q(71), q(71), q(71), q(67), q(67),
+      q(69), q(69), q(66), q(64), q(62), q(64), q(66), q(66), q(66),
+    ]) },
   // --- Difícil (nivel 3) ---
   { id: 'fur-elise', name: 'Für Elise', bpm: 80, level: 3,
     notes: seq([
