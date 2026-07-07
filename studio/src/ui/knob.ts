@@ -2,6 +2,7 @@
 // defecto. Táctil (pointer events). El indicador gira de -135° (mín) a +135° (máx), barrido de 270°.
 import { midiLearn } from '../midi/learn';
 import { openKnobMenu } from './knobMenu';
+import { modEngine } from '../mod/modEngine';
 
 // Ángulo del indicador para un valor (puro/testeable).
 export function valueToAngle(value: number, min: number, max: number): number {
@@ -17,6 +18,8 @@ export function wheelStepFraction(shift: boolean, ctrl: boolean): number {
 export interface KnobOpts {
   min: number; max: number; value: number; default?: number; size?: number; midiId?: string;
   onChange: (v: number) => void;
+  onModulate?: (v: number) => void;    // aplica SOLO al audio (para el LFO); sin guardar
+  onModChanged?: () => void;           // se llama al cambiar la asignación de LFO (para persistir)
 }
 export interface KnobUI { setValue(v: number): void }
 
@@ -68,6 +71,17 @@ export function mountKnob(root: HTMLElement, opts: KnobOpts): KnobUI {
     midiLearn.register(midiId, (v01) => { setValue(opts.min + v01 * range); opts.onChange(value); });
     refreshDot();
   }
+  const refreshModDot = (): void => { if (midiId) root.classList.toggle('modulated', !!modEngine.getAssign(midiId)); };
+  if (midiId && opts.onModulate) {
+    const om = opts.onModulate;
+    modEngine.register(midiId, {
+      min: opts.min, max: opts.max,
+      getBase: () => value,
+      applyAudio: (v) => om(v),
+      setVisual: (v) => { ind.style.transform = `rotate(${valueToAngle(v, opts.min, opts.max)}deg)`; },
+    });
+    refreshModDot();
+  }
   const openMenu = (x: number, y: number): void => openKnobMenu(x, y, {
     reset: opts.default !== undefined ? () => { setValue(opts.default as number); opts.onChange(value); } : undefined,
     typeValue: () => {
@@ -76,7 +90,9 @@ export function mountKnob(root: HTMLElement, opts: KnobOpts): KnobUI {
       const n = parseFloat(s.replace(',', '.'));
       if (!Number.isNaN(n)) { setValue(n); opts.onChange(value); }
     },
-    midiId, onChanged: refreshDot
+    midiId, onChanged: refreshDot,
+    modId: (midiId && opts.onModulate) ? midiId : undefined,
+    onModChanged: () => { refreshModDot(); opts.onModChanged?.(); },
   });
   root.addEventListener('contextmenu', e => { e.preventDefault(); openMenu(e.clientX, e.clientY); });
   // Long-press en táctil: abre el menú si mantienes sin arrastrar ~500 ms.
