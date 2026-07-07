@@ -1,5 +1,6 @@
 // Persistencia del Estudio (proyecto v3: groovebox con patrones). Migra v1/v2 a v3.
 import type { RackState } from '../fx/rack-core';
+import type { ModState } from '../mod/modEngine';
 import { DawState, ChannelState, Step, defaultDaw, defaultChannel, emptySteps } from '../daw/model';
 import { normalizeParams } from '../audio/synthx-dsp';
 import { safeSub } from '../daw/grid';
@@ -9,7 +10,7 @@ export const PROJECT_VERSION = 3;
 const KEY = 'estudio-v1';
 const emptyRack = (): RackState => ({ effects: [] });
 
-export interface ProjectState { version: number; daw: DawState; masterRack: RackState; samples?: Record<string, { name: string; b64: string }> }
+export interface ProjectState { version: number; daw: DawState; masterRack: RackState; samples?: Record<string, { name: string; b64: string }>; mod?: ModState }
 
 export function defaultProject(): ProjectState {
   return { version: PROJECT_VERSION, daw: defaultDaw(), masterRack: emptyRack() };
@@ -81,6 +82,7 @@ export function parseProject(json: string): ProjectState {
   const o = JSON.parse(json) as Record<string, unknown>;
   const base = migrate(o);
   base.samples = (o.samples && typeof o.samples === 'object' && !Array.isArray(o.samples)) ? o.samples as Record<string, { name: string; b64: string }> : {};
+  base.mod = (o.mod && typeof o.mod === 'object' && !Array.isArray(o.mod)) ? (o.mod as ModState) : undefined;
   return base;
 }
 

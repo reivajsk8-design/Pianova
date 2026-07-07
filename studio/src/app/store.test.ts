@@ -57,6 +57,22 @@ describe('proyecto v3', () => {
     const back = parseProject(serializeProject(project as never));
     expect(back.daw.patterns[0].steps[chId][0].extra).toEqual([{ note: 64 }, { note: 67 }]);
   });
+  it('conserva el banco de LFOs (mod) al serializar y parsear', () => {
+    const chId = 'ch-1';
+    const project = {
+      version: 3,
+      daw: {
+        channels: [{ id: chId, name: 'Canal', instrument: { kind: 'synth', preset: 'piano' }, volume: 0.8, pan: 0, muted: false, soloed: false, rack: { effects: [] } }],
+        patterns: [{ steps: { [chId]: [] } }],
+        current: 0, song: [], bpm: 120, steps: 16, swing: 0, scaleRoot: 0, scaleType: 'chromatic'
+      },
+      masterRack: { effects: [] },
+      mod: { lfos: [{ on: true, wave: 'tri', mode: 'free', rateKey: '1/4', hz: 3 }], assign: { [`vol:${chId}`]: { lfo: 0, depth: 0.4 } } }
+    };
+    const back = parseProject(serializeProject(project as never));
+    expect(back.mod?.lfos[0].wave).toBe('tri');
+    expect(back.mod?.assign[`vol:${chId}`]).toEqual({ lfo: 0, depth: 0.4 });
+  });
 });
 
 describe('store · synthx tolerante', () => {
