@@ -3,8 +3,9 @@
 // FRACCIONARIA: una nota empieza en un paso y dura `len` pasos (múltiplos de 1/4), y se dibuja como BARRA
 // proporcional sobre las celdas. Clic = nota de 1 paso; arrastrar el borde alarga o ACORTA (mín. 1/4); clic
 // sobre una nota la borra. Resalta la escala (informativo).
-import type { Step } from '../daw/model';
-import { MIN_LEN, snapLen } from '../daw/model';
+import type { Step, NoteEv } from '../daw/model';
+import { MIN_LEN, snapLen, stepNotes } from '../daw/model';
+import { CHORDS, chordNotes } from '../daw/chords';
 import { inScale, noteName } from '../daw/scales';
 
 const ROWS = 24;                            // ~2 octavas visibles
@@ -21,19 +22,24 @@ export function mountPianoRoll(
     total: number; lowMidi: number; scaleRoot: number; scaleType: string; beatEvery?: number;
     getStep: (i: number) => Step | undefined;
     onPaint: (start: number, len: number, midi: number) => void;   // colocar/alargar/acortar
-    onClear: (headIndex: number) => void;                          // borrar la nota cuyo head está aquí
+    onClear: (headIndex: number, midi: number) => void;             // borrar esa nota del acorde
     onRange: (lowMidi: number) => void;
   }
 ): PianoRollUI {
   let low = Math.max(0, Math.min(127 - ROWS, opts.lowMidi));
   let live = new Set<number>();
+  let chordType = 'none';   // tipo de acorde de la herramienta (— por defecto): estado local del piano-roll
   // Arrastre en curso: cabeza ancla, fila, si empezó sobre una nota, x/posición iniciales, largo inicial y
   // actual, si hubo arrastre. `len0`/`downPos` permiten redimensionar de forma RELATIVA (el borde sigue al
   // dedo sin saltar aunque agarres la nota por el centro).
   let ds: { anchor: number; startM: number; onNote: boolean; downX: number; downPos: number; len0: number; len: number; moved: boolean; cellsEl: HTMLElement } | null = null;
 
-  // Largo efectivo (clamp mín/fin) de la nota que empieza en la celda `i`.
-  const barLen = (st: Step, i: number): number => Math.max(MIN_LEN, Math.min(st.len ?? 1, opts.total - i));
+  // NoteEv de la tecla `midi` que empieza en el paso `i` (o undefined).
+  const noteAt = (i: number, midi: number): NoteEv | undefined =>
+    stepNotes(opts.getStep(i)).find(e => e.note === midi);
+
+  // Largo efectivo (clamp mín/fin) de una nota que empieza en la celda `i`.
+  const barLen = (ev: NoteEv, i: number): number => Math.max(MIN_LEN, Math.min(ev.len ?? 1, opts.total - i));
 
   function rowCells(midi: number): string {
     let cells = '';
@@ -42,13 +48,13 @@ export function mountPianoRoll(
     }
     return cells;
   }
-  // Barras de nota de la fila (capa superpuesta, no interactiva): left/width en % del ancho de la fila.
+  // Barras de nota de la fila (capa superpuesta, no interactiva): una barra por cada aparición de `midi`.
   function noteBars(midi: number): string {
     let bars = '';
     for (let i = 0; i < opts.total; i++) {
-      const st = opts.getStep(i);
-      if (st && st.on && (st.note ?? 60) === midi) {
-        const len = barLen(st, i);
+      const ev = noteAt(i, midi);
+      if (ev) {
+        const len = barLen(ev, i);
         bars += `<div class="prNote" style="left:${i / opts.total * 100}%;width:${len / opts.total * 100}%"></div>`;
       }
     }
@@ -61,11 +67,11 @@ export function mountPianoRoll(
     const p = (clientX - r.left) / (r.width / opts.total);
     return Math.max(0, Math.min(opts.total, p));
   }
-  // Cabeza (celda con nota de la fila `midi`) que cubre la posición fraccionaria `posX`, o null.
+  // Cabeza (paso con nota de la fila `midi`) que cubre la posición fraccionaria `posX`, o null.
   function headAt(midi: number, posX: number): number | null {
     for (let i = 0; i < opts.total; i++) {
-      const st = opts.getStep(i);
-      if (st && st.on && (st.note ?? 60) === midi && posX >= i && posX < i + barLen(st, i)) return i;
+      const ev = noteAt(i, midi);
+      if (ev && posX >= i && posX < i + barLen(ev, i)) return i;
     }
     return null;
   }
@@ -83,7 +89,10 @@ export function mountPianoRoll(
       <div class="prTools">
         <button class="chBtn" id="prUp" title="Subir una octava">▲</button>
         <button class="chBtn" id="prDown" title="Bajar una octava">▼</button>
-        <span class="prHint muted">clic = nota de 1 paso · arrastra el borde para alargar o acortar · clic en la nota para borrar</span>
+        <label class="prChord">Acorde
+          <select id="prChordSel">${Object.keys(CHORDS).map(k => `<option value="${k}"${k === chordType ? ' selected' : ''}>${CHORDS[k].label}</option>`).join('')}</select>
+        </label>
+        <span class="prHint muted">clic = nota (o acorde) · arrastra el borde para alargar/acortar · clic en la nota para borrar</span>
       </div>
       <div class="prGrid">${rows}</div>
     </div>`;
@@ -93,6 +102,9 @@ export function mountPianoRoll(
     });
     (root.querySelector('#prDown') as HTMLButtonElement).addEventListener('click', () => {
       low = Math.max(0, low - 12); opts.onRange(low); draw();
+    });
+    (root.querySelector('#prChordSel') as HTMLSelectElement).addEventListener('change', e => {
+      chordType = (e.target as HTMLSelectElement).value;
     });
 
     const grid = root.querySelector('.prGrid') as HTMLElement;
@@ -115,8 +127,8 @@ export function mountPianoRoll(
       const c = +(cellEl.dataset.i ?? '0');
       const downPos = posAt(cellsEl, e.clientX);
       const head = headAt(m, downPos);
-      const hs = head != null ? opts.getStep(head) : undefined;
-      const len0 = hs ? barLen(hs, head as number) : 1;
+      const hev = head != null ? noteAt(head, m) : undefined;
+      const len0 = hev ? barLen(hev, head as number) : 1;
       ds = {
         anchor: head ?? c, startM: m, onNote: head != null, downX: e.clientX, downPos,
         len0, len: len0, moved: false, cellsEl
@@ -137,9 +149,10 @@ export function mountPianoRoll(
       if (!ds) return; const d = ds; ds = null; clearPreview();
       try { grid.releasePointerCapture(e.pointerId); } catch { /* ya */ }
       if (!d.moved) {
-        if (d.onNote) opts.onClear(d.anchor);              // clic en nota → borrar
-        else opts.onPaint(d.anchor, 1, d.startM);           // clic en hueco → nota de 1 paso
-      } else opts.onPaint(d.anchor, d.len, d.startM);        // arrastre → alarga/acorta desde la cabeza
+        if (d.onNote) opts.onClear(d.anchor, d.startM);         // clic en nota → borrar esa nota
+        else for (const n of chordNotes(d.startM, chordType))   // clic en hueco → nota o acorde entero
+          opts.onPaint(d.anchor, 1, n);
+      } else opts.onPaint(d.anchor, d.len, d.startM);            // arrastre → alarga/acorta una sola nota
       draw();
     };
     grid.addEventListener('pointerup', finish);
