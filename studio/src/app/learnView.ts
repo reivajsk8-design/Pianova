@@ -6,13 +6,14 @@ import { ensureAudio, getAudioContext } from '../audio/context';
 import { masterDest } from '../audio/masterBus';
 import { noteOn, noteOff, allNotesOff, setPreset, setSynthOut, triggerPreset } from '../audio/synth';
 import { noteName } from '../daw/scales';
-import { SONGS, songRange, type LearnSong } from '../learn/song';
+import { SONGS, songRange, songsByLevel, type LearnSong } from '../learn/song';
 import { makePractice, targetNote, judge, type PracticeState } from '../learn/practice';
 import { keyLayout, keyGeomFor, type KeyGeom } from '../learn/geometry';
 import { parseMidiToMelody } from '../learn/midiFile';
 import { loadImported, addImported } from '../learn/importedSongs';
 
 const LOOKAHEAD = 4;   // beats visibles por encima de la línea de impacto
+const KB_LOW = 48, KB_HIGH = 84;   // Do3..Do6: teclado fijo cómodo (se amplía si la canción se sale)
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
   const rr = Math.min(r, w / 2, h / 2);
@@ -35,15 +36,20 @@ export function mountLearnView(root: HTMLElement): void {
   let practice: PracticeState = makePractice(song.notes);
   let lastTs = 0;
   let layout: KeyGeom[] = [];
-  let range = songRange(song);
+  let level: 1 | 2 | 3 | 'imp' = 1;
+  function keyboardRange(s: LearnSong): { low: number; high: number } {
+    const r = songRange(s);
+    return { low: Math.min(KB_LOW, r.low), high: Math.max(KB_HIGH, r.high) };
+  }
+  let range = keyboardRange(song);
   let midiReady = false;
   let imported = loadImported();
-  const allSongs = (): LearnSong[] => [...SONGS, ...imported];
 
   root.innerHTML = `
     <div class="lnWrap">
       <div class="lnBar">
         <label class="fld">Modo <select id="lnMode"><option value="practice">Practicar</option><option value="listen">Escuchar</option></select></label>
+        <label class="fld">Nivel <select id="lnLevel"><option value="1">Fácil</option><option value="2">Medio</option><option value="3">Difícil</option><option value="imp">Importadas</option></select></label>
         <label class="fld">Canción <select id="lnSong"></select></label>
         <button id="lnOpenMid" title="Importar un archivo .mid">📂 .mid</button>
         <input id="lnMidFile" type="file" accept=".mid,.midi" hidden>
@@ -63,12 +69,16 @@ export function mountLearnView(root: HTMLElement): void {
   const kbHost = root.querySelector('#lnKb') as HTMLElement;
   const connEl = root.querySelector('#lnConn') as HTMLElement;
   const songSel = root.querySelector('#lnSong') as HTMLSelectElement;
+  const levelSel = root.querySelector('#lnLevel') as HTMLSelectElement;
   const msgEl = root.querySelector('#lnMsg') as HTMLElement;
   const midFile = root.querySelector('#lnMidFile') as HTMLInputElement;
 
+  function songsForLevel(): LearnSong[] {
+    return level === 'imp' ? imported : songsByLevel(level);
+  }
   function renderSongOptions(): void {
-    songSel.innerHTML = allSongs()
-      .map(s => `<option value="${s.id}">${imported.includes(s) ? '🎵 ' : ''}${s.name}</option>`).join('');
+    songSel.innerHTML = songsForLevel()
+      .map(s => `<option value="${s.id}">${level === 'imp' ? '🎵 ' : ''}${s.name}</option>`).join('');
     songSel.value = song.id;
   }
 
@@ -76,7 +86,7 @@ export function mountLearnView(root: HTMLElement): void {
   function buildKeyboard(): void {
     kbCleanup?.();
     kbCleanup = mountKeyboard(kbHost, {
-      lowMidi: range.low, highMidi: range.high, baseMidi: range.low,
+      lowMidi: range.low, highMidi: range.high, baseMidi: Math.max(range.low, Math.min(range.high, 60)),
       onNoteOn: (m, v) => { if (root.hidden) return; handlePlay(m, v); },
       onNoteOff: (m) => handleRelease(m),
     });
@@ -185,9 +195,16 @@ export function mountLearnView(root: HTMLElement): void {
   (root.querySelector('#lnMode') as HTMLSelectElement).addEventListener('change', e => {
     mode = (e.target as HTMLSelectElement).value === 'listen' ? 'listen' : 'practice'; reset();
   });
+  levelSel.addEventListener('change', () => {
+    const v = levelSel.value;
+    level = v === 'imp' ? 'imp' : (Number(v) as 1 | 2 | 3);
+    const list = songsForLevel();
+    if (list.length) { song = list[0]; range = keyboardRange(song); buildKeyboard(); resize(); reset(); }
+    renderSongOptions();
+  });
   songSel.addEventListener('change', () => {
-    song = allSongs().find(s => s.id === songSel.value) ?? SONGS[0];
-    range = songRange(song); buildKeyboard(); resize(); reset();
+    song = songsForLevel().find(s => s.id === songSel.value) ?? song;
+    range = keyboardRange(song); buildKeyboard(); resize(); reset();
   });
   (root.querySelector('#lnOpenMid') as HTMLButtonElement).addEventListener('click', () => midFile.click());
   midFile.addEventListener('change', async () => {
@@ -200,9 +217,10 @@ export function mountLearnView(root: HTMLElement): void {
       const id = 'mid-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
       const s: LearnSong = { id, name, bpm, notes };
       addImported(s); imported = loadImported();
-      song = allSongs().find(x => x.id === id) ?? s;
+      level = 'imp'; levelSel.value = 'imp';
+      song = songsForLevel().find(x => x.id === id) ?? s;
       renderSongOptions();
-      range = songRange(song); buildKeyboard(); resize(); reset();
+      range = keyboardRange(song); buildKeyboard(); resize(); reset();
       msgEl.textContent = `Cargado: ${name} · ${notes.length} notas`;
     } catch (e) {
       msgEl.textContent = 'No pude leer el .mid (' + (e instanceof Error ? e.message : 'error') + ')';
