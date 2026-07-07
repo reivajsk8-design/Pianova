@@ -344,6 +344,7 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 /* --- Vista Aprender (F4a) --- */
 .lnWrap{padding:12px 18px;color:var(--ink)}
 .lnBar{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:10px}
+.lnMsg{font-size:12px;color:var(--muted)}   /* aviso de importación de .mid */
 .lnConn{margin-left:auto;font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:4px 8px}
 .lnStage{max-width:720px}
 .lnLane{display:block;width:100%;height:260px;background:#0b0d12;border:1px solid var(--line);border-radius:8px 8px 0 0}
