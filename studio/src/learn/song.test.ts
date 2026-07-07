@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SONGS, songRange } from './song';
+import { SONGS, songRange, songsByLevel } from './song';
 
 describe('canciones de Aprender', () => {
   it('hay al menos 3 canciones con id, nombre y notas', () => {
@@ -28,5 +28,15 @@ describe('canciones de Aprender', () => {
     expect(escala.notes[0].midi).toBe(60);
     expect(escala.notes[escala.notes.length - 1].midi).toBe(72);
     expect(songRange(escala)).toEqual({ low: 60, high: 72 });
+  });
+  it('todas las canciones a mano tienen nivel 1, 2 o 3', () => {
+    for (const s of SONGS) expect([1, 2, 3]).toContain(s.level);
+  });
+  it('songsByLevel filtra por nivel y hay al menos una por nivel', () => {
+    for (const lvl of [1, 2, 3] as const) {
+      const list = songsByLevel(lvl);
+      expect(list.length).toBeGreaterThanOrEqual(1);
+      expect(list.every(s => s.level === lvl)).toBe(true);
+    }
   });
 });
