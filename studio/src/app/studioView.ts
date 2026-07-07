@@ -711,7 +711,7 @@ export function mountStudioView(root: HTMLElement): void {
 
   // ---------- teclado ----------
   mountKeyboard(root.querySelector('#stKeyboard') as HTMLElement, {
-    onNoteOn: (m, v) => { audioOn(); playLive(m, v); },
+    onNoteOn: (m, v) => { if (root.hidden) return; audioOn(); playLive(m, v); },
     onNoteOff: (m) => stopLive(m),
     lowMidi: 60, highMidi: 84, baseMidi: 60
   });

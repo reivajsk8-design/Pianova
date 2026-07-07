@@ -28,6 +28,8 @@ export function mountLearnView(root: HTMLElement): void {
   let mode: 'practice' | 'listen' = 'practice';
   let running = false;
   let songBeat = 0;
+  let prevBeat = -1;              // último beat procesado en Escuchar (para no saltarse la nota del beat 0)
+  const lightTimers: number[] = [];   // timeouts de apagar el resaltado de tecla en Escuchar
   let practice: PracticeState = makePractice(song.notes);
   let lastTs = 0;
   let layout: KeyGeom[] = [];
@@ -59,7 +61,7 @@ export function mountLearnView(root: HTMLElement): void {
     kbCleanup?.();
     kbCleanup = mountKeyboard(kbHost, {
       lowMidi: range.low, highMidi: range.high, baseMidi: range.low,
-      onNoteOn: (m, v) => handlePlay(m, v),
+      onNoteOn: (m, v) => { if (root.hidden) return; handlePlay(m, v); },
       onNoteOff: (m) => handleRelease(m),
     });
   }
@@ -112,6 +114,7 @@ export function mountLearnView(root: HTMLElement): void {
   }
 
   function frame(ts: number): void {
+    if (root.hidden) { lastTs = 0; requestAnimationFrame(frame); return; }
     const dt = lastTs ? (ts - lastTs) / 1000 : 0; lastTs = ts;
     if (running) {
       const bps = song.bpm / 60;
@@ -123,14 +126,15 @@ export function mountLearnView(root: HTMLElement): void {
           if (songBeat >= t.startBeat) targetKey(t.midi);
         }
       } else {
-        const prev = songBeat;
+        const prev = prevBeat;
         songBeat += dt * bps;
+        prevBeat = songBeat;
         const actx = getAudioContext();
         for (const n of song.notes) {
           if (n.startBeat > prev && n.startBeat <= songBeat) {
             triggerPreset('piano', n.midi, 0.85, actx ? actx.currentTime : 0, n.dur / bps, masterDest());
             litKey(n.midi, true);
-            window.setTimeout(() => litKey(n.midi, false), (n.dur / bps) * 1000);
+            lightTimers.push(window.setTimeout(() => litKey(n.midi, false), (n.dur / bps) * 1000));
           }
         }
         const end = song.notes.reduce((mx, n) => Math.max(mx, n.startBeat + n.dur), 0);
@@ -142,9 +146,10 @@ export function mountLearnView(root: HTMLElement): void {
   }
 
   function reset(): void {
+    while (lightTimers.length) clearTimeout(lightTimers.pop());
     allNotesOff();
     kbHost.querySelectorAll('.kb-key.on').forEach(el => el.classList.remove('on'));
-    songBeat = 0; practice = makePractice(song.notes); running = false;
+    songBeat = 0; prevBeat = -1; practice = makePractice(song.notes); running = false;
     targetKey(undefined); draw();
   }
   function start(): void {
