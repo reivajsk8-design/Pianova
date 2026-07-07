@@ -2,12 +2,15 @@
 // Menú flotante de un knob (clic derecho / long-press): Resetear, Teclear valor, y —en los mapeables— Asignar/
 // Quitar MIDI. Más el aviso "Mueve un mando…" (Esc / clic fuera cancela el aprendizaje).
 import { midiLearn } from '../midi/learn';
+import { modEngine, LFO_COUNT } from '../mod/modEngine';
 
 export interface KnobMenuActions {
   reset?: () => void;
   typeValue: () => void;
   midiId?: string;
   onChanged: () => void;
+  modId?: string;
+  onModChanged?: () => void;
 }
 
 let menuEl: HTMLElement | null = null;
@@ -31,6 +34,7 @@ export function openKnobMenu(x: number, y: number, a: KnobMenuActions): void {
     items.push(`<button data-a="learn">🎹 Asignar MIDI</button>`);
     if (b) items.push(`<button data-a="clear">Quitar (CC ${b.cc})</button>`);
   }
+  if (a.modId) items.push(`<button data-a="mod">🌀 Modular (LFO)</button>`);
   const el = document.createElement('div'); el.className = 'midiMenu';
   el.style.left = x + 'px'; el.style.top = y + 'px';
   el.innerHTML = items.join('');
@@ -49,6 +53,36 @@ export function openKnobMenu(x: number, y: number, a: KnobMenuActions): void {
       midiLearn.clear(id); closeMenu(); a.onChanged();
     });
   }
+  if (a.modId) {
+    const mid = a.modId;
+    (el.querySelector('[data-a="mod"]') as HTMLButtonElement).addEventListener('click', () => renderModPanel(el, mid, a.onModChanged));
+  }
+}
+
+// Panel de asignación de LFO dentro del menú del knob: elige LFO (Ninguno / 1..N) y la profundidad.
+function renderModPanel(el: HTMLElement, modId: string, onModChanged?: () => void): void {
+  const cur = modEngine.getAssign(modId);
+  const depth = cur ? cur.depth : 0.5;
+  const btn = (i: number, label: string): string =>
+    `<button data-lfo="${i}" class="${(cur ? cur.lfo : -1) === i ? 'on' : ''}">${label}</button>`;
+  let lfoBtns = btn(-1, '—');
+  for (let i = 0; i < LFO_COUNT; i++) lfoBtns += btn(i, 'LFO ' + (i + 1));
+  el.innerHTML = `<div class="modPanel">
+    <div class="modRow">${lfoBtns}</div>
+    <label class="modDepth">Profundidad <input type="range" min="0" max="1" step="0.01" value="${depth}"></label>
+  </div>`;
+  const rangeEl = el.querySelector('input[type="range"]') as HTMLInputElement;
+  el.querySelectorAll<HTMLButtonElement>('[data-lfo]').forEach(b => b.addEventListener('click', () => {
+    const i = +(b.dataset.lfo ?? '-1');
+    if (i < 0) modEngine.unassign(modId);
+    else modEngine.assign(modId, i, parseFloat(rangeEl.value));
+    el.querySelectorAll<HTMLButtonElement>('[data-lfo]').forEach(x => x.classList.toggle('on', +(x.dataset.lfo ?? '-2') === i));
+    onModChanged?.();
+  }));
+  rangeEl.addEventListener('input', () => {
+    const a = modEngine.getAssign(modId);
+    if (a) { modEngine.assign(modId, a.lfo, parseFloat(rangeEl.value)); onModChanged?.(); }
+  });
 }
 
 // Cierra el menú al pulsar fuera; Esc / clic fuera cancela el aprendizaje armado. (Guardado con `typeof
