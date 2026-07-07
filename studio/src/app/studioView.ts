@@ -369,6 +369,7 @@ export function mountStudioView(root: HTMLElement): void {
     if (ch && ch.instrument.kind === 'synthx') {
       mountSynthEditor(host, {
         params: ch.instrument.params,
+        midiPrefix: selectedId,
         onChange: (p) => {
           const spec: InstrumentSpec = { kind: 'synthx', params: p };
           daw = updateChannel(daw, selectedId, { instrument: spec });

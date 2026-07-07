@@ -4,7 +4,7 @@ import { mountKnob } from './knob';
 
 export function mountSynthEditor(
   root: HTMLElement,
-  opts: { params: SynthxParams; onChange: (p: SynthxParams) => void; onTest: () => void }
+  opts: { params: SynthxParams; onChange: (p: SynthxParams) => void; onTest: () => void; midiPrefix?: string }
 ): void {
   let p: SynthxParams = { ...opts.params };
   const emit = (): void => opts.onChange({ ...p });
@@ -58,6 +58,7 @@ export function mountSynthEditor(
     // Guarda ante un valor data-k desconocido (evita crash en spec.min).
     if (!spec) return;
     mountKnob(el, { min: spec.min, max: spec.max, value: p[key] as number, default: spec.def,
+      midiId: opts.midiPrefix ? `synthx:${opts.midiPrefix}:${key}` : undefined,
       onChange: v => { (p[key] as number) = v; emit(); } });
   });
 
@@ -69,7 +70,7 @@ export function mountSynthEditor(
   const pSel = root.querySelector('.sePreset') as HTMLSelectElement;
   pSel.addEventListener('change', () => {
     const pr = SYNTHX_PRESETS[pSel.value];
-    if (pr) { p = { ...pr }; emit(); mountSynthEditor(root, { params: p, onChange: opts.onChange, onTest: opts.onTest }); }
+    if (pr) { p = { ...pr }; emit(); mountSynthEditor(root, { params: p, onChange: opts.onChange, onTest: opts.onTest, midiPrefix: opts.midiPrefix }); }
   });
   (root.querySelector('.seTest') as HTMLButtonElement).addEventListener('click', () => opts.onTest());
 }

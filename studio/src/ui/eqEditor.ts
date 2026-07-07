@@ -55,10 +55,10 @@ export function mountEqEditor(root: HTMLElement, eq: EqApi, onChange: () => void
     (host.querySelector('#eqDynOn') as HTMLInputElement).addEventListener('change', e => {
       eq.setDyn(sel, { on: (e.target as HTMLInputElement).checked }); onChange();
     });
-    mountKnob(host.querySelector('#kThr') as HTMLElement, { min: -60, max: 0, value: b.dyn.threshold, default: -24, size: 32, onChange: v => { eq.setDyn(sel, { threshold: v }); onChange(); } });
-    mountKnob(host.querySelector('#kRange') as HTMLElement, { min: -18, max: 18, value: b.dyn.range, default: -6, size: 32, onChange: v => { eq.setDyn(sel, { range: v }); onChange(); } });
-    mountKnob(host.querySelector('#kAtk') as HTMLElement, { min: 1, max: 200, value: b.dyn.attack, default: 20, size: 32, onChange: v => { eq.setDyn(sel, { attack: v }); onChange(); } });
-    mountKnob(host.querySelector('#kRel') as HTMLElement, { min: 20, max: 800, value: b.dyn.release, default: 150, size: 32, onChange: v => { eq.setDyn(sel, { release: v }); onChange(); } });
+    mountKnob(host.querySelector('#kThr') as HTMLElement, { min: -60, max: 0, value: b.dyn.threshold, default: -24, size: 32, midiId: 'eq:thr', onChange: v => { eq.setDyn(sel, { threshold: v }); onChange(); } });
+    mountKnob(host.querySelector('#kRange') as HTMLElement, { min: -18, max: 18, value: b.dyn.range, default: -6, size: 32, midiId: 'eq:range', onChange: v => { eq.setDyn(sel, { range: v }); onChange(); } });
+    mountKnob(host.querySelector('#kAtk') as HTMLElement, { min: 1, max: 200, value: b.dyn.attack, default: 20, size: 32, midiId: 'eq:atk', onChange: v => { eq.setDyn(sel, { attack: v }); onChange(); } });
+    mountKnob(host.querySelector('#kRel') as HTMLElement, { min: 20, max: 800, value: b.dyn.release, default: 150, size: 32, midiId: 'eq:rel', onChange: v => { eq.setDyn(sel, { release: v }); onChange(); } });
   }
 
   bandButtons();
