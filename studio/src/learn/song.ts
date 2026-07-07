@@ -28,6 +28,13 @@ export const SONGS: LearnSong[] = [
     ]) },
   { id: 'oda-alegria', name: 'Oda a la alegría', bpm: 100, level: 1,
     notes: seq([q(64), q(64), q(65), q(67), q(67), q(65), q(64), q(62), q(60), q(60), q(62), q(64), q(64, 1.5), q(62, 0.5), q(62, 2)]) },
+  { id: 'melodia-do-fa-la', name: 'Do-Do-Do-Fa-La', bpm: 90, level: 1,
+    // Do-Do-Do-Fa-La (x2) · Fa-Fa-Mi-Mi-Re-Re-Do
+    notes: seq([
+      q(60), q(60), q(60), q(65), q(69, 2),
+      q(60), q(60), q(60), q(65), q(69, 2),
+      q(65), q(65), q(64), q(64), q(62), q(62), q(60, 2),
+    ]) },
   // --- Medio (nivel 2) ---
   { id: 'cumpleanos', name: 'Cumpleaños feliz', bpm: 100, level: 2,
     notes: seq([
