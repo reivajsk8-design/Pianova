@@ -4,7 +4,7 @@ import {
   toggleStep, audibleIds, findChannel, channelSteps, addPattern, removePattern, setCurrentPattern, setSong, setStep,
   defaultSynthxInstrument, defaultSlicerInstrument, newChannelId, syncChannelIdSeed,
   channelLen, addStepsPage, removeStepsPage, effectiveLen, paintNote, duplicatePattern,
-  snapLen, MIN_LEN
+  snapLen, MIN_LEN, stepNotes, noteGate, removeNote
 } from './model';
 import { SYNTHX_DEFAULT } from '../audio/synthx-dsp';
 
@@ -212,23 +212,87 @@ describe('longitud fraccionaria', () => {
     expect(effectiveLen(s, 7)).toBe(1);           // recorta a 8 - 7
     expect(effectiveLen(s, 0)).toBe(1);           // len ausente ⇒ 1
   });
-  it('paintNote hace snap a 1/4, aplica el mínimo y NO limpia celdas si L < 1', () => {
+  it('paintNote hace snap a 1/4, aplica el mínimo y NO limpia nada si L < 1', () => {
     const d0 = defaultDaw(); const id = d0.channels[0].id;
     const d1 = paintNote(d0, id, 2, 0.3, 64);
     expect(d1.patterns[0].steps[id][2]).toEqual({ on: true, note: 64, len: 0.25 });
-    expect(d1.patterns[0].steps[id][3].on).toBe(false);   // L < 1 → no limpia nada nuevo
+    expect(d1.patterns[0].steps[id][3].on).toBe(false);   // L < 1 → no cubre nada
   });
-  it('paintNote fraccionario > 1 limpia solo los pasos enteros cubiertos', () => {
+  it('paintNote es polifónico: no borra OTRAS teclas de las columnas cubiertas', () => {
     const d0 = defaultDaw(); const id = d0.channels[0].id;
     let d = paintNote(d0, id, 3, 1, 60);
     d = paintNote(d, id, 4, 1, 62);
     d = paintNote(d, id, 5, 1, 64);
-    d = paintNote(d, id, 2, 2.5, 65);      // cubre k=3,4 (3 ≤ k < 4.5); no toca el 5
+    d = paintNote(d, id, 2, 2.5, 65);      // cubre k=3,4; NO debe tocar otras teclas
     const steps = d.patterns[0].steps[id];
-    expect(steps[2].len).toBe(2.5);
-    expect(steps[3].on).toBe(false);
-    expect(steps[4].on).toBe(false);
-    expect(steps[5].on).toBe(true);        // 5 ≥ 4.5 → sobrevive
-    expect(steps[5].note).toBe(64);
+    expect(steps[2].note).toBe(65); expect(steps[2].len).toBe(2.5);
+    expect(steps[3].on).toBe(true); expect(steps[3].note).toBe(60);  // sobrevive
+    expect(steps[4].on).toBe(true); expect(steps[4].note).toBe(62);  // sobrevive
+    expect(steps[5].on).toBe(true); expect(steps[5].note).toBe(64);
+  });
+  it('paintNote limpia solo la MISMA tecla en el rango cubierto', () => {
+    const d0 = defaultDaw(); const id = d0.channels[0].id;
+    let d = paintNote(d0, id, 3, 1, 60);   // misma tecla 60 en el paso 3
+    d = paintNote(d, id, 2, 3, 60);        // 60 largo desde el 2 cubre el 3 → limpia el 60 del 3
+    const steps = d.patterns[0].steps[id];
+    expect(steps[2].note).toBe(60); expect(steps[2].len).toBe(3);
+    expect(steps[3].on).toBe(false);       // el 60 del 3 se limpió (misma tecla)
+  });
+});
+
+describe('acordes (varias notas por paso)', () => {
+  it('stepNotes: apagado → [], mono → 1 nota, con extra → raíz + extras en orden', () => {
+    expect(stepNotes({ on: false })).toEqual([]);
+    const one = stepNotes({ on: true, note: 60, len: 1 });
+    expect(one.length).toBe(1); expect(one[0].note).toBe(60);
+    const st = { on: true, note: 60, len: 1, extra: [{ note: 64 }, { note: 67 }] };
+    expect(stepNotes(st).map(n => n.note)).toEqual([60, 64, 67]);
+  });
+  it('noteGate: ausente = 1, respeta el valor y recorta al final', () => {
+    expect(noteGate(undefined, 3, 8)).toBe(1);
+    expect(noteGate(3, 2, 8)).toBe(3);
+    expect(noteGate(5, 6, 8)).toBe(2);      // recorta a total - i
+    expect(noteGate(0.1, 0, 8)).toBe(MIN_LEN);
+  });
+  it('paintNote apila una segunda tecla sin borrar la primera (acorde)', () => {
+    const d0 = defaultDaw(); const id = d0.channels[0].id;
+    let d = paintNote(d0, id, 2, 1, 60);
+    d = paintNote(d, id, 2, 1, 64);
+    const st = d.patterns[0].steps[id][2];
+    expect(st.note).toBe(60);
+    expect(stepNotes(st).map(n => n.note)).toEqual([60, 64]);
+  });
+  it('paintNote sobre una tecla ya presente actualiza su longitud', () => {
+    const d0 = defaultDaw(); const id = d0.channels[0].id;
+    let d = paintNote(d0, id, 2, 1, 60);
+    d = paintNote(d, id, 2, 1, 64);        // acorde 60+64
+    d = paintNote(d, id, 2, 3, 64);        // re-pinta 64 con len 3
+    const st = d.patterns[0].steps[id][2];
+    expect(stepNotes(st).find(n => n.note === 64)?.len).toBe(3);
+    expect(stepNotes(st).map(n => n.note)).toEqual([60, 64]);
+  });
+  it('removeNote quita una extra y deja el resto (sin extra si queda vacía)', () => {
+    const d0 = defaultDaw(); const id = d0.channels[0].id;
+    let d = paintNote(d0, id, 2, 1, 60);
+    d = paintNote(d, id, 2, 1, 64);
+    d = removeNote(d, id, 2, 64);
+    const st = d.patterns[0].steps[id][2];
+    expect(stepNotes(st).map(n => n.note)).toEqual([60]);
+    expect(st.extra).toBeUndefined();
+  });
+  it('removeNote sobre la raíz asciende una extra a raíz', () => {
+    const d0 = defaultDaw(); const id = d0.channels[0].id;
+    let d = paintNote(d0, id, 2, 1, 60);
+    d = paintNote(d, id, 2, 1, 64);
+    d = removeNote(d, id, 2, 60);          // quita la raíz
+    const st = d.patterns[0].steps[id][2];
+    expect(st.on).toBe(true); expect(st.note).toBe(64);
+    expect(stepNotes(st).map(n => n.note)).toEqual([64]);
+  });
+  it('removeNote sobre la única nota apaga el paso', () => {
+    const d0 = defaultDaw(); const id = d0.channels[0].id;
+    let d = paintNote(d0, id, 2, 1, 60);
+    d = removeNote(d, id, 2, 60);
+    expect(d.patterns[0].steps[id][2]).toEqual({ on: false });
   });
 });

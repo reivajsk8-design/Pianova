@@ -25,9 +25,9 @@ import { makeChannel, Channel } from '../daw/channel';
 import { padLevel, activeSlices, type PadHit, type SliceHit } from '../ui/hitViz';
 import {
   DawState, ChannelState, InstrumentSpec, defaultChannel, addChannel, removeChannel,
-  updateChannel, toggleStep, setStep, findChannel, audibleIds, channelSteps, effectiveLen,
+  updateChannel, toggleStep, setStep, findChannel, audibleIds, channelSteps,
   addPattern, duplicatePattern, removePattern, setCurrentPattern, setSong, defaultSynthxInstrument, defaultSlicerInstrument,
-  syncChannelIdSeed, defaultDaw, channelLen, addStepsPage, removeStepsPage, paintNote
+  syncChannelIdSeed, defaultDaw, channelLen, addStepsPage, removeStepsPage, paintNote, stepNotes, noteGate, removeNote
 } from '../daw/model';
 import { loadStore, saveStore, downloadProject, readProjectFile, ProjectState, hydrateSamples } from './store';
 import * as synthx from '../audio/synthx';
@@ -62,6 +62,9 @@ export function mountStudioView(root: HTMLElement): void {
   let songPos = -1;
   let barStarted = false;
   let recording = false;
+  let recLastStep: number | null = null;   // último paso grabado (para agrupar el golpe del acorde)
+  let recLastAt = 0;                        // tiempo de audio del último note-on grabado
+  const CHORD_WINDOW = 0.06;                // s: note-ons dentro de esta ventana en el mismo paso = un acorde
   let prLow = 48;   // octava base visible del piano-roll (Do3), recordada entre re-montajes
   const PAGE = 16;    // una página = 16 pasos
   let stepPage = 0;   // página visible del canal seleccionado
@@ -192,7 +195,11 @@ export function mountStudioView(root: HTMLElement): void {
     const len = channelLen(daw, selectedId);
     const sub = findChannel(daw, selectedId)?.subdiv ?? 4;
     const step = ((Math.round(transport.beatNow() * sub) % len) + len) % len;
-    daw = setStep(daw, selectedId, step, { on: true, note: m, vel: v });
+    const now = getAudioContext()?.currentTime ?? 0;
+    const sameStrike = recLastStep === step && (now - recLastAt) < CHORD_WINDOW;
+    if (sameStrike) daw = paintNote(daw, selectedId, step, 1, m, v);          // apila en el acorde
+    else daw = setStep(daw, selectedId, step, { on: true, note: m, vel: v }); // reemplaza el acorde de la pasada
+    recLastStep = step; recLastAt = now;
     persist(); renderSelected();
   }
   function stopLive(m: number): void {
@@ -252,23 +259,26 @@ export function mountStudioView(root: HTMLElement): void {
         const arr = pat.steps[c.id];
         if (!arr || !arr.length) continue;
         const sub = c.subdiv ?? 4;
-        const k = channelStepAt(i, sub, arr.length);         // paso del canal en este tick base (o null)
+        const k = channelStepAt(i, sub, arr.length);          // paso del canal en este tick base (o null)
         if (k === null) continue;
-        const st = arr[k];
-        if (!st || !st.on) continue;
+        const notes = stepNotes(arr[k]);
+        if (!notes.length) continue;
         const audio = channels.find(a => a.id === c.id);
         const secPerStep = (60 / transport.bpm) / sub;        // duración de un paso de ESTE canal
-        let vel = st.vel ?? SEQ_VEL;
-        let at = when + swingOffset(k, daw.swing, secPerStep);
         const hz = c.humanize ?? 0;
-        if (hz > 0) { const h = humanizeHit(hz, Math.random); at += h.dt; vel = Math.max(0.05, Math.min(1, vel + h.dvel)); }
-        const gate = c.instrument.kind === 'drum' ? undefined : effectiveLen(arr, k) * secPerStep;
-        if (audio) audio.trigger(st.note ?? 60, vel, at, gate);
-        padHits.set(c.id, { t: at, vel });                    // destello del pad, sincronizado al sonido
+        const h = hz > 0 ? humanizeHit(hz, Math.random) : { dt: 0, dvel: 0 };
+        const at = when + swingOffset(k, daw.swing, secPerStep) + h.dt;   // mismo desvío para todo el acorde
+        for (const ev of notes) {
+          let vel = ev.vel ?? SEQ_VEL;
+          if (hz > 0) vel = Math.max(0.05, Math.min(1, vel + h.dvel));
+          const gate = c.instrument.kind === 'drum' ? undefined : noteGate(ev.len, k, arr.length) * secPerStep;
+          if (audio) audio.trigger(ev.note, vel, at, gate);
+        }
+        padHits.set(c.id, { t: at, vel: notes[0].vel ?? SEQ_VEL });   // destello del pad (sincronizado al sonido)
         if (c.id === selectedId && c.instrument.kind === 'slicer') {
-          const idx = sliceIndexForNote(c.instrument.base, c.instrument.slices.length, st.note ?? 60);
-          const sl = c.instrument.slices[idx];
-          if (sl) sliceHits.push({ index: idx, t: at, dur: sl.end - sl.start });
+          const si = sliceIndexForNote(c.instrument.base, c.instrument.slices.length, notes[0].note);
+          const sl = c.instrument.slices[si];
+          if (sl) sliceHits.push({ index: si, t: at, dur: sl.end - sl.start });
         }
       }
     }
@@ -353,7 +363,7 @@ export function mountStudioView(root: HTMLElement): void {
         total: PAGE, lowMidi: prLow, scaleRoot: daw.scaleRoot, scaleType: daw.scaleType, beatEvery: ch?.subdiv ?? 4,
         getStep: (i) => channelSteps(daw, selectedId)[off + i],
         onPaint: (start, len, midi) => { daw = paintNote(daw, selectedId, off + start, len, midi); persist(); },
-        onClear: (headIndex) => { daw = setStep(daw, selectedId, off + headIndex, { on: false }); persist(); },
+        onClear: (headIndex, midi) => { daw = removeNote(daw, selectedId, off + headIndex, midi); persist(); },
         onRange: (lo) => { prLow = lo; }
       });
       selGrid = { setPlayhead: pr.setPlayhead };
@@ -686,7 +696,7 @@ export function mountStudioView(root: HTMLElement): void {
     onStop: () => { seq.stop(); tUI.setPlaying(false); selGrid?.setPlayhead(-1); padHits.clear(); clearPads(); sliceHits.length = 0; sampleHandle?.setActiveSlices([]); songPos = -1; playPattern = daw.current; renderPatternBar(); },
     onBpm: (bpm) => { daw = { ...daw, bpm }; seq.setBpm(bpm); persist(); },
     onSwing: (swing) => { daw = { ...daw, swing }; persist(); },
-    onRecord: () => { recording = !recording; tUI.setRecording(recording); }
+    onRecord: () => { recording = !recording; recLastStep = null; tUI.setRecording(recording); }
   });
 
   // ---------- teclado ----------
@@ -730,7 +740,7 @@ export function mountStudioView(root: HTMLElement): void {
     project.masterRack = { effects: [] };
     if (masterRack) masterRack.restore(project.masterRack);
     selectedId = daw.channels[0]?.id ?? '';
-    songMode = false; playPattern = daw.current; songPos = -1; prLow = 48; recording = false;
+    songMode = false; playPattern = daw.current; songPos = -1; prLow = 48; recording = false; recLastStep = null;
     applyAudible(); routeKeyboardToSelected();
     seq.setBpm(daw.bpm);
     const bpmEl = root.querySelector('#tbBpm') as HTMLInputElement | null;

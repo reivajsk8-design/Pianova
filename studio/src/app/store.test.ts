@@ -42,6 +42,21 @@ describe('proyecto v3', () => {
     expect(parseProject('{"x":1}').version).toBe(3);
     expect(() => parseProject('no-json')).toThrow();
   });
+  it('conserva un paso con acorde (extra) al serializar y parsear', () => {
+    const chId = 'ch-1';
+    const step = { on: true, note: 60, len: 1, extra: [{ note: 64 }, { note: 67 }] };
+    const project = {
+      version: 3,
+      daw: {
+        channels: [{ id: chId, name: 'Canal', instrument: { kind: 'synth', preset: 'piano' }, volume: 0.8, pan: 0, muted: false, soloed: false, rack: { effects: [] } }],
+        patterns: [{ steps: { [chId]: [step] } }],
+        current: 0, song: [], bpm: 120, steps: 16, swing: 0, scaleRoot: 0, scaleType: 'chromatic'
+      },
+      masterRack: { effects: [] }
+    };
+    const back = parseProject(serializeProject(project as never));
+    expect(back.daw.patterns[0].steps[chId][0].extra).toEqual([{ note: 64 }, { note: 67 }]);
+  });
 });
 
 describe('store · synthx tolerante', () => {

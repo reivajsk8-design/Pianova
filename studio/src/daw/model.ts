@@ -5,7 +5,8 @@ import type { SynthxParams } from '../audio/synthx-dsp';
 import { SYNTHX_DEFAULT } from '../audio/synthx-dsp';
 import type { SliceDef } from './slicing';
 
-export interface Step { on: boolean; note?: number; vel?: number; len?: number }
+export interface NoteEv { note: number; vel?: number; len?: number }
+export interface Step { on: boolean; note?: number; vel?: number; len?: number; extra?: NoteEv[] }
 export type InstrumentSpec =
   | { kind: 'synth'; preset: string }
   | { kind: 'drum'; voice: string }
@@ -32,6 +33,19 @@ export function emptySteps(n: number): Step[] {
 // Redondea una longitud a la rejilla de 1/4 de paso.
 export function snapLen(len: number): number {
   return Math.round(len / LEN_STEP) * LEN_STEP;
+}
+
+// Todas las notas del paso (raíz primero si está activo), como NoteEv[]. [] si el paso está apagado.
+export function stepNotes(st: Step | undefined): NoteEv[] {
+  if (!st || !st.on || st.note == null) return [];
+  const root: NoteEv = { note: st.note, vel: st.vel, len: st.len };
+  return st.extra && st.extra.length ? [root, ...st.extra] : [root];
+}
+
+// Longitud efectiva (gate) de una nota que empieza en el paso `i`: su `len` (o 1), mínimo MIN_LEN, recortada
+// al final del canal (`total - i`).
+export function noteGate(len: number | undefined, i: number, total: number): number {
+  return Math.max(MIN_LEN, Math.min(len ?? 1, total - i));
 }
 
 let _cid = 0;
@@ -160,15 +174,42 @@ export function setStep(daw: DawState, chId: string, i: number, step: Step): Daw
   };
 }
 
-// Longitud real de la nota que empieza en `i`: su `len` (o 1) recortado al final del canal.
+// Longitud real de la nota RAÍZ que empieza en `i` (compat).
 export function effectiveLen(steps: Step[], i: number): number {
-  const raw = steps[i]?.len ?? 1;
-  return Math.max(MIN_LEN, Math.min(raw, steps.length - i));
+  return noteGate(steps[i]?.len, i, steps.length);
 }
 
-// Coloca/alarga una nota en el patrón actual: fija el paso `start` (on+note+len recortado) y LIMPIA los pasos
-// cubiertos start+1 … start+len-1 (monofónico: "pintar gana"). Conserva `vel` si lo había. Inmutable.
-export function paintNote(daw: DawState, chId: string, start: number, len: number, note: number): DawState {
+// Coloca/actualiza la tecla `note` en el paso, conservando las demás notas de la columna. Inmutable a nivel Step.
+function putNote(st: Step, note: number, len: number, vel?: number): Step {
+  if (!st.on || st.note == null) return { on: true, note, len, ...(vel != null ? { vel } : {}) };
+  if (st.note === note) return { ...st, len, ...(vel != null ? { vel } : {}) };
+  const extra = st.extra ? st.extra.slice() : [];
+  const j = extra.findIndex(e => e.note === note);
+  if (j >= 0) extra[j] = { ...extra[j], len, ...(vel != null ? { vel } : {}) };
+  else extra.push({ note, len, ...(vel != null ? { vel } : {}) });
+  return { ...st, extra };
+}
+
+// Quita la tecla `note` del paso. Si era la raíz y hay extras, asciende la primera a raíz; si no queda ninguna
+// nota, el paso queda apagado. Inmutable a nivel Step.
+function dropNote(st: Step, note: number): Step {
+  if (!st.on || st.note == null) return st;
+  if (st.note === note) {
+    if (st.extra && st.extra.length) {
+      const [first, ...rest] = st.extra;
+      return { on: true, note: first.note, vel: first.vel, len: first.len, ...(rest.length ? { extra: rest } : {}) };
+    }
+    return { on: false };
+  }
+  if (!st.extra) return st;
+  const extra = st.extra.filter(e => e.note !== note);
+  return extra.length ? { ...st, extra } : { on: st.on, note: st.note, vel: st.vel, len: st.len };
+}
+
+// Coloca/alarga la tecla `note` en el patrón actual: fija el paso `start` (añade al acorde, conserva las demás
+// notas) y LIMPIA solo esta misma tecla en los pasos cubiertos start+1 … start+L-1. Conserva/actualiza `vel`.
+// Inmutable.
+export function paintNote(daw: DawState, chId: string, start: number, len: number, note: number, vel?: number): DawState {
   return {
     ...daw,
     patterns: daw.patterns.map((p, idx) => {
@@ -176,8 +217,22 @@ export function paintNote(daw: DawState, chId: string, start: number, len: numbe
       const cur = p.steps[chId] ?? emptySteps(daw.steps);
       const L = Math.max(MIN_LEN, Math.min(snapLen(len), cur.length - start));
       const steps = cur.slice();
-      steps[start] = { ...steps[start], on: true, note, len: L };
-      for (let k = start + 1; k < start + L; k++) steps[k] = { ...steps[k], on: false };
+      steps[start] = putNote(steps[start], note, L, vel);
+      for (let k = start + 1; k < start + L; k++) if (k < steps.length) steps[k] = dropNote(steps[k], note);
+      return { steps: { ...p.steps, [chId]: steps } };
+    })
+  };
+}
+
+// Quita la tecla `note` del paso `i` del canal en el patrón actual. Inmutable.
+export function removeNote(daw: DawState, chId: string, i: number, note: number): DawState {
+  return {
+    ...daw,
+    patterns: daw.patterns.map((p, idx) => {
+      if (idx !== daw.current) return p;
+      const cur = p.steps[chId] ?? emptySteps(daw.steps);
+      const steps = cur.slice();
+      steps[i] = dropNote(steps[i], note);
       return { steps: { ...p.steps, [chId]: steps } };
     })
   };
