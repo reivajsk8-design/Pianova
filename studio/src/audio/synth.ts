@@ -38,7 +38,16 @@ export const SYNTH: Record<string, Preset> = {
     partials: [{ type: 'sawtooth', ratio: 1, gain: 0.4 }, { type: 'sawtooth', ratio: 1, gain: 0.4, detune: -7 },
                { type: 'sawtooth', ratio: 2, gain: 0.12 }],
     filter: { start: 6, startMax: 7000, end: 3, endMin: 900, time: 0.6 },
-    sustain: true, peak: [0.12, 0.10], attack: 0.08, release: 0.22, vibrato: { rate: 5, depth: 4 } }
+    sustain: true, peak: [0.12, 0.10], attack: 0.08, release: 0.22, vibrato: { rate: 5, depth: 4 } },
+  guitarra: { label: '🎸 Guitarra',
+    partials: [{ type: 'triangle', ratio: 1, gain: 0.6 }, { type: 'sawtooth', ratio: 2, gain: 0.14 },
+               { type: 'sawtooth', ratio: 3, gain: 0.07, detune: 4 }],
+    filter: { start: 8, startMax: 6000, end: 2, endMin: 500, time: 0.8 },
+    sustain: false, peak: [0.13, 0.16], attack: 0.004, decay: 1.6 },
+  flauta: { label: '🪈 Flauta',
+    partials: [{ type: 'sine', ratio: 1, gain: 0.5 }, { type: 'sine', ratio: 2, gain: 0.1 },
+               { type: 'triangle', ratio: 3, gain: 0.04 }],
+    filter: null, sustain: true, peak: [0.12, 0.08], attack: 0.05, release: 0.15, vibrato: { rate: 5, depth: 3 } }
 };
 
 const voices: Record<number, Voice> = {};
