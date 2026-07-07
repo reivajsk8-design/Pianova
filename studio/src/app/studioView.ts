@@ -754,7 +754,8 @@ export function mountStudioView(root: HTMLElement): void {
     seq.setBpm(daw.bpm);
     const bpmEl = root.querySelector('#tbBpm') as HTMLInputElement | null;
     if (bpmEl) bpmEl.value = String(daw.bpm);
-    modEngine.setState(defaultModState());
+    modEngine.setState(defaultModState()); modEngine.setBpm(daw.bpm);
+    mountLfoPanel(root.querySelector('#lfoPanel') as HTMLElement, { onChange: persist });   // remonta el panel con el banco reseteado
     renderAll(); saveStore({ version: 3, daw, masterRack: project.masterRack, mod: modEngine.getState() });
   });
   (root.querySelector('#stFile') as HTMLInputElement).addEventListener('change', async ev => {
@@ -764,7 +765,8 @@ export function mountStudioView(root: HTMLElement): void {
       await initAudio();
       channels.forEach(a => a.dispose()); channels = [];
       daw = p.daw; project.masterRack = p.masterRack;
-      modEngine.setState(p.mod ?? defaultModState());
+      modEngine.setState(p.mod ?? defaultModState()); modEngine.setBpm(daw.bpm);
+      mountLfoPanel(root.querySelector('#lfoPanel') as HTMLElement, { onChange: persist });   // remonta el panel con el banco del proyecto
       syncChannelIdSeed(daw.channels);   // igual al abrir un proyecto de archivo
       hydrateSamples(p); await decodePending();
       const actx = ensureAudio();
