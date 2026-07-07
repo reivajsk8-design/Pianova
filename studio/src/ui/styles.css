@@ -342,13 +342,13 @@ input[type="range"]::-moz-range-track { height:6px; border-radius:4px; backgroun
 .modDepth{display:flex;flex-direction:column;gap:2px;font-size:11px;color:#c9d2c9}
 
 /* --- Vista Aprender (F4a) --- */
-.lnWrap{padding:12px 18px;color:var(--ink)}
-.lnBar{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:10px}
+.lnWrap{display:flex;flex-direction:column;gap:8px;padding:10px 14px;color:var(--ink);min-height:calc(100vh - 64px);box-sizing:border-box}
+.lnBar{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
 .lnMsg{font-size:12px;color:var(--muted)}   /* aviso de importación de .mid */
 .lnConn{margin-left:auto;font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:4px 8px}
-.lnStage{max-width:720px}
-.lnLane{display:block;width:100%;height:260px;background:#0b0d12;border:1px solid var(--line);border-radius:8px 8px 0 0}
+.lnStage{flex:1;display:flex;flex-direction:column;min-height:0;width:100%}
+.lnLane{flex:1;display:block;width:100%;min-height:140px;background:#0b0d12;border:1px solid var(--line);border-radius:8px 8px 0 0}
 .lnKb{width:100%}
-.lnKb .kb{max-width:none;margin:0}
+.lnKb .kb{max-width:none;margin:0;height:170px}
 .kb-key.target{background:#2dff6a !important;box-shadow:0 0 12px rgba(45,255,106,.7)}
 .kb-black.target{background:#2dff6a !important}
