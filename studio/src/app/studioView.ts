@@ -1,5 +1,6 @@
 import { ensureAudio, getAudioContext } from '../audio/context';
 import * as synth from '../audio/synth';
+import { meterNorm } from '../audio/meter';
 import { masterDest, masterFxIn, masterFxOut } from '../audio/masterBus';
 import { connectMidi } from '../midi/input';
 import { midiLearn } from '../midi/learn';
@@ -132,6 +133,8 @@ export function mountStudioView(root: HTMLElement): void {
   const padHits = new Map<string, PadHit>();   // último golpe por canal (para el destello)
   const PAD_FADE = 0.15;                        // s que dura el destello
   let visRaf = 0;                               // rAF del bucle visual (0 = parado)
+  const meterDisp = new Map<string, number>();   // nivel mostrado por canal (con decaimiento)
+  let meterRaf = 0;
   const sliceHits: SliceHit[] = [];               // slices sonando (canal slicer seleccionado)
   let sampleHandle: SampleEditorHandle | null = null;
   let eqHandle: EqEditorHandle | null = null;
@@ -216,6 +219,7 @@ export function mountStudioView(root: HTMLElement): void {
       hydrateSamples(project);
       await decodePending();
       renderAll();
+      startMeters();
     })();
     return audioReady;
   }
@@ -551,7 +555,7 @@ export function mountStudioView(root: HTMLElement): void {
   // ---------- pestañas ----------
   (root.querySelector('#tabs') as HTMLElement).addEventListener('click', e => {
     const t = (e.target as HTMLElement).getAttribute('data-tab') as StudioTab | null;
-    if (t) { tab = t; renderTabs(); showPane(); }
+    if (t) { tab = t; renderTabs(); showPane(); if (t === 'mixer') startMeters(); }
   });
 
   // ---------- rejilla de pads ----------
@@ -655,6 +659,20 @@ export function mountStudioView(root: HTMLElement): void {
     else { visRaf = 0; clearPads(); sampleHandle?.setActiveSlices([]); }
   }
   function ensureVisualLoop(): void { if (!visRaf) visRaf = requestAnimationFrame(visualTick); }
+  function meterTick(): void {
+    const active = tab === 'mixer' && channels.length > 0;
+    if (active) {
+      for (const a of channels) {
+        const target = meterNorm(a.getLevel());
+        const disp = Math.max(target, (meterDisp.get(a.id) ?? 0) - 0.05);   // sube al instante, baja suave
+        meterDisp.set(a.id, disp);
+        const el = root.querySelector(`.chMeterVFill[data-meter="${a.id}"]`) as HTMLElement | null;
+        if (el) el.style.height = (disp * 100) + '%';
+      }
+    }
+    meterRaf = active ? requestAnimationFrame(meterTick) : 0;
+  }
+  function startMeters(): void { if (!meterRaf && tab === 'mixer') meterRaf = requestAnimationFrame(meterTick); }
   seq.setBpm(daw.bpm);
   const tUI = mountTransport(root.querySelector('#transport') as HTMLElement, {
     getBpm: () => transport.bpm,
