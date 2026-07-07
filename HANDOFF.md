@@ -112,6 +112,8 @@ carpeta se guarda en **IndexedDB** (base `estudio`) y se reabre si el permiso si
 (helpers puros testeados + API con estado) + `ui/libraryPanel.ts` + cableado en `app/studioView.ts`. Sin
 favoritos/recientes/arrastrar (posible ampliación). No cambia el motor ni el proyecto.
 
+**Estudio · F4b — Aprender: importar .mid (v0.45.0):** segundo sub-proyecto de **F4 (módulo Aprender)**. Botón 📂 **.mid** en la pestaña Aprender que abre un selector de archivo MIDI; el parser propio (portado de `pianova.html`) lo decodifica (`learn/midiFile.ts` con helpers puros `parseMidiData`/`extractMelodySimple`, testeados); extrae la **melodía monofónica** (nota más aguda de la pista con más notas) y la añade a la lista de canciones con un id `'mid-<slug(nombre)>'`. Reescrituras sin cambios de motor: `learn/importedSongs.ts` (estado de canciones importadas + persistencia en `localStorage['estudio-learn-songs']`), `app/learnView.ts` (selector de canción ahora combina a mano + importadas, por id; el resto de Practicar/Escuchar intacto). **Solo melodía:** el arreglo completo (acordes/manos) llega en F4c. Pendiente: **F4c** (Acompañar/manos), **F4d** (secciones/progreso), **F4e** (Reto).
+
 **Estudio · F4a — módulo Aprender, núcleo Practicar (v0.44.0):** primer sub-proyecto de **F4 (módulo
 Aprender)**. La pestaña **Aprender** del shell (`app/shell.ts`) deja de ser un placeholder: monta
 `app/learnView.ts`, con notas que caen estilo Synthesia sobre un teclado (nombres de nota Do/Re/Mi vía
