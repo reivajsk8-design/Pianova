@@ -367,17 +367,20 @@ export function mountStudioView(root: HTMLElement): void {
     // parámetros del canal seleccionado
     const host = root.querySelector('#pvParams') as HTMLElement;
     if (ch && ch.instrument.kind === 'synthx') {
+      const chId = ch.id;   // fija el canal en el montaje: un knob synthx mapeado por MIDI edita SU canal
+                            // aunque cambies de selección (como los efectos), no el que esté seleccionado.
       mountSynthEditor(host, {
         params: ch.instrument.params,
+        midiPrefix: chId,
         onChange: (p) => {
           const spec: InstrumentSpec = { kind: 'synthx', params: p };
-          daw = updateChannel(daw, selectedId, { instrument: spec });
-          const audio = channels.find(a => a.id === selectedId); if (audio) audio.setInstrument(spec);
+          daw = updateChannel(daw, chId, { instrument: spec });
+          const audio = channels.find(a => a.id === chId); if (audio) audio.setInstrument(spec);
           persist();
         },
         onTest: () => {
-          const audio = channels.find(a => a.id === selectedId);
-          const cur = findChannel(daw, selectedId);
+          const audio = channels.find(a => a.id === chId);
+          const cur = findChannel(daw, chId);
           const actx = getAudioContext();
           if (audio && actx && cur && cur.instrument.kind === 'synthx') {
             synthx.triggerSynthx(actx, cur.instrument.params, 60, 0.9, actx.currentTime, 0.4, audio.instrumentBus);

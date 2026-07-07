@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { valueToAngle } from './knob';
+import { valueToAngle, wheelStepFraction } from './knob';
 
 describe('valueToAngle', () => {
   it('el mínimo apunta a -135°', () => { expect(valueToAngle(0, 0, 1)).toBe(-135); });
@@ -13,5 +13,14 @@ describe('valueToAngle', () => {
     expect(valueToAngle(-1, -1, 1)).toBe(-135);
     expect(valueToAngle(0, -1, 1)).toBe(0);
     expect(valueToAngle(1, -1, 1)).toBe(135);
+  });
+});
+
+describe('wheelStepFraction', () => {
+  it('normal 2%, Ctrl 0.5% fino, Shift 10% grueso (Shift gana)', () => {
+    expect(wheelStepFraction(false, false)).toBe(0.02);
+    expect(wheelStepFraction(false, true)).toBe(0.005);
+    expect(wheelStepFraction(true, false)).toBe(0.1);
+    expect(wheelStepFraction(true, true)).toBe(0.1);
   });
 });
