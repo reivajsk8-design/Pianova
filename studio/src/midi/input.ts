@@ -24,25 +24,37 @@ export interface MidiHandlers {
   onControl?(cc: number, value01: number, channel: number, port: string): void;
 }
 
-// Conecta todas las entradas MIDI (varios teclados). Web MIDI se accede con 'any' porque sus tipos
-// dependen del entorno; el parseo (la parte importante) va tipado y testeado arriba.
-export async function connectMidi(h: MidiHandlers): Promise<void> {
+const subs = new Set<MidiHandlers>();
+let bound = false;
+let lastNames: string[] = [];
+
+function fanOut(p: MidiParsed, port: string): void {
+  for (const h of subs) {
+    if (p.type === 'on') h.onNoteOn(p.midi, p.vel);
+    else if (p.type === 'off') h.onNoteOff(p.midi);
+    else if (p.type === 'cc') h.onControl?.(p.midi, p.vel, p.channel, port);
+  }
+}
+
+// Suscribe un juego de manejadores a TODAS las entradas MIDI. La primera llamada abre Web MIDI; las siguientes
+// se suman al reparto. Devuelve una función para darse de baja. (Varias vistas pueden escuchar a la vez.)
+export async function connectMidi(h: MidiHandlers): Promise<() => void> {
+  subs.add(h);
+  const unsub = (): void => { subs.delete(h); };
+  if (bound) { h.onState(lastNames); return unsub; }
   const req = (navigator as unknown as { requestMIDIAccess?: (o?: { sysex?: boolean }) => Promise<any> }).requestMIDIAccess;
   if (!req) { h.onState([]); throw new Error('Este navegador no soporta Web MIDI (usa Chrome/Edge y HTTPS).'); }
   const access: any = await req.call(navigator, { sysex: false });
   const bind = (): void => {
-    const names: string[] = [];
+    lastNames = [];
     access.inputs.forEach((inp: any) => {
-      inp.onmidimessage = (ev: any): void => {
-        const p = parseMidiMessage(ev.data as Uint8Array);
-        if (p.type === 'on') h.onNoteOn(p.midi, p.vel);
-        else if (p.type === 'off') h.onNoteOff(p.midi);
-        else if (p.type === 'cc') h.onControl?.(p.midi, p.vel, p.channel, inp.name ?? 'MIDI');
-      };
-      names.push(inp.name ?? 'MIDI');
+      inp.onmidimessage = (ev: any): void => fanOut(parseMidiMessage(ev.data as Uint8Array), inp.name ?? 'MIDI');
+      lastNames.push(inp.name ?? 'MIDI');
     });
-    h.onState(names);
+    for (const s of subs) s.onState(lastNames);
   };
   access.onstatechange = bind;
   bind();
+  bound = true;
+  return unsub;
 }

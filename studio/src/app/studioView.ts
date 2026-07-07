@@ -721,9 +721,9 @@ export function mountStudioView(root: HTMLElement): void {
     audioOn();
     const st = root.querySelector('#stMidi') as HTMLElement;
     connectMidi({
-      onNoteOn: (m, v) => playLive(m, v),
+      onNoteOn: (m, v) => { if (root.hidden) return; playLive(m, v); },
       onNoteOff: (m) => stopLive(m),
-      onControl: (cc, v01, _ch, port) => midiLearn.handleCC(cc, v01, port),
+      onControl: (cc, v01, _ch, port) => { if (root.hidden) return; midiLearn.handleCC(cc, v01, port); },
       onState: (names) => {   // chip verde con el nombre del teclado, o gris/rojo si no hay ninguno
         st.classList.toggle('on', names.length > 0);
         st.textContent = names.length ? names.join(' · ') : 'Ningún teclado';
