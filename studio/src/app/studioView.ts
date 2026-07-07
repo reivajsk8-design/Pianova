@@ -43,6 +43,8 @@ import type { Effect } from '../fx/effect';
 import { BASE_SUBDIV, channelStepAt, channelSpan, SUBDIVS, SUBDIV_LABELS } from '../daw/grid';
 import { createFileLibrary, LibNode } from '../audio/fileLibrary';
 import { mountLibraryPanel } from '../ui/libraryPanel';
+import { modEngine, defaultModState } from '../mod/modEngine';
+import { mountLfoPanel } from '../ui/lfoPanel';
 
 const SEQ_VEL = 0.95;
 // Mínimo común múltiplo: la longitud maestra del secuenciador es el m.c.m. de las longitudes de los canales,
@@ -118,6 +120,7 @@ export function mountStudioView(root: HTMLElement): void {
       <div id="fxSection" class="fxSection">
         <div id="chRack"></div>
         <div id="masterRack"></div>
+        <div id="lfoPanel"></div>
       </div>
       <div id="stKeyboard"></div>
       <p class="muted">Toca con el ratón, las teclas <b>A S D F G H J K</b> / <b>W E T Y U</b>, o tu teclado MIDI.</p>
@@ -149,14 +152,14 @@ export function mountStudioView(root: HTMLElement): void {
   function scheduleSave(): void {
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
-      saveStore({ version: 3, daw, masterRack: masterRack ? masterRack.serialize() : project.masterRack });
+      saveStore({ version: 3, daw, masterRack: masterRack ? masterRack.serialize() : project.masterRack, mod: modEngine.getState() });
     }, 400) as unknown as number;
   }
   // Escribe ya mismo (cancelando cualquier guardado pendiente): para el botón Guardar,
   // donde el localStorage debe reflejar el estado actual sin esperar el debounce.
   function flushSave(): void {
     if (saveTimer) { clearTimeout(saveTimer); saveTimer = 0; }
-    saveStore({ version: 3, daw, masterRack: masterRack ? masterRack.serialize() : project.masterRack });
+    saveStore({ version: 3, daw, masterRack: masterRack ? masterRack.serialize() : project.masterRack, mod: modEngine.getState() });
   }
   function persist(): void {
     daw = { ...daw, channels: daw.channels.map(c => {
@@ -223,6 +226,10 @@ export function mountStudioView(root: HTMLElement): void {
       channels = daw.channels.map(c => makeChannel(actx, c, masterDest()));
       routeKeyboardToSelected();
       mountRack(root.querySelector('#masterRack') as HTMLElement, masterRack, 'Maestro', persist, openEqEditor, 'master');
+      modEngine.setState(project.mod ?? defaultModState());
+      modEngine.setBpm(daw.bpm);
+      modEngine.setWake(ensureVisualLoop);
+      mountLfoPanel(root.querySelector('#lfoPanel') as HTMLElement, { onChange: persist });
       hydrateSamples(project);
       await decodePending();
       renderAll();
@@ -514,10 +521,10 @@ export function mountStudioView(root: HTMLElement): void {
       const panEl = host.querySelector(`[data-pan="${c.id}"]`) as HTMLElement;
       if (volEl) mountKnob(volEl, { min: 0, max: 1.2, value: c.volume, default: 0.8, size: 34, midiId: `vol:${c.id}`, onChange: v => {
         daw = updateChannel(daw, c.id, { volume: v }); channels.find(a => a.id === c.id)?.setVolume(v); persist();
-      } });
+      }, onModulate: v => channels.find(a => a.id === c.id)?.setVolume(v), onModChanged: persist });
       if (panEl) mountKnob(panEl, { min: -1, max: 1, value: c.pan, default: 0, size: 34, midiId: `pan:${c.id}`, onChange: v => {
         daw = updateChannel(daw, c.id, { pan: v }); channels.find(a => a.id === c.id)?.setPan(v); persist();
-      } });
+      }, onModulate: v => channels.find(a => a.id === c.id)?.setPan(v), onModChanged: persist });
       const humEl = host.querySelector(`[data-hum="${c.id}"]`) as HTMLElement;
       if (humEl) mountKnob(humEl, { min: 0, max: 1, value: c.humanize ?? 0, default: 0, size: 34, midiId: `human:${c.id}`, onChange: v => {
         daw = updateChannel(daw, c.id, { humanize: v }); persist();
@@ -592,6 +599,7 @@ export function mountStudioView(root: HTMLElement): void {
       if (daw.channels.length <= 1) return;
       const audio = channels.find(a => a.id === del); if (audio) { audio.dispose(); channels = channels.filter(a => a.id !== del); }
       daw = removeChannel(daw, del);
+      for (const pre of ['vol', 'pan', 'human']) modEngine.unregister(`${pre}:${del}`);
       if (selectedId === del) selectedId = daw.channels[0].id;
       routeKeyboardToSelected(); applyAudible(); persist(); renderPads(); renderSelected(); renderMixer(); renderSelectedRack(); return;
     }
@@ -654,6 +662,7 @@ export function mountStudioView(root: HTMLElement): void {
   }
   function visualTick(): void {
     const now = getAudioContext()?.currentTime ?? 0;
+    if (modEngine.isActive()) modEngine.tick(now);
     const playing = seq.isPlaying();
     if (playing) {
       const len = channelLen(daw, selectedId);
@@ -665,7 +674,7 @@ export function mountStudioView(root: HTMLElement): void {
     for (let k = sliceHits.length - 1; k >= 0; k--) if (now - sliceHits[k].t >= sliceHits[k].dur) sliceHits.splice(k, 1);   // poda slices
     paintPads(now);
     sampleHandle?.setActiveSlices(activeSlices(sliceHits, now));
-    if (playing || padHits.size || sliceHits.length) visRaf = requestAnimationFrame(visualTick);
+    if (playing || padHits.size || sliceHits.length || modEngine.isActive()) visRaf = requestAnimationFrame(visualTick);
     else { visRaf = 0; clearPads(); sampleHandle?.setActiveSlices([]); }
   }
   function ensureVisualLoop(): void { if (!visRaf) visRaf = requestAnimationFrame(visualTick); }
@@ -694,7 +703,7 @@ export function mountStudioView(root: HTMLElement): void {
       seq.play(); tUI.setPlaying(true); renderPatternBar(); ensureVisualLoop();
     },
     onStop: () => { seq.stop(); tUI.setPlaying(false); selGrid?.setPlayhead(-1); padHits.clear(); clearPads(); sliceHits.length = 0; sampleHandle?.setActiveSlices([]); songPos = -1; playPattern = daw.current; renderPatternBar(); },
-    onBpm: (bpm) => { daw = { ...daw, bpm }; seq.setBpm(bpm); persist(); },
+    onBpm: (bpm) => { daw = { ...daw, bpm }; seq.setBpm(bpm); modEngine.setBpm(bpm); persist(); },
     onSwing: (swing) => { daw = { ...daw, swing }; persist(); },
     onRecord: () => { recording = !recording; recLastStep = null; tUI.setRecording(recording); }
   });
@@ -726,7 +735,7 @@ export function mountStudioView(root: HTMLElement): void {
   });
 
   // ---------- guardar / abrir proyecto ----------
-  (root.querySelector('#stSave') as HTMLButtonElement).addEventListener('click', () => { persist(); flushSave(); downloadProject({ version: 3, daw, masterRack: masterRack ? masterRack.serialize() : project.masterRack }); });
+  (root.querySelector('#stSave') as HTMLButtonElement).addEventListener('click', () => { persist(); flushSave(); downloadProject({ version: 3, daw, masterRack: masterRack ? masterRack.serialize() : project.masterRack, mod: modEngine.getState() }); });
   (root.querySelector('#stOpen') as HTMLButtonElement).addEventListener('click', () => (root.querySelector('#stFile') as HTMLInputElement).click());
   (root.querySelector('#stNew') as HTMLButtonElement).addEventListener('click', async () => {
     if (!window.confirm('¿Empezar de cero? Se borrará el proyecto actual (patrones, canciones, samples y efectos).')) return;
@@ -745,7 +754,8 @@ export function mountStudioView(root: HTMLElement): void {
     seq.setBpm(daw.bpm);
     const bpmEl = root.querySelector('#tbBpm') as HTMLInputElement | null;
     if (bpmEl) bpmEl.value = String(daw.bpm);
-    renderAll(); saveStore({ version: 3, daw, masterRack: project.masterRack });
+    modEngine.setState(defaultModState());
+    renderAll(); saveStore({ version: 3, daw, masterRack: project.masterRack, mod: modEngine.getState() });
   });
   (root.querySelector('#stFile') as HTMLInputElement).addEventListener('change', async ev => {
     const file = (ev.target as HTMLInputElement).files?.[0]; if (!file) return;
@@ -754,6 +764,7 @@ export function mountStudioView(root: HTMLElement): void {
       await initAudio();
       channels.forEach(a => a.dispose()); channels = [];
       daw = p.daw; project.masterRack = p.masterRack;
+      modEngine.setState(p.mod ?? defaultModState());
       syncChannelIdSeed(daw.channels);   // igual al abrir un proyecto de archivo
       hydrateSamples(p); await decodePending();
       const actx = ensureAudio();
@@ -765,7 +776,7 @@ export function mountStudioView(root: HTMLElement): void {
       seq.setBpm(daw.bpm);
       const bpmEl = root.querySelector('#tbBpm') as HTMLInputElement | null;
       if (bpmEl) bpmEl.value = String(daw.bpm);
-      renderAll(); saveStore({ version: 3, daw, masterRack: p.masterRack });
+      renderAll(); saveStore({ version: 3, daw, masterRack: p.masterRack, mod: modEngine.getState() });
     } catch {
       const st = root.querySelector('#stMidi') as HTMLElement;
       st.classList.remove('on'); st.textContent = 'No se pudo abrir el proyecto.';

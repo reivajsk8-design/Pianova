@@ -77,7 +77,10 @@ export function mountRack(root: HTMLElement, rack: Rack, title: string, onChange
           e.setParam(p.name, q);
           valSpan.textContent = fmtVal(q, p.unit, p.step);
           onChange();
-        } });
+        },
+        onModulate: (v) => { e.setParam(p.name, Math.round(v / p.step) * p.step); },   // solo audio, sin persistir
+        onModChanged: onChange,                                                         // persistir asignación
+      });
     });
 
     (root.querySelector('.fxAdd') as HTMLSelectElement).addEventListener('change', ev => {
