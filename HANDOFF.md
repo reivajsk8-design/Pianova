@@ -112,6 +112,21 @@ carpeta se guarda en **IndexedDB** (base `estudio`) y se reabre si el permiso si
 (helpers puros testeados + API con estado) + `ui/libraryPanel.ts` + cableado en `app/studioView.ts`. Sin
 favoritos/recientes/arrastrar (posible ampliación). No cambia el motor ni el proyecto.
 
+**Estudio · F4a — módulo Aprender, núcleo Practicar (v0.44.0):** primer sub-proyecto de **F4 (módulo
+Aprender)**. La pestaña **Aprender** del shell (`app/shell.ts`) deja de ser un placeholder: monta
+`app/learnView.ts`, con notas que caen estilo Synthesia sobre un teclado (nombres de nota Do/Re/Mi vía
+`daw/scales.ts` `noteName`), **3 canciones a mano** (`learn/song.ts`: Escala de Do, Himno a la Alegría,
+Cumpleaños Feliz) y **geometría propia** (`learn/geometry.ts`: replica el reparto de teclas blancas/negras
+del teclado DOM para que las notas caigan alineadas). Dos modos: **Practicar** (`learn/practice.ts`: se
+congela hasta que tocas la nota objetivo por MIDI/teclas/ratón; nota errónea suena pero no avanza) y
+**Escuchar** (reproduce la canción sola, iluminando teclas, con el preset "piano" del synth compartido).
+**Convivencia MIDI:** `midi/input.ts` `connectMidi` pasa a **multi-suscriptor** (Estudio y Aprender se
+suscriben cada uno con su callback; los note-on se filtran por pestaña visible —`root.hidden`— pero los
+note-off siempre se procesan, para no dejar notas colgadas al cambiar de pestaña). Sin persistencia (llega
+en F4d) y sin importar `.mid` todavía (F4b). Archivos: `learn/song.ts` + `learn/practice.ts` +
+`learn/geometry.ts` + `app/learnView.ts` + CSS `.ln*` en `ui/styles.css`. Pendiente: **F4b** (importar
+`.mid`), **F4c** (Acompañar/manos), **F4d** (secciones/progreso), **F4e** (Reto).
+
 **Estudio · LFOs asignables (v0.43.0):** banco de **4 LFOs** (seno/triángulo/sierra ascendente/sierra descendente/cuadrada/ruido aleatorio) con **sincro al tempo** (pulsos, compases) o **libre en Hz**. Asignables a cualquier knob mapeable (**Vol/Pan** por canal, **parámetros de efectos**) desde su menú, con **profundidad** (amplitud de modulación) e **inversión**. Motor puro `mod/lfo.ts` (`Lfo` + `lfoSamples`, testeado) + orquestación `mod/modEngine.ts` (`isActive`/`rate`/`sample`/`modulate`, sin bucle propio; `visualTick` lo actualiza) + `setWake` arranca el loop rAF al asignar. Los LFOs **modulan solo el audio** alrededor del valor base (el knob no cambia su valor guardado, la modulación es aditiva e inyectada en `onModulate`); al desasignar restauran el base una vez. `ui/knob.ts` `onModulate` callback + menú en `ui/knobMenu.ts` + panel de asignación `ui/lfoPanel.ts` (selector de LFO, forma, tempo/Hz, profundidad). Persistencia: banco en `ProjectState.mod` (tolerante, sin migración v3; proyectos viejos cargan con todo apagado). 87 tests. Motor puro; compatibilidad total con proyectos anteriores.
 
 **Estudio · acordes en el piano-roll (v0.42.0):** cada paso puede llevar **varias notas** (acorde), no solo una. En el piano-roll se pinta nota a nota (poli) o con un **selector de acorde** (Mayor/Menor/7ª/Maj7/m7/Sus2/Sus4/Dim/Aum/5ª) que apila las notas del acorde sobre la raíz pintada; también se puede **grabar acordes con el teclado en vivo** (con grabación armada, un golpe con varias notas casi simultáneas apila todas en el mismo paso; un golpe posterior reemplaza la pasada anterior de ese paso). Modelo **aditivo**: `Step` gana `extra?: NoteEv[]` (las notas extra del acorde, además de `note`); `daw/model.ts` añade `stepNotes` (todas las notas de un paso) y las versiones poli de `paintNote`/`removeNote`; `daw/chords.ts` (tablas de acordes puras y testeadas); `ui/pianoRoll.ts` (dibujo poli + selector de acorde) + `app/studioView.ts` (grabación en vivo apila/reemplaza). **Sin migración: versión de proyecto 3 intacta** (`extra` es un campo más del `Step`; los proyectos v3 previos se siguen abriendo como monofónicos). Test de ida y vuelta en `app/store.test.ts` confirma que `extra` sobrevive a serializar/parsear.
