@@ -19,6 +19,7 @@ export interface Channel {
   setPan(p: number): void;
   setAudible(a: boolean): void;
   trigger(note: number, vel: number, when: number, gate?: number): void;
+  getLevel(): number;
   serializeRack(): RackState;
   dispose(): void;
 }
@@ -29,6 +30,9 @@ export function makeChannel(actx: AudioContext, state: ChannelState, masterIn: A
   const panner = actx.createStereoPanner(); panner.pan.value = state.pan;
   const rack = createRack(actx, instrumentBus, gain);   // instrumentBus -> [rack] -> gain
   gain.connect(panner); panner.connect(masterIn);
+  const analyser = actx.createAnalyser(); analyser.fftSize = 256;
+  gain.connect(analyser);   // tap post-fader (paralelo, sin salida → no afecta al sonido)
+  const meterBuf = new Float32Array(analyser.fftSize);
   rack.restore(state.rack);
 
   let volume = state.volume;
@@ -53,10 +57,16 @@ export function makeChannel(actx: AudioContext, state: ChannelState, masterIn: A
       }
       else synth.triggerPreset(instrument.preset, note, vel, when, gate ?? 0.12, instrumentBus);
     },
+    getLevel(): number {
+      analyser.getFloatTimeDomainData(meterBuf as Float32Array<ArrayBuffer>);
+      let peak = 0;
+      for (let i = 0; i < meterBuf.length; i++) { const a = Math.abs(meterBuf[i]); if (a > peak) peak = a; }
+      return peak;
+    },
     serializeRack: () => rack.serialize(),
     dispose() {
       rack.dispose();
-      for (const n of [instrumentBus, gain, panner]) { try { n.disconnect(); } catch { /* ya */ } }
+      for (const n of [instrumentBus, gain, panner, analyser]) { try { n.disconnect(); } catch { /* ya */ } }
     }
   };
 }

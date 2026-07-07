@@ -49,7 +49,7 @@ main { padding:24px 18px; }
 .stepCell:hover { border-color:#4a5163; }
 .stepCell.on { background:var(--amber); border-color:var(--amber); box-shadow:0 0 6px rgba(242,163,60,.35); }
 .stepCell.play { outline:2px solid #fff; outline-offset:1px; }
-.chStrip { width:252px; flex:0 0 auto; display:flex; align-items:center; gap:10px; }
+.chStrip { width:268px; flex:0 0 auto; display:flex; align-items:center; gap:10px; }   /* +16px por el medidor vertical */
 .chMain { flex:1; min-width:0; display:flex; flex-direction:column; gap:5px; }
 .chStrip.sel { outline:2px solid var(--amber); outline-offset:3px; border-radius:5px; }
 .chHead { display:flex; align-items:center; gap:6px; }
@@ -64,6 +64,9 @@ main { padding:24px 18px; }
 .chMix { display:flex; gap:10px; flex:0 0 auto; }
 .chMix label { display:flex; align-items:center; gap:6px; color:var(--muted); font-size:11px; flex:1; }
 .chMix input[type="range"] { flex:1; min-width:0; }
+/* Medidor de nivel vertical por canal (MIXER): degradado verde→ámbar→rojo revelado de abajo arriba */
+.chMeterV{position:relative;width:8px;height:44px;flex:0 0 auto;border-radius:2px;background:#0d1016;border:1px solid var(--pv-line);overflow:hidden}
+.chMeterVFill{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(to top,#2dff6a 0%,#f2a33c 78%,#e0533a 100%);background-size:100% 44px;background-position:0 bottom;background-repeat:no-repeat}
 .addCh { margin:8px 0; }
 .racks .rack { min-width:260px; }
 .patBar { display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin:8px 0; }
