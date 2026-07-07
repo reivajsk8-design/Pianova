@@ -9,6 +9,8 @@ import { noteName } from '../daw/scales';
 import { SONGS, songRange, type LearnSong } from '../learn/song';
 import { makePractice, targetNote, judge, type PracticeState } from '../learn/practice';
 import { keyLayout, keyGeomFor, type KeyGeom } from '../learn/geometry';
+import { parseMidiToMelody } from '../learn/midiFile';
+import { loadImported, addImported } from '../learn/importedSongs';
 
 const LOOKAHEAD = 4;   // beats visibles por encima de la línea de impacto
 
@@ -35,14 +37,19 @@ export function mountLearnView(root: HTMLElement): void {
   let layout: KeyGeom[] = [];
   let range = songRange(song);
   let midiReady = false;
+  let imported = loadImported();
+  const allSongs = (): LearnSong[] => [...SONGS, ...imported];
 
   root.innerHTML = `
     <div class="lnWrap">
       <div class="lnBar">
         <label class="fld">Modo <select id="lnMode"><option value="practice">Practicar</option><option value="listen">Escuchar</option></select></label>
-        <label class="fld">Canción <select id="lnSong">${SONGS.map((s, i) => `<option value="${i}">${s.name}</option>`).join('')}</select></label>
+        <label class="fld">Canción <select id="lnSong"></select></label>
+        <button id="lnOpenMid" title="Importar un archivo .mid">📂 .mid</button>
+        <input id="lnMidFile" type="file" accept=".mid,.midi" hidden>
         <button id="lnStart">▶ Empezar</button>
         <button id="lnReset">↻ Reiniciar</button>
+        <span id="lnMsg" class="lnMsg"></span>
         <span class="lnConn" id="lnConn">MIDI: —</span>
       </div>
       <div class="lnStage">
@@ -55,6 +62,15 @@ export function mountLearnView(root: HTMLElement): void {
   const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
   const kbHost = root.querySelector('#lnKb') as HTMLElement;
   const connEl = root.querySelector('#lnConn') as HTMLElement;
+  const songSel = root.querySelector('#lnSong') as HTMLSelectElement;
+  const msgEl = root.querySelector('#lnMsg') as HTMLElement;
+  const midFile = root.querySelector('#lnMidFile') as HTMLInputElement;
+
+  function renderSongOptions(): void {
+    songSel.innerHTML = allSongs()
+      .map(s => `<option value="${s.id}">${imported.includes(s) ? '🎵 ' : ''}${s.name}</option>`).join('');
+    songSel.value = song.id;
+  }
 
   let kbCleanup: (() => void) | null = null;
   function buildKeyboard(): void {
@@ -169,14 +185,34 @@ export function mountLearnView(root: HTMLElement): void {
   (root.querySelector('#lnMode') as HTMLSelectElement).addEventListener('change', e => {
     mode = (e.target as HTMLSelectElement).value === 'listen' ? 'listen' : 'practice'; reset();
   });
-  (root.querySelector('#lnSong') as HTMLSelectElement).addEventListener('change', e => {
-    song = SONGS[+(e.target as HTMLSelectElement).value] ?? SONGS[0];
+  songSel.addEventListener('change', () => {
+    song = allSongs().find(s => s.id === songSel.value) ?? SONGS[0];
     range = songRange(song); buildKeyboard(); resize(); reset();
+  });
+  (root.querySelector('#lnOpenMid') as HTMLButtonElement).addEventListener('click', () => midFile.click());
+  midFile.addEventListener('change', async () => {
+    const file = midFile.files && midFile.files[0]; if (!file) return;
+    midFile.value = '';
+    try {
+      const buf = await file.arrayBuffer();
+      const { bpm, notes } = parseMidiToMelody(buf);
+      const name = file.name.replace(/\.midi?$/i, '');
+      const id = 'mid-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const s: LearnSong = { id, name, bpm, notes };
+      addImported(s); imported = loadImported();
+      song = allSongs().find(x => x.id === id) ?? s;
+      renderSongOptions();
+      range = songRange(song); buildKeyboard(); resize(); reset();
+      msgEl.textContent = `Cargado: ${name} · ${notes.length} notas`;
+    } catch (e) {
+      msgEl.textContent = 'No pude leer el .mid (' + (e instanceof Error ? e.message : 'error') + ')';
+    }
   });
   (root.querySelector('#lnStart') as HTMLButtonElement).addEventListener('click', start);
   (root.querySelector('#lnReset') as HTMLButtonElement).addEventListener('click', reset);
   window.addEventListener('resize', () => { resize(); draw(); });
 
+  renderSongOptions();
   buildKeyboard(); resize(); draw();
   requestAnimationFrame(frame);
 }
